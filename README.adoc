@@ -100,7 +100,7 @@ Node.js v19.6.0
 ----
 vi /usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
 ----
-
++
 [source]
 ----
   "exports": {
