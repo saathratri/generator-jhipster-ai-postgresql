@@ -12,7 +12,6 @@ This is a side-by-side JHipster 7 blue print showing how to put human-readable f
 There is a solution in the JDL syntax to display a field is documented here: https://www.jhipster.tech/jdl/relationships.  The JDL syntax to display a field is:
 
 [source]
-+
 ----
 relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
   <from entity>[{<relationship name>[(<display field>)]}] to <to entity>[{<relationship name>[(<display field>)]}]+
@@ -22,7 +21,6 @@ relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
 An example of the above built-in syntax is (from Matt Raible's "Micro Frontends for Java Microservices" article / github.com code is below):
 
 [source]
-+
 ----
 entity Blog {
   name String required minlength(3)
