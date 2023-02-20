@@ -54,7 +54,7 @@ This example also show how to create a JHipster 7 blueprint.
 
 toc::[]
 
-== Micro frontends in action with JHipster
+== Setup for Generating JHipster Blueprints
 
 . Install JHipster 7.9.3:
 +
@@ -125,7 +125,7 @@ INFO! Using bundled JHipster
 7.9.3
 ----
 
-=== Build JHipster Blueprint for Multiple Human-readable Foreign Key Fields.
+== Build JHipster Blueprint for Multiple Human-readable Foreign Key Fields.
 
 . To generate a JHipster blueprint, run the following command:
 +
