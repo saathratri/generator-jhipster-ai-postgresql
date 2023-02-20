@@ -64,6 +64,7 @@ npm i -g generator-jhipster@7.9.3
 ----
 
 . There is a bug, at least on macOS Ventura 13.1, that requires a slight change to the yeoman-environment's package.json file.  You will see an error when running the command:
++
 [source,shell]
 ----
 jhipster --version
