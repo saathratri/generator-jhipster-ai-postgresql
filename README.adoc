@@ -299,7 +299,7 @@ generators/entity-client/templates/angular/src/main/webapp/app/entities/detail/e
 generators/entity-client/templates/angular/src/main/webapp/app/entities/list/entity-management.component.html.ejs
 generators/entity-client/templates/angular/src/main/webapp/app/entities/update/entity-management-update.component.html.ejs
 
-== Have fun with creating JHipster blueprint!
+== Have Fun with Creating JHipster Blueprints!
 
 I hope you enjoyed this demo, and it helped you understand how to build blueprints with JHipster.
 
