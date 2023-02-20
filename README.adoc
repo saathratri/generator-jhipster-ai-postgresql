@@ -117,7 +117,8 @@ vi /usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-environmen
   },
 ----
 
-Now run the jhipster version command again and you will see the version as below.
+. Now run the jhipster version command again and you will see the version as below.
++
 [source,shell]
 ----
 jhipster --version
