@@ -261,14 +261,14 @@ vi ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/nod
   },
 ----
 
-Then run the blueprint command again, to finish generating the blueprint
+. Then run the blueprint command again, to finish generating the blueprint
 
 [source,shell]
 ----
 jhipster generate-blueprint
 ----
 
-You should see success message now:
+. You should see success message now:
 [source,shell]
 ----
 Application successfully committed to Git from ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields.
