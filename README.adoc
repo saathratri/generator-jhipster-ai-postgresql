@@ -245,7 +245,7 @@ Error: Command failed with exit code 1: npm run update-snapshot
 ----
 vi ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
 ----
-
++
 [source]
 ----
   "exports": {
