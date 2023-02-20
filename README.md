@@ -277,5 +277,9 @@ blueprints with JHipster.
 ☕️ Find the code on GitHub:
 <https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields>
 
-🤓 Read the blog post: [Micro Frontends for Java
-Microservices](https://auth0.com/blog/micro-frontends-for-java-microservices/)
+🤓 Read the README.md post at
+<https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example>
+to see a working example of a microservices architecture using an
+Angular client that was generated using this blueprint. You will see how
+multiple foreign key fields are displayed when a relationship’s fields
+are shown.

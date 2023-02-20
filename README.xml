@@ -288,6 +288,6 @@ generators/entity-client/templates/angular/src/main/webapp/app/entities/update/e
 <title>Have Fun with Creating JHipster Blueprints!</title>
 <simpara>I hope you enjoyed this demo, and it helped you understand how to build blueprints with JHipster.</simpara>
 <simpara>☕️ Find the code on GitHub: <ulink url="https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields">https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields</ulink></simpara>
-<simpara>🤓 Read the blog post: <ulink url="https://auth0.com/blog/micro-frontends-for-java-microservices/">Micro Frontends for Java Microservices</ulink></simpara>
+<simpara>🤓 Read the README.md post at <ulink url="https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example">https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example</ulink> to see a working example of a microservices architecture using an Angular client that was generated using this blueprint.  You will see how multiple foreign key fields are displayed when a relationship&#8217;s fields are shown.</simpara>
 </section>
 </article>
