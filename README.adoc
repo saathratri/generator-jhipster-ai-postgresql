@@ -9,8 +9,7 @@ In this article, the word attribute is equivalent to the word field as they rela
 
 This is a side-by-side JHipster 7 blue print showing how to put human-readable foreign key field in place of UUIDs into the user interface where entities have relationships with other entities. Sometimes having a UUID makes it difficult for the human in the loop to figure out what the entity on the other side actually is (without clicking on the UUID link). This solution makes it easier for the user to see what the other related entity actually is. Futhermore, this solution is based on adding @customAnnotation's to entity field(s), in the JDL file, that would be shown in replacement of UUIDs. If multiple entity fields are necessary to replace the UUID, the fields can be delimmited via a specified delimiter using a @customAnnotation, as well. 
 
-. There is a solution in the JDL syntax to display a field is documented here: https://www.jhipster.tech/jdl/relationships.  The JDL syntax to display a field is:
-+
+There is a solution in the JDL syntax to display a field is documented here: https://www.jhipster.tech/jdl/relationships.  The JDL syntax to display a field is:
 [source]
 ----
 relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
@@ -18,8 +17,7 @@ relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
 }
 ----
 
-. An example of the above built-in syntax is (from Matt Raible's "Micro Frontends for Java Microservices" article / github.com code is below):
-+
+An example of the above built-in syntax is (from Matt Raible's "Micro Frontends for Java Microservices" article / github.com code is below):
 [source]
 ----
 entity Blog {
@@ -70,7 +68,9 @@ npm i -g generator-jhipster@7.9.3
 jhipster --version
 ----
 
-If you see the following error, there is an easy fix below:
+. If you see the following error, there is an easy fix below:
++
+[source,shell]
 ----
 INFO! Using bundled JHipster
 node:internal/modules/cjs/loader:556
@@ -94,10 +94,9 @@ Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is
 Node.js v19.6.0
 ----
 
-Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the global yoeman-environment's package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
+. Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the global yoeman-environment's package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
++
 [source,shell]
-----
-jhipster --version
 ----
 vi /usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
 ----
