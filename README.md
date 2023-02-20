@@ -133,6 +133,7 @@ This example also show how to create a JHipster 7 blueprint.
 
 1.  To generate a JHipster blueprint, run the following command:
 
+        cd ~
         mkdir generator-jhipster-multiple-human-readable-foreign-key-fields
         cd generator-jhipster-multiple-human-readable-foreign-key-fields
         jhipster generate-blueprint
@@ -241,6 +242,7 @@ This example also show how to create a JHipster 7 blueprint.
 5.  Then run the blueprint command again, to finish generating the
     blueprint
 
+        cd ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields
         jhipster generate-blueprint
 
 6.  You should see success message now:
@@ -253,6 +255,7 @@ This example also show how to create a JHipster 7 blueprint.
 
 1.  Link the blueprint locally
 
+        cd ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields
         npm link
 
 ## Modify the Blueprint to Enable Multiple Human-readable Foreign key Fields.

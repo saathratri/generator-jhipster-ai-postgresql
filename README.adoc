@@ -133,6 +133,7 @@ INFO! Using bundled JHipster
 +
 [source,shell]
 ----
+cd ~
 mkdir generator-jhipster-multiple-human-readable-foreign-key-fields
 cd generator-jhipster-multiple-human-readable-foreign-key-fields
 jhipster generate-blueprint

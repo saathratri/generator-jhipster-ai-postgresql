@@ -130,7 +130,8 @@ INFO! Using bundled JHipster
 <simpara>
 To generate a JHipster blueprint, run the following command:
 </simpara>
-<programlisting language="shell" linenumbering="unnumbered">mkdir generator-jhipster-multiple-human-readable-foreign-key-fields
+<programlisting language="shell" linenumbering="unnumbered">cd ~
+mkdir generator-jhipster-multiple-human-readable-foreign-key-fields
 cd generator-jhipster-multiple-human-readable-foreign-key-fields
 jhipster generate-blueprint
 
