@@ -242,7 +242,8 @@ This is what the package.json should look like:
 <simpara>
 Then run the blueprint command again, to finish generating the blueprint
 </simpara>
-<programlisting language="shell" linenumbering="unnumbered">jhipster generate-blueprint</programlisting>
+<programlisting language="shell" linenumbering="unnumbered">cd ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields
+jhipster generate-blueprint</programlisting>
 </listitem>
 <listitem>
 <simpara>
@@ -260,7 +261,8 @@ Sponsored with ❤️  by @oktadev.</programlisting>
 <simpara>
 Link the blueprint locally
 </simpara>
-<programlisting language="shell" linenumbering="unnumbered">npm link</programlisting>
+<programlisting language="shell" linenumbering="unnumbered">cd ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields
+npm link</programlisting>
 </listitem>
 </orderedlist>
 </section>
