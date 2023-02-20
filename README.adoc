@@ -183,7 +183,8 @@ Welcome to JHipster v7.9.3
 ----
 
 . If you see the following error, there is an easy fix below:
-
++
+[source,shell]
 ----
 Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is not defined by "exports" in /Users/amarppatel/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
     at new NodeError (node:internal/errors:399:5)
