@@ -240,6 +240,7 @@ Error: Command failed with exit code 1: npm run update-snapshot
 ----
 
 . Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the local project yoeman-environment's package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
++
 [source,shell]
 ----
 vi ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
@@ -262,13 +263,14 @@ vi ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/nod
 ----
 
 . Then run the blueprint command again, to finish generating the blueprint
-
++
 [source,shell]
 ----
 jhipster generate-blueprint
 ----
 
 . You should see success message now:
++
 [source,shell]
 ----
 Application successfully committed to Git from ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields.
