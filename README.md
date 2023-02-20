@@ -18,16 +18,12 @@ There is a solution in the JDL syntax to display a field is documented
 here: <https://www.jhipster.tech/jdl/relationships>. The JDL syntax to
 display a field is:
 
-\+
-
     relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
       <from entity>[{<relationship name>[(<display field>)]}] to <to entity>[{<relationship name>[(<display field>)]}]+
     }
 
 An example of the above built-in syntax is (from Matt Raible’s "Micro
 Frontends for Java Microservices" article / github.com code is below):
-
-\+
 
     entity Blog {
       name String required minlength(3)
