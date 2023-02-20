@@ -281,6 +281,7 @@ Sponsored with ❤️  by @oktadev.
 === Use the Blueprint Locally to Generate Code
 
 . Link the blueprint locally
++
 [source,shell]
 ----
 npm link
@@ -289,6 +290,8 @@ npm link
 === Modify the Blueprint to enable multiple human-readable foreign key attributes.
 
 . Added the following files:
++
+[source,shell]
 generators/constants-saathratri.js
 generator/utils-saathratri.js
 generators/entity-client/templates/angular/src/main/webapp/app/entities/entity.model.ts.ejs
@@ -300,6 +303,6 @@ generators/entity-client/templates/angular/src/main/webapp/app/entities/update/e
 
 I hope you enjoyed this demo, and it helped you understand how to build blueprints with JHipster.
 
-☕️ Find the code on GitHub: https://github.com/oktadev/auth0-micro-frontends-jhipster-example[@oktadev/auth0-micro-frontends-jhipster-example]
+☕️ Find the code on GitHub: https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields
 
 🤓 Read the blog post: https://auth0.com/blog/micro-frontends-for-java-microservices/[Micro Frontends for Java Microservices]
