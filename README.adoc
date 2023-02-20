@@ -10,7 +10,8 @@ In this article, the word attribute is equivalent to the word field as they rela
 This is a side-by-side JHipster 7 blue print showing how to put human-readable foreign key field in place of UUIDs into the user interface where entities have relationships with other entities. Sometimes having a UUID makes it difficult for the human in the loop to figure out what the entity on the other side actually is (without clicking on the UUID link). This solution makes it easier for the user to see what the other related entity actually is. Futhermore, this solution is based on adding @customAnnotation's to entity field(s), in the JDL file, that would be shown in replacement of UUIDs. If multiple entity fields are necessary to replace the UUID, the fields can be delimmited via a specified delimiter using a @customAnnotation, as well. 
 
 There is a solution in the JDL syntax to display a field is documented here: https://www.jhipster.tech/jdl/relationships.  The JDL syntax to display a field is:
-[source]
++
+[source,shell]
 ----
 relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
   <from entity>[{<relationship name>[(<display field>)]}] to <to entity>[{<relationship name>[(<display field>)]}]+
@@ -18,7 +19,8 @@ relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
 ----
 
 An example of the above built-in syntax is (from Matt Raible's "Micro Frontends for Java Microservices" article / github.com code is below):
-[source]
++
+[source,shell]
 ----
 entity Blog {
   name String required minlength(3)
@@ -101,7 +103,7 @@ Node.js v19.6.0
 vi /usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
 ----
 +
-[source]
+[source,shell]
 ----
   "exports": {
     ".": "./lib/environment.js",
@@ -186,7 +188,7 @@ Welcome to JHipster v7.9.3
 +
 [source,shell]
 ----
-Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is not defined by "exports" in /Users/amarppatel/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
+Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is not defined by "exports" in ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
     at new NodeError (node:internal/errors:399:5)
     at exportsNotFound (node:internal/modules/esm/resolve:266:10)
     at packageExportsResolve (node:internal/modules/esm/resolve:602:9)
@@ -217,36 +219,18 @@ Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is
     at Module._load (node:internal/modules/cjs/loader:942:12)
     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:168:29)
     at ModuleJob.run (node:internal/modules/esm/module_job:193:25)
-✖ An error occured while running jhipster:generate-blueprint#addSnapshot
-ERROR! Command failed with exit code 1: npm run update-snapshot
-Error: Command failed with exit code 1: npm run update-snapshot
-    at makeError (/usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-generator/node_modules/execa/lib/error.js:60:11)
-    at handlePromise (/usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-generator/node_modules/execa/index.js:118:26)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async default.addSnapshot (file:///usr/local/lib/node_modules/generator-jhipster/generators/generate-blueprint/generator.mjs:380:11) {
-  shortMessage: 'Command failed with exit code 1: npm run update-snapshot',
-  command: 'npm run update-snapshot',
-  escapedCommand: 'npm run update-snapshot',
-  exitCode: 1,
-  signal: undefined,
-  signalDescription: undefined,
-  stdout: undefined,
-  stderr: undefined,
-  failed: true,
-  timedOut: false,
-  isCanceled: false,
-  killed: false
-}
 ----
 
-. Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the local project yoeman-environment's package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
+. Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the local project yoeman-environment package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
 +
 [source,shell]
 ----
 vi ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
 ----
+
+. This is what the package.json should look like:
 +
-[source]
+[source,shell]
 ----
   "exports": {
     ".": "./lib/environment.js",
@@ -292,12 +276,14 @@ npm link
 . Added the following files:
 +
 [source,shell]
+----
 generators/constants-saathratri.js
 generator/utils-saathratri.js
 generators/entity-client/templates/angular/src/main/webapp/app/entities/entity.model.ts.ejs
 generators/entity-client/templates/angular/src/main/webapp/app/entities/detail/entity-management-detail.component.html.ejs
 generators/entity-client/templates/angular/src/main/webapp/app/entities/list/entity-management.component.html.ejs
 generators/entity-client/templates/angular/src/main/webapp/app/entities/update/entity-management-update.component.html.ejs
+----
 
 == Have Fun with Creating JHipster Blueprints!
 

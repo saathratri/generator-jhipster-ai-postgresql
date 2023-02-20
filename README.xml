@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<?asciidoc-toc?>
+<?asciidoc-numbered?>
+
+<article lang="en">
+<articleinfo>
+    <title>JHipster Side-by-side Blueprint for Multiple Human-Readable Foreign Key Attributes in Angular Client&#8217;s User Interface</title>
+</articleinfo>
+<simpara>In this article, the word attribute is equivalent to the word field as they relate to entities. Both the words field and attribute will be used interchangeably.</simpara>
+<simpara>This is a side-by-side JHipster 7 blue print showing how to put human-readable foreign key field in place of UUIDs into the user interface where entities have relationships with other entities. Sometimes having a UUID makes it difficult for the human in the loop to figure out what the entity on the other side actually is (without clicking on the UUID link). This solution makes it easier for the user to see what the other related entity actually is. Futhermore, this solution is based on adding @customAnnotation&#8217;s to entity field(s), in the JDL file, that would be shown in replacement of UUIDs. If multiple entity fields are necessary to replace the UUID, the fields can be delimmited via a specified delimiter using a @customAnnotation, as well.</simpara>
+<simpara>There is a solution in the JDL syntax to display a field is documented here: <ulink url="https://www.jhipster.tech/jdl/relationships">https://www.jhipster.tech/jdl/relationships</ulink>.  The JDL syntax to display a field is:</simpara>
+<simpara>+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">relationship (OneToMany | ManyToOne | OneToOne | ManyToMany) {
+  &lt;from entity&gt;[{&lt;relationship name&gt;[(&lt;display field&gt;)]}] to &lt;to entity&gt;[{&lt;relationship name&gt;[(&lt;display field&gt;)]}]+
+}</programlisting>
+<simpara>An example of the above built-in syntax is (from Matt Raible&#8217;s "Micro Frontends for Java Microservices" article / github.com code is below):</simpara>
+<simpara>+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">entity Blog {
+  name String required minlength(3)
+  handle String required minlength(2)
+}
+
+entity Post {
+  title String required
+  content TextBlob required
+  date Instant required
+}
+
+relationship ManyToOne {
+  Blog{user(login)} to User
+  Post{blog(name)} to Blog
+}</programlisting>
+<simpara>In the above example, the blog&#8217;s UUID will be replaced by the blog&#8217;s name in the user interface wher the post will be displayed.</simpara>
+<simpara>However, the built-in JDL syntax does not provide the ability to display multiple fields to futher distinguish a complex entity.  For example, if multiple blogs can have the same name, we would not be able to tell which blog is in the relationship with the post.  If we could dispaly the blog&#8217;s name and handle (assuming no 2 blogs can have the same handle), then we would be able to tell which blog is related to the post.  Consequently, this blueprint serves the purpose of relpacing UUIDs with multiple attributes/fields of the other-side relationship with a given entity to help differentiate the entity&#8217;s relationship on the user interface.</simpara>
+<simpara>This example also show how to create a JHipster 7 blueprint.</simpara>
+<simpara><emphasis role="strong">Prerequisites</emphasis>:</simpara>
+<itemizedlist>
+<listitem>
+<simpara>
+<ulink url="https://sdkman.io/">Java</ulink> 11+
+</simpara>
+</listitem>
+<listitem>
+<simpara>
+<ulink url="https://nodejs.com/">Node.js</ulink> 16+
+</simpara>
+</listitem>
+<listitem>
+<simpara>
+<ulink url="https://www.docker.com/products/docker-desktop/">Docker Desktop</ulink>
+</simpara>
+</listitem>
+<listitem>
+<simpara>
+<ulink url="https://www.jhipster.tech/installation/">JHipster</ulink> 7.9.3
+</simpara>
+</listitem>
+</itemizedlist>
+<section id="_setup_for_generating_jhipster_blueprints">
+<title>Setup for Generating JHipster Blueprints</title>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>
+Install JHipster 7.9.3:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">npm i -g generator-jhipster@7.9.3</programlisting>
+</listitem>
+<listitem>
+<simpara>
+There is a bug, at least on macOS Ventura 13.1, that requires a slight change to the yeoman-environment&#8217;s package.json file.  You will see an error when running the command:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">jhipster --version</programlisting>
+</listitem>
+<listitem>
+<simpara>
+If you see the following error, there is an easy fix below:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">INFO! Using bundled JHipster
+node:internal/modules/cjs/loader:556
+      throw e;
+      ^
+
+Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is not defined by "exports" in /usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
+    at new NodeError (node:internal/errors:399:5)
+    at exportsNotFound (node:internal/modules/esm/resolve:266:10)
+    at packageExportsResolve (node:internal/modules/esm/resolve:602:9)
+    at resolveExports (node:internal/modules/cjs/loader:550:36)
+    at Module._findPath (node:internal/modules/cjs/loader:619:31)
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1046:27)
+    at Module._load (node:internal/modules/cjs/loader:905:27)
+    at Module.require (node:internal/modules/cjs/loader:1127:19)
+    at require (node:internal/modules/helpers:112:18)
+    at Object.&lt;anonymous&gt; (/usr/local/lib/node_modules/generator-jhipster/utils/blueprint.js:19:25) {
+  code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+}
+
+Node.js v19.6.0</programlisting>
+</listitem>
+<listitem>
+<simpara>
+Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the global yoeman-environment&#8217;s package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">vi /usr/local/lib/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json</programlisting>
+<programlisting language="shell" linenumbering="unnumbered">  "exports": {
+    ".": "./lib/environment.js",
+    "./cli/": "./cli/",
+    "./lib/": "./lib/",
+    "./lib/util/": "./lib/util/",
+    "./adapter": "./lib/adapter.js",
+    "./conflicter": "./lib/util/conflicter.js",
+    "./log": "./lib/util/log.js",
+    "./transform": "./lib/util/transform.js",
+    "./package.json": "./package.json",
+    "./lib/util/namespace": "./lib/util/namespace.js"
+  },</programlisting>
+</listitem>
+<listitem>
+<simpara>
+Now run the jhipster version command again and you will see the version as below.
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">jhipster --version
+INFO! Using bundled JHipster
+7.9.3</programlisting>
+</listitem>
+</orderedlist>
+</section>
+<section id="_build_jhipster_blueprint_for_multiple_human_readable_foreign_key_fields">
+<title>Build JHipster Blueprint for Multiple Human-readable Foreign Key Fields.</title>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>
+To generate a JHipster blueprint, run the following command:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">mkdir generator-jhipster-multiple-human-readable-foreign-key-fields
+cd generator-jhipster-multiple-human-readable-foreign-key-fields
+jhipster generate-blueprint
+
+INFO! Using bundled JHipster
+
+        ██╗ ██╗   ██╗ ████████╗ ███████╗   ██████╗ ████████╗ ████████╗ ███████╗
+        ██║ ██║   ██║ ╚══██╔══╝ ██╔═══██╗ ██╔════╝ ╚══██╔══╝ ██╔═════╝ ██╔═══██╗
+        ██║ ████████║    ██║    ███████╔╝ ╚█████╗     ██║    ██████╗   ███████╔╝
+  ██╗   ██║ ██╔═══██║    ██║    ██╔════╝   ╚═══██╗    ██║    ██╔═══╝   ██╔══██║
+  ╚██████╔╝ ██║   ██║ ████████╗ ██║       ██████╔╝    ██║    ████████╗ ██║  ╚██╗
+   ╚═════╝  ╚═╝   ╚═╝ ╚═══════╝ ╚═╝       ╚═════╝     ╚═╝    ╚═══════╝ ╚═╝   ╚═╝
+                            https://www.jhipster.tech
+Welcome to JHipster v7.9.3
+
+⬢ Welcome to the JHipster Project Name ⬢
+? What is the base name of your application? multiple-human-readable-foreign-key-fields
+? What is the project name of your application? Multiple Human Readable Foreign Key Fields Application
+? Do you want to generate a local blueprint inside your application? No
+? Which sub-generators do you want to override? cypress, entity-client
+? Comma separated additional sub-generators.
+? Add a cli? Yes
+? Is cypress generator a side-by-side blueprint? Yes
+? Is cypress generator a cli command? No
+? What task do you want do implement at cypress generator? initializing
+? Is entity-client generator a side-by-side blueprint? Yes
+? Is entity-client generator a cli command? No
+? What task do you want do implement at entity-client generator? initializing
+? What is the default indentation? 2
+   create .prettierrc.yml
+   create package.json
+   create .eslintrc.json
+    force .yo-rc.json
+   create .mocharc.cjs
+   create README.md
+   create test/utils.mjs
+   create cli/cli.mjs
+   create .github/workflows/generator.yml
+   create .prettierignore
+   create .gitignore
+   create .gitattributes
+   create .editorconfig
+   create generators/cypress/index.mjs
+   create generators/cypress/generator.spec.mjs
+   create generators/cypress/generator.mjs
+   create generators/entity-client/generator.mjs
+   create generators/entity-client/index.mjs
+    force .yo-rc.json</programlisting>
+</listitem>
+<listitem>
+<simpara>
+If you see the following error, there is an easy fix below:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/util/namespace' is not defined by "exports" in ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json
+    at new NodeError (node:internal/errors:399:5)
+    at exportsNotFound (node:internal/modules/esm/resolve:266:10)
+    at packageExportsResolve (node:internal/modules/esm/resolve:602:9)
+    at resolveExports (node:internal/modules/cjs/loader:550:36)
+    at Module._findPath (node:internal/modules/cjs/loader:619:31)
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1046:27)
+    at Module._load (node:internal/modules/cjs/loader:905:27)
+    at Module.require (node:internal/modules/cjs/loader:1127:19)
+    at require (node:internal/modules/helpers:112:18)
+    at Object.&lt;anonymous&gt; (/Users/amarppatel/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/utils/blueprint.js:19:25)
+    at Module._compile (node:internal/modules/cjs/loader:1246:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1300:10)
+    at Module.load (node:internal/modules/cjs/loader:1103:32)
+    at Module._load (node:internal/modules/cjs/loader:942:12)
+    at Module.require (node:internal/modules/cjs/loader:1127:19)
+    at require (node:internal/modules/helpers:112:18)
+    at Object.&lt;anonymous&gt; (/Users/amarppatel/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/cli/environment-builder.js:27:82)
+    at Module._compile (node:internal/modules/cjs/loader:1246:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1300:10)
+    at Module.load (node:internal/modules/cjs/loader:1103:32)
+    at Module._load (node:internal/modules/cjs/loader:942:12)
+    at Module.require (node:internal/modules/cjs/loader:1127:19)
+    at require (node:internal/modules/helpers:112:18)
+    at Object.&lt;anonymous&gt; (/Users/amarppatel/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/cli/program.js:26:28)
+    at Module._compile (node:internal/modules/cjs/loader:1246:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1300:10)
+    at Module.load (node:internal/modules/cjs/loader:1103:32)
+    at Module._load (node:internal/modules/cjs/loader:942:12)
+    at ModuleWrap.&lt;anonymous&gt; (node:internal/modules/esm/translators:168:29)
+    at ModuleJob.run (node:internal/modules/esm/module_job:193:25)</programlisting>
+</listitem>
+<listitem>
+<simpara>
+Add the line "./lib/util/namespace": "./lib/util/namespace.js" to the local project yoeman-environment package.json at the end of the "exports" section as follows.  You will need to add a "," after "./package.json".
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">vi ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields/node_modules/generator-jhipster/node_modules/yeoman-environment/package.json</programlisting>
+</listitem>
+<listitem>
+<simpara>
+This is what the package.json should look like:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">  "exports": {
+    ".": "./lib/environment.js",
+    "./cli/": "./cli/",
+    "./lib/": "./lib/",
+    "./lib/util/": "./lib/util/",
+    "./adapter": "./lib/adapter.js",
+    "./conflicter": "./lib/util/conflicter.js",
+    "./log": "./lib/util/log.js",
+    "./transform": "./lib/util/transform.js",
+    "./package.json": "./package.json",
+    "./lib/util/namespace": "./lib/util/namespace.js"
+  },</programlisting>
+</listitem>
+<listitem>
+<simpara>
+Then run the blueprint command again, to finish generating the blueprint
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">jhipster generate-blueprint</programlisting>
+</listitem>
+<listitem>
+<simpara>
+You should see success message now:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">Application successfully committed to Git from ~/workspace/generator-jhipster-multiple-human-readable-foreign-key-fields.
+Congratulations, JHipster execution is complete!
+Sponsored with ❤️  by @oktadev.</programlisting>
+</listitem>
+</orderedlist>
+<section id="_use_the_blueprint_locally_to_generate_code">
+<title>Use the Blueprint Locally to Generate Code</title>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>
+Link the blueprint locally
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">npm link</programlisting>
+</listitem>
+</orderedlist>
+</section>
+<section id="_modify_the_blueprint_to_enable_multiple_human_readable_foreign_key_fields">
+<title>Modify the Blueprint to Enable Multiple Human-readable Foreign key Fields.</title>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>
+Added the following files:
+</simpara>
+<programlisting language="shell" linenumbering="unnumbered">generators/constants-saathratri.js
+generator/utils-saathratri.js
+generators/entity-client/templates/angular/src/main/webapp/app/entities/entity.model.ts.ejs
+generators/entity-client/templates/angular/src/main/webapp/app/entities/detail/entity-management-detail.component.html.ejs
+generators/entity-client/templates/angular/src/main/webapp/app/entities/list/entity-management.component.html.ejs
+generators/entity-client/templates/angular/src/main/webapp/app/entities/update/entity-management-update.component.html.ejs</programlisting>
+</listitem>
+</orderedlist>
+</section>
+</section>
+<section id="_have_fun_with_creating_jhipster_blueprints">
+<title>Have Fun with Creating JHipster Blueprints!</title>
+<simpara>I hope you enjoyed this demo, and it helped you understand how to build blueprints with JHipster.</simpara>
+<simpara>☕️ Find the code on GitHub: <ulink url="https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields">https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields</ulink></simpara>
+<simpara>🤓 Read the blog post: <ulink url="https://auth0.com/blog/micro-frontends-for-java-microservices/">Micro Frontends for Java Microservices</ulink></simpara>
+</section>
+</article>
