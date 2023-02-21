@@ -3,7 +3,7 @@
 :toc: macro
 :source-highlighter: highlight.js
 
-== JHipster Side-by-side Blueprint for Multiple Human-Readable Foreign Key Attributes in Angular Client's User Interface
+= JHipster Side-by-side Blueprint for Multiple Human-Readable Foreign Key Attributes in Angular Client's User Interface
 
 In this article, the word attribute is equivalent to the word field as they relate to entities. Both the words field and attribute will be used interchangeably. 
 
