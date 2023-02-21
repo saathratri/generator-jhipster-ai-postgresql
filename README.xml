@@ -5,8 +5,10 @@
 
 <article lang="en">
 <articleinfo>
-    <title>JHipster Side-by-side Blueprint for Multiple Human-Readable Foreign Key Attributes in Angular Client&#8217;s User Interface</title>
+    <date>2023-02-21</date>
 </articleinfo>
+<section id="_jhipster_side_by_side_blueprint_for_multiple_human_readable_foreign_key_attributes_in_angular_client_8217_s_user_interface">
+<title>JHipster Side-by-side Blueprint for Multiple Human-Readable Foreign Key Attributes in Angular Client&#8217;s User Interface</title>
 <simpara>In this article, the word attribute is equivalent to the word field as they relate to entities. Both the words field and attribute will be used interchangeably.</simpara>
 <simpara>This is a side-by-side JHipster 7 blue print showing how to put human-readable foreign key field in place of UUIDs into the user interface where entities have relationships with other entities. Sometimes having a UUID makes it difficult for the human in the loop to figure out what the entity on the other side actually is (without clicking on the UUID link). This solution makes it easier for the user to see what the other related entity actually is. Futhermore, this solution is based on adding @customAnnotation&#8217;s to entity field(s), in the JDL file, that would be shown in replacement of UUIDs. If multiple entity fields are necessary to replace the UUID, the fields can be delimmited via a specified delimiter using a @customAnnotation, as well.</simpara>
 <simpara>There is a solution in the JDL syntax to display a field is documented here: <ulink url="https://www.jhipster.tech/jdl/relationships">https://www.jhipster.tech/jdl/relationships</ulink>.  The JDL syntax to display a field is:</simpara>
@@ -55,6 +57,7 @@ relationship ManyToOne {
 </simpara>
 </listitem>
 </itemizedlist>
+</section>
 <section id="_setup_for_generating_jhipster_blueprints">
 <title>Setup for Generating JHipster Blueprints</title>
 <orderedlist numeration="arabic">
