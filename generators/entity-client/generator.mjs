@@ -10,6 +10,14 @@ export default class extends EntityClientGenerator {
 
     if (this.options.help) return;
 
+    if (!this.options.jhipsterContext) {
+      throw new Error(
+        `This is a JHipster blueprint and should be used only like ${chalk.yellow(
+          'jhipster --blueprints multiple-human-readable-foreign-key-fields'
+        )}`
+      );
+    }
+
     // References: 
     // - https://stackoverflow.com/questions/73705785/how-to-create-a-custom-blueprint
     // - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions
@@ -18,14 +26,6 @@ export default class extends EntityClientGenerator {
     this.options.jhipsterContext.getClientOptionToDisplayForModel = this.getClientOptionToDisplayForModel;
     this.options.jhipsterContext.getClientOptionToDisplayForManyToManyList = this.getClientOptionToDisplayForManyToManyList;
     this.options.jhipsterContext.getClientOptionToDisplayForList = this.getClientOptionToDisplayForList;
-
-    if (!this.options.jhipsterContext) {
-      throw new Error(
-        `This is a JHipster blueprint and should be used only like ${chalk.yellow(
-          'jhipster --blueprints multiple-human-readable-foreign-key-fields'
-        )}`
-      );
-    }
 
     this.sbsBlueprint = true;
   }
