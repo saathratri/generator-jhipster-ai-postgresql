@@ -1,6 +1,6 @@
 {
-  "name": "generator-jhipster-multiple-human-readable-foreign-key-fields",
-  "version": "1.0.0",
+  "name": "@amarppatel/generator-jhipster-multiple-human-readable-foreign-key-fields",
+  "version": "1.0.1",
   "private": false,
   "description": "Multiple Human Readable Foreign Key Fields Application",
   "keywords": [
@@ -8,7 +8,7 @@
     "jhipster-blueprint",
     "jhipster-7"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "imports": {
     "#test-utils": "./test/utils.mjs"
@@ -57,5 +57,18 @@
   },
   "cacheDirectories": [
     "node_modules"
-  ]
+  ],
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields.git"
+  },
+  "author": "Amar Premsaran Patel",
+  "bugs": {
+    "url": "https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields/issues"
+  },
+  "homepage": "https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields#readme"
 }
