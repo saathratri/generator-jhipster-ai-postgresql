@@ -1,6 +1,6 @@
 {
   "name": "@amarppatel/generator-jhipster-multiple-human-readable-foreign-key-fields",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "private": false,
   "description": "Multiple Human Readable Foreign Key Fields Application",
   "keywords": [
