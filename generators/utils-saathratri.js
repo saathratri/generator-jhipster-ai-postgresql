@@ -6,8 +6,13 @@ export default {
      getClientOptionToDisplayForUpdate,
      getClientOptionToDisplayForModel,
      getClientOptionToDisplayForManyToManyList,
-     getClientOptionToDisplayForList
+     getClientOptionToDisplayForList,
+     getDTOArtifactName
 };
+
+function getDTOArtifactName(baseName) {
+    return baseName + 'dto';
+}
 
 /*********************************
  * entity-client Helper Functions

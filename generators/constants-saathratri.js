@@ -19,7 +19,9 @@
 
  const { saathratriConstants } = {
     MAVEN_SRC_DIR: `maven/`,
-    USE_OPTION_TO_DISPLAY_IN_GUI: true
+    MAIN_SRC_DIR: 'src/main/java/',
+    USE_OPTION_TO_DISPLAY_IN_GUI: true,
+
  };
 
 export default { saathratriConstants }; 

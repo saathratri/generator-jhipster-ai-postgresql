@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import EntityClientGenerator from 'generator-jhipster/esm/generators/entity-client';
 import { PRIORITY_PREFIX, INITIALIZING_PRIORITY } from 'generator-jhipster/esm/priorities';
-import saathratriConstants from '../constants-saathratri.js';
 import saathratriUtils from '../utils-saathratri.js';
 
 export default class extends EntityClientGenerator {
