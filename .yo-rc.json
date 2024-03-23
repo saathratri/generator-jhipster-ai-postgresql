@@ -3,25 +3,102 @@
     "additionalSubGenerators": "",
     "baseName": "multiple-human-readable-foreign-key-fields",
     "cli": true,
+    "entities": [],
     "generators": {
+      "client": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": true,
+        "written": true
+      },
       "cypress": {
         "command": false,
         "priorities": ["initializing"],
         "sbs": true,
         "written": true
       },
-      "entity-client": {
+      "entity": {
         "command": false,
-        "priorities": ["initializing"],
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": true,
+        "written": true
+      },
+      "server": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
         "sbs": true,
         "written": true
       }
     },
-    "jhipsterVersion": "7.9.3",
+    "jhipsterVersion": "8.2.1",
     "localBlueprint": false,
-    "prettierDefaultIndent": 2,
-    "projectName": "Multiple Human Readable Foreign Key Fields Application",
-    "skipCommitHook": true,
-    "subGenerators": ["cypress", "entity-client"]
+    "sampleWritten": true,
+    "subGenerators": ["client", "cypress", "entity", "server"]
   }
 }
