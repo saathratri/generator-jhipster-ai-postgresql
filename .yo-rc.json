@@ -5,69 +5,7 @@
     "cli": true,
     "entities": [],
     "generators": {
-      "client": {
-        "command": false,
-        "priorities": [
-          "initializing",
-          "prompting",
-          "configuring",
-          "composing",
-          "loading",
-          "preparing",
-          "configuringEachEntity",
-          "loadingEntities",
-          "preparingEachEntity",
-          "preparingEachEntityField",
-          "preparingEachEntityRelationship",
-          "postPreparingEachEntity",
-          "default",
-          "writing",
-          "writingEntities",
-          "postWriting",
-          "postWritingEntities",
-          "loadingTranslations",
-          "install",
-          "postInstall",
-          "end"
-        ],
-        "sbs": true,
-        "written": true
-      },
-      "cypress": {
-        "command": false,
-        "priorities": ["initializing"],
-        "sbs": true,
-        "written": true
-      },
-      "entity": {
-        "command": false,
-        "priorities": [
-          "initializing",
-          "prompting",
-          "configuring",
-          "composing",
-          "loading",
-          "preparing",
-          "configuringEachEntity",
-          "loadingEntities",
-          "preparingEachEntity",
-          "preparingEachEntityField",
-          "preparingEachEntityRelationship",
-          "postPreparingEachEntity",
-          "default",
-          "writing",
-          "writingEntities",
-          "postWriting",
-          "postWritingEntities",
-          "loadingTranslations",
-          "install",
-          "postInstall",
-          "end"
-        ],
-        "sbs": true,
-        "written": true
-      },
-      "server": {
+      "angular": {
         "command": false,
         "priorities": [
           "initializing",
@@ -99,6 +37,6 @@
     "jhipsterVersion": "8.2.1",
     "localBlueprint": false,
     "sampleWritten": true,
-    "subGenerators": ["client", "cypress", "entity", "server"]
+    "subGenerators": ["angular"]
   }
 }
