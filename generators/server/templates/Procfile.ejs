@@ -1,0 +1,1 @@
+web: java $JAVA_OPTS -Xmx256m -Dserver.port=$PORT -jar target/*.jar --spring.profiles.active=prod,heroku<%_ if (databaseTypeSql) { _%>,no-liquibase<%_ } _%>
