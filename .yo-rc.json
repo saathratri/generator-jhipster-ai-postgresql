@@ -5,7 +5,7 @@
     "cli": true,
     "entities": [],
     "generators": {
-       "angular": {
+      "angular-saathratri": {
         "command": false,
         "priorities": [
           "initializing",
@@ -30,7 +30,7 @@
           "postInstall",
           "end"
         ],
-        "sbs": true,
+        "sbs": null,
         "written": true
       },
       "client": {
@@ -62,12 +62,6 @@
         "written": true
       },
       "cypress": {
-        "command": false,
-        "priorities": ["initializing"],
-        "sbs": true,
-        "written": true
-      },
-      "entity": {
         "command": false,
         "priorities": [
           "initializing",
@@ -122,11 +116,73 @@
         ],
         "sbs": true,
         "written": true
-      }
-    },
-    "jhipsterVersion": "8.2.1",
-    "localBlueprint": false,
-    "sampleWritten": true,
-    "subGenerators": ["angular", "client", "cypress", "entity", "server"]
+      },
+      "server-saathratri": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": true,
+        "written": true
+      },
+      "java": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": true,
+        "written": true
+      },
+      "jhipsterVersion": "8.5.0",
+      "localBlueprint": false,
+      "sampleWritten": true,
+      "subGenerators": [
+        "angular-saathratri",
+        "client",
+        "cypress",
+        "server",
+        "java"
+      ]
+    }
   }
 }

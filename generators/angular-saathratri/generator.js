@@ -1,5 +1,8 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
+import { generateEntityClientEnumImports } from 'generator-jhipster/generators/client/support';
+import { angularSaathratriUtils } from './angular-saathratri-utils.js';
+import { angularFilesFromSaathratri } from './entity-files.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -29,12 +32,7 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
-      async composeTask() {
-        if (['angularX', 'angular'].includes(this.jhipsterConfigWithDefaults.clientFramework)) {
-         // Delegate the client sub-generator to the angular blueprint.
-         await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:angular-saathratri');
-        }
-      },
+      async composingTemplateTask() {},
     });
   }
 
@@ -97,7 +95,7 @@ export default class extends BaseApplicationGenerator {
       async writingTemplateTask({ application }) {
         await this.writeFiles({
           sections: {
-            files: [{ templates: ['template-file-client'] }],
+            files: [{ templates: ['template-file-angular'] }],
           },
           context: application,
         });
@@ -107,7 +105,15 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.WRITING_ENTITIES]() {
     return this.asWritingEntitiesTaskGroup({
-      async writingEntitiesTemplateTask() {},
+      async writingEntitiesTemplateTask({ application, entities }) {
+
+        for (const entity of entities.filter(e => !e.builtIn)) {
+          await this.writeFiles({
+            sections: entity.entityClientModelOnly ? { model: [entityModelFiles] } : angularFilesFromSaathratri,
+            context: { ...application, ...entity, ...angularSaathratriUtils, generateEntityClientEnumImports },
+          });
+        }
+      },
     });
   }
 

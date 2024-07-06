@@ -1,8 +1,6 @@
 ######################
 # Node
 ######################
-/node/
-node_tmp/
 node_modules/
 npm-debug.log.*
 /.awcache/*
@@ -30,6 +28,7 @@ local.properties
 .settings/
 .loadpath
 .factorypath
+/src/main/resources/rebel.xml
 
 # External tool builders
 .externalToolBuilders/**
@@ -69,28 +68,6 @@ out/
 *.code-workspace
 
 ######################
-# Maven
-######################
-/log/
-/target/
-
-######################
-# Gradle
-######################
-.gradle/
-/build/
-/buildSrc/.gradle/
-/buildSrc/build/
-
-######################
-# Package Files
-######################
-*.jar
-*.war
-*.ear
-*.db
-
-######################
 # Windows
 ######################
 # Windows image file caches
@@ -113,12 +90,6 @@ Desktop.ini
 .Trashes
 
 ######################
-# Directories
-######################
-/bin/
-/deploy/
-
-######################
 # Logs
 ######################
 *.log*
@@ -132,22 +103,11 @@ Desktop.ini
 .merge_file*
 
 ######################
-# Gradle Wrapper
-######################
-!gradle/wrapper/gradle-wrapper.jar
-
-######################
-# Maven Wrapper
-######################
-!.mvn/wrapper/maven-wrapper.jar
-
-######################
 # ESLint
 ######################
 .eslintcache
 
 ######################
-# Code coverage
+# Angular
 ######################
-/coverage/
-/.nyc_output/
+.angular

@@ -1,7 +1,6 @@
 {
   "name": "generator-jhipster-multiple-human-readable-foreign-key-fields",
-  "version": "0.0.0",
-  "private": true,
+  "version": "2.0.0",
   "description": "Description for Multiple Human Readable Foreign Key Fields",
   "keywords": [
     "yeoman-generator",
@@ -30,11 +29,10 @@
     "vitest": "vitest"
   },
   "dependencies": {
-    "chalk": "^5.3.0",
-    "generator-jhipster": "8.2.1"
+    "generator-jhipster": "8.5.0"
   },
   "devDependencies": {
-    "ejs-lint": "2.0.0",
+    "ejs-lint": "^2.0.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-import": "2.29.1",
