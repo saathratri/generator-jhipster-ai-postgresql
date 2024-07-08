@@ -1,17 +1,10 @@
-
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
+import fs from 'fs';
+import path from 'path';
 
 export default class extends BaseApplicationGenerator {
-
   constructor(args, opts, features) {
-    /******************************************************************/
-    // Important: The checkBlueprint: true flag is used to check if the 
-    // blueprint is installed and uses it to process the generator.
-    // The base generator is called where the properties are defined.
-    // The other option is sbsBlueprint: true, which is used to delegate
-    // the client sub-generator to the spring boot blueprint.
-    /******************************************************************/
     super(args, opts, { ...features, sbsBlueprint: true });
   }
 
@@ -36,21 +29,15 @@ export default class extends BaseApplicationGenerator {
     });
   }
 
-  // get [BaseApplicationGenerator.COMPOSING]() {
-  //   return this.asComposingTaskGroup({
-  //     async composingTemplateTask() {},
-  //   });
-  // }
-
-
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
-      async composeTask() {
-        if (['angularX', 'angular'].includes(this.jhipsterConfigWithDefaults.clientFramework)) {
-         // Delegate the client sub-generator to the angular blueprint.
-         await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:server-saathratri');
-        }
-      },
+      async composingTemplateTask() {},
+    });
+  }
+
+  get [BaseApplicationGenerator.COMPOSING_COMPONENT]() {
+    return this.asComposingComponentTaskGroup({
+      async composingComponentTemplateTask() {},
     });
   }
 
@@ -111,13 +98,53 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
-        await this.writeFiles({
-          sections: {
-            files: [{ templates: ['template-file-server'] }],
-          },
-          context: application,
-        });
+
+        if (application.applicationTypeMicroservice) {
+
+          // Path to the last-used-port.json file
+          const portFilePath = path.join(this.destinationRoot(), '..', 'last-used-port.json');
+
+          // Read the last used port
+          let lastUsedPort;
+          let portData;
+          try {
+            portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
+            lastUsedPort = portData.lastUsedPort;
+          } catch (error) {
+            lastUsedPort = 5432;
+            portData = {};
+          }
+
+          // Increment the port
+          lastUsedPort += 1;
+
+          // Update the last used port in the file
+          portData.lastUsedPort = lastUsedPort;
+          fs.writeFileSync(portFilePath, JSON.stringify(portData, null, 2));
+
+          // Example usage of the port in your configuration files
+          this.log(`The server port is: ${lastUsedPort}`);
+      
+          await this.writeFiles({
+            sections: {
+              files: [{ templates: [
+                  'src/main/docker/postgresql.yml'
+                ] 
+              }],
+            },
+            context: {
+              ...application,
+              serverPortSaathratri: lastUsedPort,
+            }
+          });
+        }
       },
+    });
+  }
+
+  get [BaseApplicationGenerator.WRITING_ENTITIES]() {
+    return this.asWritingEntitiesTaskGroup({
+      async writingEntitiesTemplateTask() {},
     });
   }
 

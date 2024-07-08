@@ -1,7 +1,7 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
 import { serverSaathratriUtils } from './server-saathratri-utils.js';
-import { entityServerFilesFromSaathratri } from './entity-files.js';
+import { entityServerFilesSaathratri, baseServerFilesSaathratri } from './entity-files.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -91,7 +91,12 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
-      async writingTemplateTask() {},
+      async writingTemplateTask( { application } ) {
+        await this.writeFiles({
+          sections: baseServerFilesSaathratri,
+          context: application,
+        });
+      },
     });
   }
 
@@ -101,7 +106,7 @@ export default class extends BaseApplicationGenerator {
 
         for (const entity of entities.filter(e => !e.builtIn)) {
           await this.writeFiles({
-            sections: entityServerFilesFromSaathratri,
+            sections: entityServerFilesSaathratri,
             context: { ...application, ...entity, ...serverSaathratriUtils },
           });
         }

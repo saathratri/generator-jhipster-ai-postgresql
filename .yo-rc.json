@@ -173,6 +173,34 @@
         "sbs": true,
         "written": true
       },
+      "docker": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": true,
+        "written": true
+      },
       "jhipsterVersion": "8.5.0",
       "localBlueprint": false,
       "sampleWritten": true,
@@ -181,7 +209,8 @@
         "client",
         "cypress",
         "server",
-        "java"
+        "java",
+        "docker"
       ]
     }
   }
