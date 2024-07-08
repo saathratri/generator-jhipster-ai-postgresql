@@ -1,7 +1,8 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
+import { serverUtils } from '../server/server-utils.js';
 import { serverSaathratriUtils } from './server-saathratri-utils.js';
-import { entityServerFilesSaathratri, baseServerFilesSaathratri } from './entity-files.js';
+import { entityServerFilesSaathratri } from './entity-files.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -92,10 +93,28 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask( { application } ) {
-        await this.writeFiles({
-          sections: baseServerFilesSaathratri,
-          context: application,
-        });
+
+        if (application.applicationTypeMicroservice) {
+
+          let lastUsedPort = await serverUtils.getLastUsedPort(this.destinationPath());
+          lastUsedPort += 1;
+          serverUtils.setLastUsedPort(this.destinationPath(), lastUsedPort, this.appname);
+      
+          // Example usage of the port in your configuration files
+          this.log(`The server port is: ${lastUsedPort}`);
+
+          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${lastUsedPort}/${application.devDatabaseName}`;
+
+          await this.writeFiles({
+            sections: {
+              files: [{ templates: [
+                  'src/main/resources/config/application-dev.yml'
+                ] 
+              }],
+            },
+            context: application,
+          });
+        }
       },
     });
   }

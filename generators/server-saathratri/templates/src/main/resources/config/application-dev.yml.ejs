@@ -131,7 +131,7 @@ spring:
 <%_ if (databaseTypeSql && !reactive) { _%>
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: <%- devJdbcUrl %>
+    url: <%- devJdbcUrlSaathratri %>
     username: <%- devDatabaseUsername %>
     password: <%- devDatabasePassword %>
     hikari:
@@ -178,7 +178,7 @@ spring:
   <%_ if (!skipFakeData) { _%>
     # Remove 'faker' if you do not want the sample data to be loaded automatically
   <%_ } _%>
-    contexts: dev<% if (!skipFakeData) { %>, faker<% } %>
+    contexts: dev
   <%_ if (databaseTypeSql && reactive) { _%>
     url: <%- devJdbcUrl %>
   <%_ } _%>

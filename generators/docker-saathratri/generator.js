@@ -1,7 +1,6 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
-import fs from 'fs';
-import path from 'path';
+import { serverUtils } from '../server/server-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -101,30 +100,11 @@ export default class extends BaseApplicationGenerator {
 
         if (application.applicationTypeMicroservice) {
 
-          // Path to the last-used-port.json file
-          const portFilePath = path.join(this.destinationRoot(), '..', 'last-used-port.json');
-
-          // Read the last used port
-          let lastUsedPort;
-          let portData;
-          try {
-            portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
-            lastUsedPort = portData.lastUsedPort;
-          } catch (error) {
-            lastUsedPort = 5432;
-            portData = {};
-          }
-
-          // Increment the port
-          lastUsedPort += 1;
-
-          // Update the last used port in the file
-          portData.lastUsedPort = lastUsedPort;
-          fs.writeFileSync(portFilePath, JSON.stringify(portData, null, 2));
+          const appPort = await serverUtils.getApplicationPort(this.destinationPath(), this.appname);
 
           // Example usage of the port in your configuration files
-          this.log(`The server port is: ${lastUsedPort}`);
-      
+          this.log(`The server port is: ${appPort}`);
+
           await this.writeFiles({
             sections: {
               files: [{ templates: [
@@ -134,7 +114,7 @@ export default class extends BaseApplicationGenerator {
             },
             context: {
               ...application,
-              serverPortSaathratri: lastUsedPort,
+              serverPortSaathratri: appPort,
             }
           });
         }

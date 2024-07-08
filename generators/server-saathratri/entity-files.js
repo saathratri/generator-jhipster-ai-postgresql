@@ -10,17 +10,3 @@ export const entityServerFilesSaathratri = {
         })
     ],
 };
-/**
- * The default is to use a file path string. It implies use of the template method.
- * For any other config an object { file:.., method:.., template:.. } can be used
- */
-export const baseServerFilesSaathratri = {
-    serverResource: [
-        {
-            path: 'src/main/resources',
-            templates: [
-                'config/application-dev.yml',
-            ],
-        },
-    ],
-};
