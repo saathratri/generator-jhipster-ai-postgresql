@@ -102,7 +102,7 @@ export default class extends BaseApplicationGenerator {
 
           const appPort = await serverUtils.getApplicationPort(this.destinationPath(), this.appname);
 
-          // Example usage of the port in your configuration files
+          // The usage of the port in your configuration files
           this.log(`The server port is: ${appPort}`);
 
           await this.writeFiles({

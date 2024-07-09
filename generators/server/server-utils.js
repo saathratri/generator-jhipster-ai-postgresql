@@ -1,20 +1,21 @@
 import fs from 'fs';
-import path, { basename } from 'path';
+import path from 'path';
 
 const LAST_USED_PORT_FILE = 'last-used-port.json';
 
 export const serverUtils = {
 
-    getLastPortUsedFilePath( destinationPath ) {
-        return path.join(destinationPath, '..', LAST_USED_PORT_FILE);
-    },
-
     /**************************************
      * server-utils Helper Functions
      **************************************/
+
+    getLastUsedPortsFile( destinationPath ) {
+        return path.join(destinationPath, '..', LAST_USED_PORT_FILE);
+    },
+
     getLastUsedPort(destinationPath) {
         // Path to the last-used-port.json file
-        const portFilePath = this.getLastPortUsedFilePath(destinationPath);
+        const portFilePath = this.getLastUsedPortsFile(destinationPath);
 
         // Read the last used port
         let lastUsedPort;
@@ -33,7 +34,7 @@ export const serverUtils = {
 
     setLastUsedPort(destinationPath, port, appName) {
         // Path to the last-used-port.json file
-        const portFilePath = this.getLastPortUsedFilePath(destinationPath);
+        const portFilePath = this.getLastUsedPortsFile(destinationPath);
 
         // Read the last used port
         let portData;
@@ -43,7 +44,7 @@ export const serverUtils = {
             portData = {};
         }
 
-        // Ensure the basename key exists
+        // Ensure the appName key exists
         if (!portData[appName]) {
             portData[appName] = {};
         }
@@ -58,7 +59,7 @@ export const serverUtils = {
 
     getApplicationPort(destinationPath, appName) {
         // Path to the last-used-port.json file
-        const portFilePath = this.getLastPortUsedFilePath(destinationPath);
+        const portFilePath = this.getLastUsedPortsFile(destinationPath);
 
         // Read the last used port
         let portData;
@@ -69,7 +70,7 @@ export const serverUtils = {
             portData = {};
         }
 
-        // Ensure the basename key exists
+        // Ensure the appName key exists
         if (!portData[appName]) {
             portData[appName].port = 5432;
         }

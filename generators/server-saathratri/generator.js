@@ -100,7 +100,7 @@ export default class extends BaseApplicationGenerator {
           lastUsedPort += 1;
           serverUtils.setLastUsedPort(this.destinationPath(), lastUsedPort, this.appname);
       
-          // Example usage of the port in your configuration files
+          // The usage of the port in your configuration files
           this.log(`The server port is: ${lastUsedPort}`);
 
           application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${lastUsedPort}/${application.devDatabaseName}`;
