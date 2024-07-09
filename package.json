@@ -1,13 +1,24 @@
 {
   "name": "generator-jhipster-multiple-human-readable-foreign-key-fields",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Description for Multiple Human Readable Foreign Key Fields",
   "keywords": [
     "yeoman-generator",
     "jhipster-blueprint",
+    "human-readable foreign keys",
+    "postgresql",
     "jhipster-8"
   ],
-  "license": "UNLICENSED",
+  "author": "Amar Premsaran Patel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields.git"
+  },
+  "bugs": {
+    "url": "https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields/issues"
+  },
+  "homepage": "https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields#readme",
   "type": "module",
   "bin": {
     "jhipster-multiple-human-readable-foreign-key-fields": "cli/cli.cjs"

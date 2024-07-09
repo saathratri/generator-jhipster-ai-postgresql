@@ -40,18 +40,3 @@ jhipster app --blueprints multiple-human-readable-foreign-key-fields --help
 
 And looking for `(blueprint option: multiple-human-readable-foreign-key-fields)` like
 
-## Pre-release
-
-To use an unreleased version, install it using git.
-
-```bash
-npm install -g jhipster/generator-jhipster-multiple-human-readable-foreign-key-fields#main
-jhipster --blueprints multiple-human-readable-foreign-key-fields --skip-jhipster-dependencies
-```
-
-[npm-image]: https://img.shields.io/npm/v/generator-jhipster-multiple-human-readable-foreign-key-fields.svg
-[npm-url]: https://npmjs.org/package/generator-jhipster-multiple-human-readable-foreign-key-fields
-[github-generator-image]: https://github.com/jhipster/generator-jhipster-multiple-human-readable-foreign-key-fields/actions/workflows/generator.yml/badge.svg
-[github-generator-url]: https://github.com/jhipster/generator-jhipster-multiple-human-readable-foreign-key-fields/actions/workflows/generator.yml
-[github-integration-image]: https://github.com/jhipster/generator-jhipster-multiple-human-readable-foreign-key-fields/actions/workflows/integration.yml/badge.svg
-[github-integration-url]: https://github.com/jhipster/generator-jhipster-multiple-human-readable-foreign-key-fields/actions/workflows/integration.yml
