@@ -1,10 +1,6 @@
 # generator-jhipster-multiple-human-readable-foreign-key-fields
 
-> JHipster blueprint, multiple-human-readable-foreign-key-fields blueprint for JHipster
-
-[![NPM version][npm-image]][npm-url]
-[![Generator][github-generator-image]][github-generator-url]
-[![Integration Test][github-integration-image]][github-integration-url]
+> JHipster blueprint, multiple-human-readable-foreign-key-fields blueprint for JHipster.
 
 # Introduction
 
@@ -40,3 +36,12 @@ jhipster app --blueprints multiple-human-readable-foreign-key-fields --help
 
 And looking for `(blueprint option: multiple-human-readable-foreign-key-fields)` like
 
+::: paragraph
+☕️ Find the example code on GitHub:
+[https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example](https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example){.bare}
+:::
+
+::: paragraph
+☕️ Find the JHipster blueprint code on GitHub:
+[https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields](https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields){.bare}
+:::
