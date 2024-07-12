@@ -5,6 +5,34 @@
     "cli": true,
     "entities": [],
     "generators": {
+      "app": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": null,
+        "written": true
+      },
       "angular-saathratri": {
         "command": false,
         "priorities": [
@@ -205,6 +233,7 @@
       "localBlueprint": false,
       "sampleWritten": true,
       "subGenerators": [
+        "app",
         "angular-saathratri",
         "client",
         "cypress",

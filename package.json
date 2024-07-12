@@ -1,6 +1,6 @@
 {
   "name": "generator-jhipster-multiple-human-readable-foreign-key-fields",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "Description for Multiple Human Readable Foreign Key Fields",
   "keywords": [
     "yeoman-generator",

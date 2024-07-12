@@ -38,8 +38,8 @@ And looking for `(blueprint option: multiple-human-readable-foreign-key-fields)`
 
 # Open Source Software - See the Code
 
-☕️ Find the example code on GitHub:
+☕️ Find the example code to run this blueprint/generator on GitHub:
 [https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example](https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example)
 
-☕️ Find the JHipster blueprint code on GitHub:
+☕️ Find the JHipster blueprint/generator code on GitHub:
 [https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields](https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields)
