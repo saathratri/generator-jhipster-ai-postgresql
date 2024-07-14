@@ -3,7 +3,7 @@ import { saathratriConstants } from '../saathratri-constants.js';
 export const angularSaathratriUtils = {
 
     /**************************************
-     * angular-saathratri Helper Functions
+     * sql-angular Helper Functions
      **************************************/
 
     getClientOptionToDisplayForUpdate(otherEntity, otherEntityName, otherEntityField) {

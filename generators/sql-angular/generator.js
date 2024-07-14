@@ -1,8 +1,8 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
-import { serverUtils } from '../server/server-utils.js';
-import { serverSaathratriUtils } from './server-saathratri-utils.js';
-import { entityServerFilesSaathratri } from './entity-files.js';
+import { generateEntityClientEnumImports } from 'generator-jhipster/generators/client/support';
+import { angularSaathratriUtils } from './sql-angular-utils.js';
+import { angularFilesFromSaathratri } from './entity-files.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -92,29 +92,13 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
-      async writingTemplateTask( { application } ) {
-
-        if (application.applicationTypeMicroservice) {
-
-          let lastUsedPort = await serverUtils.getLastUsedPort(this.destinationPath());
-          lastUsedPort += 1;
-          serverUtils.setLastUsedPort(this.destinationPath(), lastUsedPort, this.appname);
-      
-          // The usage of the port in your configuration files
-          this.log(`The server port is: ${lastUsedPort}`);
-
-          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${lastUsedPort}/${application.devDatabaseName}`;
-
-          await this.writeFiles({
-            sections: {
-              files: [{ templates: [
-                  'src/main/resources/config/application-dev.yml'
-                ] 
-              }],
-            },
-            context: application,
-          });
-        }
+      async writingTemplateTask({ application }) {
+        await this.writeFiles({
+          sections: {
+            files: [{ templates: ['template-file-angular'] }],
+          },
+          context: application,
+        });
       },
     });
   }
@@ -125,8 +109,8 @@ export default class extends BaseApplicationGenerator {
 
         for (const entity of entities.filter(e => !e.builtIn)) {
           await this.writeFiles({
-            sections: entityServerFilesSaathratri,
-            context: { ...application, ...entity, ...serverSaathratriUtils },
+            sections: entity.entityClientModelOnly ? { model: [entityModelFiles] } : angularFilesFromSaathratri,
+            context: { ...application, ...entity, ...angularSaathratriUtils, generateEntityClientEnumImports },
           });
         }
       },

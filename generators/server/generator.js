@@ -48,7 +48,7 @@ export default class extends BaseApplicationGenerator {
       async composeTask() {
         if (['angularX', 'angular'].includes(this.jhipsterConfigWithDefaults.clientFramework)) {
          // Delegate the client sub-generator to the angular blueprint.
-         await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:server-saathratri');
+         await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:sql-server');
         }
       },
     });

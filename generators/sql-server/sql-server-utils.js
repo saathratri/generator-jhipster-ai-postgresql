@@ -3,7 +3,7 @@ import { saathratriConstants } from '../saathratri-constants.js';
 export const serverSaathratriUtils = {
 
     /**************************************
-     * server-saathratri Helper Functions
+     * sql-server Helper Functions
      **************************************/
 
    /**

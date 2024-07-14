@@ -32,7 +32,7 @@ export default class extends BaseApplicationGenerator {
       async composingTemplateTask() {
         if (['sql'].includes(this.jhipsterConfigWithDefaults.databaseType)) {
           // Delegate the client sub-generator to the angular blueprint.
-          await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:docker-saathratri');
+          await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:sql-docker');
          }
       },
     });

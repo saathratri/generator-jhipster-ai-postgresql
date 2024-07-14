@@ -33,7 +33,7 @@
         "sbs": null,
         "written": true
       },
-      "angular-saathratri": {
+      "sql-angular": {
         "command": false,
         "priorities": [
           "initializing",
@@ -145,7 +145,7 @@
         "sbs": true,
         "written": true
       },
-      "server-saathratri": {
+      "sql-server": {
         "command": false,
         "priorities": [
           "initializing",
@@ -234,7 +234,7 @@
       "sampleWritten": true,
       "subGenerators": [
         "app",
-        "angular-saathratri",
+        "sql-angular",
         "client",
         "cypress",
         "server",
