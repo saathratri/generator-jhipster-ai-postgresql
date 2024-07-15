@@ -95,7 +95,7 @@ export default class extends BaseApplicationGenerator {
       async writingTemplateTask({ application }) {
         await this.writeFiles({
           sections: {
-            files: [{ templates: ['template-file-angular'] }],
+            files: [{ templates: ['template-file-sql-angular'] }],
           },
           context: application,
         });
