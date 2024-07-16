@@ -16,7 +16,7 @@ As this is a [JHipster](https://www.jhipster.tech/) blueprint, we expect you hav
 
 To install or update this blueprint:
 
-```bash
+```console
 npm install -g generator-jhipster-multiple-human-readable-foreign-key-fields
 ```
 
@@ -24,13 +24,13 @@ npm install -g generator-jhipster-multiple-human-readable-foreign-key-fields
 
 To use this blueprint, run the below command
 
-```bash
+```console
 jhipster --blueprints multiple-human-readable-foreign-key-fields
 ```
 
 You can look for updated multiple-human-readable-foreign-key-fields blueprint specific options by running
 
-```bash
+```console
 jhipster app --blueprints multiple-human-readable-foreign-key-fields --help
 ```
 
