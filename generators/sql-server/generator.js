@@ -1,8 +1,8 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
+import { javaMainPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
 import { serverUtils } from '../server/server-utils.js';
 import { serverSaathratriUtils } from './sql-server-utils.js';
-import { entityServerFilesSaathratri } from './entity-files.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -107,10 +107,13 @@ export default class extends BaseApplicationGenerator {
 
           await this.writeFiles({
             sections: {
-              files: [{ templates: [
-                  'src/main/resources/config/application-dev.yml'
-                ] 
-              }],
+              files: [
+                { 
+                  templates: [
+                    'src/main/resources/config/application-dev.yml',
+                  ]
+                },
+              ],
             },
             context: application,
           });
@@ -125,7 +128,17 @@ export default class extends BaseApplicationGenerator {
 
         for (const entity of entities.filter(e => !e.builtIn)) {
           await this.writeFiles({
-            sections: entityServerFilesSaathratri,
+            sections: {
+              files: [
+                {
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer,
+                  ...javaMainPackageTemplatesBlock('_entityPackage_/'),
+                  templates: [
+                    'service/mapper/_entityClass_Mapper.java',
+                  ]
+                },
+              ]
+            },
             context: { ...application, ...entity, ...serverSaathratriUtils },
           });
         }

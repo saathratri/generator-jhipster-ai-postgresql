@@ -36,17 +36,10 @@ export default class extends BaseApplicationGenerator {
     });
   }
 
-  // get [BaseApplicationGenerator.COMPOSING]() {
-  //   return this.asComposingTaskGroup({
-  //     async composingTemplateTask() {},
-  //   });
-  // }
-
-
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
       async composeTask() {
-        if (['angularX', 'angular'].includes(this.jhipsterConfigWithDefaults.clientFramework)) {
+        if (['sql'].includes(this.jhipsterConfigWithDefaults.databaseType)) {
          // Delegate the client sub-generator to the angular blueprint.
          await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:sql-server');
         }
