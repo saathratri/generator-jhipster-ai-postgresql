@@ -1,6 +1,6 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
-import { serverUtils } from '../server/server-utils.js';
+import { sqlServerUtils } from '../sql-server/sql-server-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -100,7 +100,7 @@ export default class extends BaseApplicationGenerator {
 
         if (application.applicationTypeMicroservice) {
 
-          const appPort = await serverUtils.getApplicationPort(this.destinationPath(), this.appname);
+          const appPort = await sqlServerUtils.getApplicationPort(this.destinationPath(), this.appname);
 
           // The usage of the port in your configuration files
           this.log(`The server port is: ${appPort}`);

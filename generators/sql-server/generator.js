@@ -1,8 +1,7 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
 import { javaMainPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
-import { serverUtils } from '../server/server-utils.js';
-import { serverSaathratriUtils } from './sql-server-utils.js';
+import { sqlServerUtils } from '../sql-server/sql-server-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -96,9 +95,9 @@ export default class extends BaseApplicationGenerator {
 
         if (application.applicationTypeMicroservice) {
 
-          let lastUsedPort = await serverUtils.getLastUsedPort(this.destinationPath());
+          let lastUsedPort = await sqlServerUtils.getLastUsedPort(this.destinationPath());
           lastUsedPort += 1;
-          serverUtils.setLastUsedPort(this.destinationPath(), lastUsedPort, this.appname);
+          sqlServerUtils.setLastUsedPort(this.destinationPath(), lastUsedPort, this.appname);
       
           // The usage of the port in your configuration files
           this.log(`The server port is: ${lastUsedPort}`);
@@ -134,12 +133,13 @@ export default class extends BaseApplicationGenerator {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer,
                   ...javaMainPackageTemplatesBlock('_entityPackage_/'),
                   templates: [
+                    /* saathratri-needle-sql-copy-dto-class */
                     'service/mapper/_entityClass_Mapper.java',
                   ]
                 },
               ]
             },
-            context: { ...application, ...entity, ...serverSaathratriUtils },
+            context: { ...application, ...entity, ...sqlServerUtils },
           });
         }
       },

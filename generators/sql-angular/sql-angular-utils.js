@@ -1,4 +1,4 @@
-import { saathratriConstants } from '../saathratri-constants.js';
+import { saathratriConstants } from '../sql-server/saathratri-constants.js';
 
 export const angularSaathratriUtils = {
 
