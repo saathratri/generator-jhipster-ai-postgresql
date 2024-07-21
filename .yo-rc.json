@@ -33,34 +33,6 @@
         "sbs": null,
         "written": true
       },
-      "sql-angular": {
-        "command": false,
-        "priorities": [
-          "initializing",
-          "prompting",
-          "configuring",
-          "composing",
-          "loading",
-          "preparing",
-          "configuringEachEntity",
-          "loadingEntities",
-          "preparingEachEntity",
-          "preparingEachEntityField",
-          "preparingEachEntityRelationship",
-          "postPreparingEachEntity",
-          "default",
-          "writing",
-          "writingEntities",
-          "postWriting",
-          "postWritingEntities",
-          "loadingTranslations",
-          "install",
-          "postInstall",
-          "end"
-        ],
-        "sbs": null,
-        "written": true
-      },
       "client": {
         "command": false,
         "priorities": [
@@ -118,6 +90,34 @@
         "written": true
       },
       "server": {
+        "command": false,
+        "priorities": [
+          "initializing",
+          "prompting",
+          "configuring",
+          "composing",
+          "loading",
+          "preparing",
+          "configuringEachEntity",
+          "loadingEntities",
+          "preparingEachEntity",
+          "preparingEachEntityField",
+          "preparingEachEntityRelationship",
+          "postPreparingEachEntity",
+          "default",
+          "writing",
+          "writingEntities",
+          "postWriting",
+          "postWritingEntities",
+          "loadingTranslations",
+          "install",
+          "postInstall",
+          "end"
+        ],
+        "sbs": true,
+        "written": true
+      },
+      "spring-boot": {
         "command": false,
         "priorities": [
           "initializing",
@@ -234,10 +234,10 @@
       "sampleWritten": true,
       "subGenerators": [
         "app",
-        "sql-angular",
         "client",
         "cypress",
         "server",
+        "spring-boot",
         "java",
         "docker"
       ]
