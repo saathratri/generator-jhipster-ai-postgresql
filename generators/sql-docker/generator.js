@@ -100,10 +100,10 @@ export default class extends BaseApplicationGenerator {
 
         if (application.applicationTypeMicroservice) {
 
-          const appPort = await sqlServerUtils.getApplicationPort(this.destinationPath(), this.appname);
+          const portData = await sqlServerUtils.getApplicationPortData(this.destinationPath(), this.appname);
 
           // The usage of the port in your configuration files
-          this.log(`The server port is: ${appPort}`);
+          this.log(`The server port is: ${portData[this.appname].port}`);
 
           await this.writeFiles({
             sections: {
@@ -114,7 +114,7 @@ export default class extends BaseApplicationGenerator {
             },
             context: {
               ...application,
-              serverPortSaathratri: appPort,
+              serverPortSaathratri: portData[this.appname].port,
             }
           });
         }

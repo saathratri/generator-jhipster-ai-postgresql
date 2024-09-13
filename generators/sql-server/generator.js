@@ -93,16 +93,17 @@ export default class extends BaseApplicationGenerator {
     return this.asWritingTaskGroup({
       async writingTemplateTask( { application } ) {
 
-        if (application.applicationTypeMicroservice) {
+        if (application. applicationTypeMicroservice) {
 
-          let lastUsedPort = await sqlServerUtils.getLastUsedPort(this.destinationPath());
-          lastUsedPort += 1;
-          sqlServerUtils.setLastUsedPort(this.destinationPath(), lastUsedPort, this.appname);
-      
+          sqlServerUtils.getApplicationPortData(this.destinationPath(), this.appname);
+
+          // Increment the last used port and set it in the port data
+          const portData = sqlServerUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
+
           // The usage of the port in your configuration files
-          this.log(`The server port is: ${lastUsedPort}`);
+          this.log(`The server port is: ${portData[this.appname].port}`);
 
-          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${lastUsedPort}/${application.devDatabaseName}`;
+          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}}/${application.devDatabaseName}`;
 
           await this.writeFiles({
             sections: {

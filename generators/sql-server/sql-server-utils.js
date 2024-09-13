@@ -60,26 +60,7 @@ export const sqlServerUtils = {
         return path.join(destinationPath, '..', LAST_USED_PORT_FILE);
     },
 
-    getLastUsedPort(destinationPath) {
-        // Path to the last-used-port.json file
-        const portFilePath = this.getLastUsedPortsFile(destinationPath);
-
-        // Read the last used port
-        let lastUsedPort;
-        let portData;
-        
-        try {
-            portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
-            lastUsedPort = portData.lastUsedPort;
-
-        } catch (error) {
-            lastUsedPort = 5432;
-        }
-
-        return lastUsedPort
-    },
-
-    setLastUsedPort(destinationPath, port, appName) {
+    getApplicationPortData(destinationPath, appName) {
         // Path to the last-used-port.json file
         const portFilePath = this.getLastUsedPortsFile(destinationPath);
 
@@ -87,41 +68,47 @@ export const sqlServerUtils = {
         let portData;
         try {
             portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
+
         } catch (error) {
             portData = {};
         }
 
         // Ensure the appName key exists
-        if (!portData[appName]) {
-            portData[appName] = {};
+        if (!portData.lastUsedPort) {
+            portData.lastUsedPort = 5432;
         }
-
-        // Update the last used port
-        portData[appName].port = port;
-        portData.lastUsedPort = port;
 
         // Write the last used port
         fs.writeFileSync(portFilePath, JSON.stringify(portData, null, 2));
+
+        return portData;
     },
 
-    getApplicationPort(destinationPath, appName) {
+    incrementAndSetLastUsedPort(destinationPath, appName) {
         // Path to the last-used-port.json file
         const portFilePath = this.getLastUsedPortsFile(destinationPath);
 
         // Read the last used port
-        let portData;
         try {
-            portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
+            let portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
 
+           // Check if the appName exists in portData
+           if (!portData[appName]) {
+                portData[appName] = { 
+                    port: portData.lastUsedPort
+                };
+
+                // Increment the last used port for the next microservice
+                portData.lastUsedPort += 1;
+            }
+
+            // Write the updated port data to the file
+            fs.writeFileSync(portFilePath, JSON.stringify(portData, null, 2));
+
+            return portData;
         } catch (error) {
-            portData = {};
+            console.error(`Failed to update port data: ${error.message}`);
+            throw error;
         }
-
-        // Ensure the appName key exists
-        if (!portData[appName]) {
-            portData[appName].port = 5432;
-        }
-
-        return portData[appName].port;
     }
 }
