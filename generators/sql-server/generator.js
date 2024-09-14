@@ -103,7 +103,7 @@ export default class extends BaseApplicationGenerator {
           // The usage of the port in your configuration files
           this.log(`The server port is: ${portData[this.appname].port}`);
 
-          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}}/${application.devDatabaseName}`;
+          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}/${application.devDatabaseName}`;
 
           await this.writeFiles({
             sections: {
