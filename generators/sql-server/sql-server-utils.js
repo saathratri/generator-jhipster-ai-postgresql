@@ -75,7 +75,11 @@ export const sqlServerUtils = {
 
         // Ensure the appName key exists
         if (!portData.lastUsedPort) {
-            portData.lastUsedPort = 5432;
+            /*
+             * Set the last used port to 5433, since 5432 is the default port and is 
+             * used by the gateway for PostgreSQL
+             */
+            portData.lastUsedPort = 5433;
         }
 
         // Write the last used port
