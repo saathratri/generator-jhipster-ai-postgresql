@@ -6,7 +6,7 @@ const LAST_USED_PORT_FILE = 'last-used-port.json';
 export const sqlServerUtils = {
 
     /**************************************
-     * sql-server Helper Functions
+     * sql-spring-boot-utils Helper Functions
      **************************************/
 
     /**
