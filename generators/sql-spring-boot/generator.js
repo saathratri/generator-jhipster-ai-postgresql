@@ -1,6 +1,7 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
-import { javaTestPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
+import { javaMainPackageTemplatesBlock, javaTestPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
+import { sqlServerUtils } from './sql-spring-boot-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -97,12 +98,24 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
+        if (application. applicationTypeMicroservice) {
+          sqlServerUtils.getApplicationPortData(this.destinationPath(), this.appname);
+          const portData = sqlServerUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
+          this.log(`The server port is: ${portData[this.appname].port}`);
+          application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}/${application.devDatabaseName}`;
         await this.writeFiles({
           sections: {
-            files: [{ templates: ['template-file-sql-spring-boot'] }],
+              files: [
+                { 
+                  templates: [
+                    'src/main/resources/config/application-dev.yml',
+                  ]
           },
+              ],
+            },
           context: application,
         });
+        }
       },
     });
   }
@@ -117,6 +130,14 @@ export default class extends BaseApplicationGenerator {
               files: [
                 {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer,
+                  ...javaMainPackageTemplatesBlock('_entityPackage_/'),
+                  templates: [
+                    /* saathratri-needle-sql-copy-dto-class */
+                    'service/mapper/_entityClass_Mapper.java',
+                  ]
+                },
+                {
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer,
                   ...javaTestPackageTemplatesBlock('_entityPackage_/'),
                   templates: [
                     'web/rest/_entityClass_ResourceIT.java',
@@ -124,7 +145,7 @@ export default class extends BaseApplicationGenerator {
                 },
               ]
             },
-            context: { ...application, ...entity },
+            context: { ...application, ...entity, ...sqlServerUtils },
           });
         }
       },

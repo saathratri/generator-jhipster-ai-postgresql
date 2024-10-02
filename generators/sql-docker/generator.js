@@ -1,6 +1,6 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
-import { sqlServerUtils } from '../sql-server/sql-server-utils.js';
+import { sqlServerUtils } from '../sql-spring-boot/sql-spring-boot-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -107,10 +107,16 @@ export default class extends BaseApplicationGenerator {
 
           await this.writeFiles({
             sections: {
-              files: [{ templates: [
-                  'src/main/docker/postgresql.yml'
-                ] 
-              }],
+              files: [
+                { 
+                  templates: [
+                    {
+                      file: 'docker/postgresql.yml',
+                      renameTo: ctx => `src/main/docker/postgresql.yml`,
+                    }
+                  ] 
+                }
+              ],
             },
             context: {
               ...application,
