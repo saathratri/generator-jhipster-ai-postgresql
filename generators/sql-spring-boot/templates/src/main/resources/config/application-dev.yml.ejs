@@ -87,9 +87,10 @@ spring:
       additional-exclude: static/**<% if (devDatabaseTypeH2Any) { %>,.h2.server.properties<% } %>
     livereload:
       enabled: false # we use Webpack dev server + BrowserSync for livereload
-<%_ if (devDatabaseTypeH2Any) { _%>
+<%_ if (devDatabaseTypeH2Any && 'dockerServices' in locals && dockerServices && dockerServices.length > 1) { _%>
   docker:
     compose:
+      enabled: <%- authenticationTypeOauth2 || messageBrokerAny || serviceDiscoveryAny || cacheProviderRedis %>
       profiles:
         active: dev
 <%_ } _%>
@@ -154,8 +155,12 @@ spring:
 <%_ if (devDatabaseTypeH2Any) { _%>
   h2:
     console:
-      # disable spring boot built-in h2-console since we start it manually with correct configuration
-      enabled: false
+      # JHipster uses a custom h2-console initializer
+  <%_ if (graalvmSupport) { _%>
+      enabled: '@spring.h2.console.enabled@'
+  <%_ } else { _%>
+      enabled: true
+  <%_ } _%>
 <%_ } _%>
 <%_ if (databaseTypeMongodb) { _%>
   data:
