@@ -23,6 +23,8 @@ services:
     image: <%- dockerContainers.postgresql %>
     # volumes:
     #   - ~/volumes/jhipster/<%= baseName %>/postgresql/:/var/lib/postgresql/data/
+    volumes:
+      - ./postgresql-init-scripts:/docker-entrypoint-initdb.d/
     environment:
       - POSTGRES_USER=<%= baseName %>
 <%_ if (prodDatabasePassword) { _%>

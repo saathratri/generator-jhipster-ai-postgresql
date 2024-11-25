@@ -113,6 +113,10 @@ export default class extends BaseApplicationGenerator {
                     {
                       file: 'docker/postgresql.yml',
                       renameTo: ctx => `src/main/docker/postgresql.yml`,
+                    },
+                    {
+                      file: 'docker/postgresql-init-scripts/init-vector-extension.sql',
+                      renameTo: ctx => `src/main/docker/postgresql-init-scripts/init-vector-extension.sql`,
                     }
                   ] 
                 }
@@ -121,6 +125,9 @@ export default class extends BaseApplicationGenerator {
             context: {
               ...application,
               serverPortSaathratri: portData[this.appname].port,
+              dockerContainers: {
+                postgresql: "pgvector/pgvector:pg17"
+              },
             }
           });
         }
