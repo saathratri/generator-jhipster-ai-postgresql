@@ -1,5 +1,6 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
+import { clientApplicationTemplatesBlock, clientRootTemplatesBlock, clientSrcTemplatesBlock } from 'generator-jhipster/generators/client/support';
 import { generateEntityClientEnumImports } from 'generator-jhipster/generators/client/support';
 import { angularSaathratriUtils } from './sql-angular-utils.js';
 import { angularFilesFromSaathratri } from './entity-files.js';
@@ -95,7 +96,30 @@ export default class extends BaseApplicationGenerator {
       async writingTemplateTask({ application }) {
         await this.writeFiles({
           sections: {
-            files: [{ templates: ['template-file-sql-angular'] }],
+            files: [
+              { 
+                templates: ['template-file-sql-angular'] 
+              },
+              {
+                ...clientRootTemplatesBlock(),
+                templates: [
+                  'package.json',
+                  'webpack/webpack.microfrontend.js',
+                ]
+              },
+              {
+                ...clientSrcTemplatesBlock(),
+                templates: [
+                  'content/scss/global.scss',
+                ]
+              },
+              {
+                ...clientApplicationTemplatesBlock(),
+                templates: [
+                  'app.config.ts',
+                ]
+              },
+            ],
           },
           context: application,
         });
