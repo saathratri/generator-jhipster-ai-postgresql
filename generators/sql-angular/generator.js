@@ -100,25 +100,6 @@ export default class extends BaseApplicationGenerator {
               { 
                 templates: ['template-file-sql-angular'] 
               },
-              {
-                ...clientRootTemplatesBlock(),
-                templates: [
-                  'package.json',
-                  'webpack/webpack.microfrontend.js',
-                ]
-              },
-              {
-                ...clientSrcTemplatesBlock(),
-                templates: [
-                  'content/scss/global.scss',
-                ]
-              },
-              {
-                ...clientApplicationTemplatesBlock(),
-                templates: [
-                  'app.config.ts',
-                ]
-              },
             ],
           },
           context: application,
