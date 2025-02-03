@@ -201,7 +201,7 @@ _%>
                 </div>
   <%_ } else if (relationship.persistableRelationship) { _%>
     <%_ 
-        if(!(annotations && annotations.ignoreOtherEntityForUpdatePageCustomAnnotation && annotations.ignoreOtherEntityForUpdatePageCustomAnnotation === otherEntity.entityInstancePlural + 'SharedCollection')) { 
+        if(!(annotations && annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation && annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation === otherEntity.entityInstancePlural)) { 
     _%>
                 <div class="mb-3">
                     <label for="field_<%= relationshipFieldNamePlural %>">__jhiTranslateTag__('<%- translationKey %>')</label>

@@ -73,8 +73,12 @@ for (const relationship of relationships.filter(rel => !rel.otherEntityIsEmbedde
     const relationshipFieldNamePlural = relationship.relationshipFieldNamePlural;
     const relationshipNameHumanized = relationship.relationshipNameHumanized;
     const otherEntityField = relationship.otherEntityField;
+    const otherEntity = relationship.otherEntity;
     if (persistableRelationship) {
 _%>
+    <%_ 
+      if(!(annotations && annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation && annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation === otherEntity.entityInstancePlural)) { 
+    _%>
         <dt><span>__jhiTranslateTag__('<%- i18nKeyPrefix %>.<%- relationshipName %>')</span></dt>
         <dd>
     <%_ if (relationship.otherEntityUser) { _%>
@@ -89,24 +93,24 @@ _%>
       <%_ } _%>
     <%_ } else { _%>
       <%_ if (relationship.collection) { _%>
-        @for (<%= relationshipFieldName %> of <%= entityInstance %>Ref.<%= relationshipFieldNamePlural %>; track $index; let last = $last) {
-                        <%_ 
-                            // Saathratri: Use Option to Display in GUI Feature
-                            if (isOptionToDisplayInGuiEnabled) { 
-                        _%>
-          <span>
-	                      <a [routerLink]="['/<%= relationship.otherEntityStateName %>', <%= relationshipFieldName %>.<%= relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%- getClientOptionToDisplayForManyToManyList(relationship.otherEntity, relationshipFieldName, relationship.otherEntityField) %> }}</a>{{ last ? '' : ', ' }}
-                        <%_
-                            // Saathratri: Use Standard Field Display in GUI 
-                            } else { 
-                        _%>
-            <a [routerLink]="['/<%= relationship.otherEntity.entityPage %>', <%= relationshipFieldName %>.<%= relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%= relationshipFieldName %>?.<%= otherEntityField %> }}</a>{{ last ? '' : ', ' }}
-		        <%_ 
-			    } 
-			    // Saathratri 
-			_%>
-          </span>
-        }
+          @for (<%= relationshipFieldName %> of <%= entityInstance %>Ref.<%= relationshipFieldNamePlural %>; track $index; let last = $last) {
+                          <%_ 
+                              // Saathratri: Use Option to Display in GUI Feature
+                              if (isOptionToDisplayInGuiEnabled) { 
+                          _%>
+            <span>
+                          <a [routerLink]="['/<%= relationship.otherEntityStateName %>', <%= relationshipFieldName %>.<%= relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%- getClientOptionToDisplayForManyToManyList(relationship.otherEntity, relationshipFieldName, relationship.otherEntityField) %> }}</a>{{ last ? '' : ', ' }}
+                          <%_
+                              // Saathratri: Use Standard Field Display in GUI 
+                              } else { 
+                          _%>
+              <a [routerLink]="['/<%= relationship.otherEntity.entityPage %>', <%= relationshipFieldName %>.<%= relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%= relationshipFieldName %>?.<%= otherEntityField %> }}</a>{{ last ? '' : ', ' }}
+              <%_ 
+            } 
+            // Saathratri 
+        _%>
+            </span>
+          }
       <%_ } else { _%>
         @if (<%= entityInstance + '()!.' + relationshipFieldName %>) {
           <div>
@@ -130,6 +134,7 @@ _%>
     <%_ } _%>
         </dd>
 <%_
+      }
     }
 }
 _%>
