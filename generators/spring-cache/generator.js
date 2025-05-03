@@ -1,6 +1,5 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
-import { sqlSpringBootUtils } from '../sql-spring-boot/sql-spring-boot-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -97,40 +96,12 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
-
-        if (application.applicationTypeMicroservice) {
-
-          const portData = await sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);
-
-          // The usage of the port in your configuration files
-          this.log(`The server port is: ${portData[this.appname].port}`);
-
-          await this.writeFiles({
-            sections: {
-              files: [
-                { 
-                  templates: [
-                    {
-                      file: 'docker/postgresql.yml',
-                      renameTo: ctx => `src/main/docker/postgresql.yml`,
-                    },
-                    {
-                      file: 'docker/postgresql-init-scripts/init-vector-extension.sql',
-                      renameTo: ctx => `src/main/docker/postgresql-init-scripts/init-vector-extension.sql`,
-                    }
-                  ] 
-                }
-              ],
-            },
-            context: {
-              ...application,
-              serverPortSaathratri: portData[this.appname].port,
-              dockerContainers: {
-                postgresql: "pgvector/pgvector:pg17"
-              },
-            }
-          });
-        }
+        await this.writeFiles({
+          sections: {
+            files: [{ templates: ['template-file-spring-cache'] }],
+          },
+          context: application,
+        });
       },
     });
   }

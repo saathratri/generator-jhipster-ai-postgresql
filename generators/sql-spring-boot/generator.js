@@ -1,7 +1,7 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
 import { javaMainPackageTemplatesBlock, javaTestPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
-import { sqlServerUtils } from './sql-spring-boot-utils.js';
+import { sqlSpringBootUtils } from './sql-spring-boot-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -99,8 +99,8 @@ export default class extends BaseApplicationGenerator {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
         if (application. applicationTypeMicroservice) {
-          sqlServerUtils.getApplicationPortData(this.destinationPath(), this.appname);
-          const portData = sqlServerUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
+          sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);
+          const portData = sqlSpringBootUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
           this.log(`The server port is: ${portData[this.appname].port}`);
           application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}/${application.devDatabaseName}`;
         await this.writeFiles({
@@ -145,7 +145,7 @@ export default class extends BaseApplicationGenerator {
                 },
               ]
             },
-            context: { ...application, ...entity, ...sqlServerUtils },
+            context: { ...application, ...entity, ...sqlSpringBootUtils },
           });
         }
       },

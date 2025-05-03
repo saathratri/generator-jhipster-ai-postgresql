@@ -3,7 +3,7 @@ import path from 'path';
 
 const LAST_USED_PORT_FILE = 'last-used-port.json';
 
-export const sqlServerUtils = {
+export const sqlSpringBootUtils = {
 
     /**************************************
      * sql-spring-boot-utils Helper Functions
