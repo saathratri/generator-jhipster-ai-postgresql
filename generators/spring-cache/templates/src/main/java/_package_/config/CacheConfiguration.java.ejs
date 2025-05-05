@@ -293,76 +293,38 @@ public class CacheConfiguration {
     @Bean
     public HazelcastInstance hazelcastInstance(JHipsterProperties jHipsterProperties) {
         LOG.debug("Configuring Hazelcast");
-    
+
         HazelcastInstance existingInstance = Hazelcast.getHazelcastInstanceByName("<%= baseName %>");
         if (existingInstance != null) {
             LOG.debug("Hazelcast already initialized");
             return existingInstance;
         }
-    
+
         Config config = new Config();
         config.setInstanceName("<%= baseName %>");
         config.setClusterName("<%= baseName %>-cluster");
-    
+
         NetworkConfig networkConfig = config.getNetworkConfig();
         networkConfig.setPortAutoIncrement(true);
         JoinConfig joinConfig = networkConfig.getJoin();
         joinConfig.getMulticastConfig().setEnabled(false); // Always disable multicast
-    
-    <%_ if (serviceDiscoveryAny) { _%>
-        // === Development Profile: Localhost only, no clustering ===
-        if (env.acceptsProfiles(Profiles.of(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT))) {
-            LOG.debug("Running in dev profile: using standalone Hazelcast instance on localhost");
-    
-            int hazelcastPort = serverProperties.getPort() + 5701;
-            networkConfig.setPort(hazelcastPort);
-            networkConfig.getInterfaces().setEnabled(true).addInterface("127.0.0.1");
-            joinConfig.getTcpIpConfig().setEnabled(false); // No TCP/IP cluster in dev
-    
-            config.setManagementCenterConfig(new ManagementCenterConfig());
-            config.addMapConfig(initializeDefaultMapConfig(jHipsterProperties));
-        <%_ if (enableHibernateCache) { _%>
-            config.addMapConfig(initializeDomainMapConfig(jHipsterProperties));
-        <%_ } _%>
-            return Hazelcast.newHazelcastInstance(config);
-        }
-    
-        // === Production Profile: Use DiscoveryClient ===
-        if (this.registration == null) {
-            LOG.warn("No discovery service (Registration) is set up, Hazelcast cannot form a cluster");
-            joinConfig.getTcpIpConfig().setEnabled(false);
-        } else {
-            String serviceId = registration.getServiceId();
-            LOG.debug("Configuring Hazelcast clustering for serviceId: {}", serviceId);
-    
-            networkConfig.setPort(5701);
-            joinConfig.getTcpIpConfig().setEnabled(true);
-    
-            for (ServiceInstance instance : discoveryClient.getInstances(serviceId)) {
-                String clusterMember = instance.getHost() + ":5701";
-                LOG.debug("Adding Hazelcast cluster member: {}", clusterMember);
-                joinConfig.getTcpIpConfig().addMember(clusterMember);
-            }
-        }
-    <%_ } else { _%>
-        // === Non-discovery configuration ===
-        networkConfig.setPort(5701);
+
+        // === Standalone Hazelcast for both dev and prod ===
+        LOG.debug("Running in standalone mode (no clustering)");
+        int hazelcastPort = serverProperties.getPort() + 5701;
+        networkConfig.setPort(hazelcastPort);
         networkConfig.getInterfaces().setEnabled(true).addInterface("127.0.0.1");
-    
-        if (env.acceptsProfiles(Profiles.of(JHipsterConstants.SPRING_PROFILE_DEVELOPMENT))) {
-            LOG.debug("Running in dev profile: disabling clustering (localhost only)");
-            joinConfig.getAwsConfig().setEnabled(false);
-            joinConfig.getTcpIpConfig().setEnabled(false);
-        }
-    <%_ } _%>
-    
+        joinConfig.getTcpIpConfig().setEnabled(false); // No TCP/IP cluster
+        joinConfig.getAwsConfig().setEnabled(false);    // No AWS
+
         config.setManagementCenterConfig(new ManagementCenterConfig());
         config.addMapConfig(initializeDefaultMapConfig(jHipsterProperties));
     <%_ if (enableHibernateCache) { _%>
         config.addMapConfig(initializeDomainMapConfig(jHipsterProperties));
     <%_ } _%>
+
         return Hazelcast.newHazelcastInstance(config);
-    }    
+    }
 
     private MapConfig initializeDefaultMapConfig(JHipsterProperties jHipsterProperties) {
         MapConfig mapConfig = new MapConfig("default");

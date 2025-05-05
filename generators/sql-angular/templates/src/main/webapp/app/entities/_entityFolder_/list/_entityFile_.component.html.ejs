@@ -64,7 +64,7 @@
     <<%= jhiPrefixDashed %>-filter [filters]="filters"></<%= jhiPrefixDashed %>-filter>
 <%_ } _%>
 
-@if (<%= entityInstancePlural %>()?.length === 0) {
+@if (<%= entityInstancePlural %>().length === 0) {
     <div class="alert alert-warning" id="no-result">
         <span>__jhiTranslateTag__('<%- i18nKeyPrefix %>.home.notFound')</span>
     </div>
