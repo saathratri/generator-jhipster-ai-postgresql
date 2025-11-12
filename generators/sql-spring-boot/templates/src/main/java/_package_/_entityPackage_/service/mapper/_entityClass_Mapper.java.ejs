@@ -80,6 +80,33 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%= dtoClass %> toDto(<%= persistClass %> s);
   <%_ } _%>
 
+  <%_
+    // Saathratri: Check if entity has any ManyToMany relationships
+    const hasManyToManyRelationships = dtoRelationships.some(r => r.collection);
+    if (hasManyToManyRelationships) {
+      // Build list of ManyToOne relationships only for toDtoBasic
+      const manyToOneRelationships = dtoRelationships.filter(r => !r.collection);
+  _%>
+
+    /**
+     * Lightweight mapper for list views that doesn't trigger lazy loading of collections.
+     * Only maps basic fields and ManyToOne relationships, ignoring all ManyToMany collections.
+     */
+  <%_ for (relationship of manyToOneRelationships) { _%>
+    <%_
+      let qualifiedByName = relationship.otherEntity.entityInstance + this._.upperFirst(relationship.otherEntityField);
+    _%>
+    @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName="<%= qualifiedByName %>")
+  <%_ } _%>
+  <%_ for (const manyToManyRel of dtoRelationships.filter(r => r.collection)) { _%>
+    @Mapping(target = "<%= manyToManyRel.propertyName %>", ignore = true)
+  <%_ } _%>
+  <%_ for (const field of fields.filter(field => field.mapstructExpression)) { _%>
+    @Mapping( target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
+  <%_ } _%>
+    <%= dtoClass %> toDtoBasic(<%= persistClass %> s);
+  <%_ } _%>
+
   <%_ var renMapAnotDto = false;  /*Render Mapping Annotation during DTO to Entity conversion?*/ _%>
   <%_ if(primaryKey.ids.length > 1) { _%>
     <%_ renMapAnotDto = true; _%>
