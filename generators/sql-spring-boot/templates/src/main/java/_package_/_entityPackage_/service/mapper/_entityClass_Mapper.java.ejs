@@ -86,25 +86,37 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     if (hasManyToManyRelationships) {
       // Build list of ManyToOne relationships only for toDtoBasic
       const manyToOneRelationships = dtoRelationships.filter(r => !r.collection);
+      const manyToManyRelationships = dtoRelationships.filter(r => r.collection);
+
+      // Get all basic fields (non-relationship fields)
+      const basicFields = fields.filter(field => !field.relationship);
   _%>
 
     /**
      * Lightweight mapper for list views that doesn't trigger lazy loading of collections.
      * Only maps basic fields and ManyToOne relationships, ignoring all ManyToMany collections.
      */
-  <%_ for (relationship of manyToOneRelationships) { _%>
-    <%_
-      let qualifiedByName = relationship.otherEntity.entityInstance + this._.upperFirst(relationship.otherEntityField);
-    _%>
-    @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName="<%= qualifiedByName %>")
+    @Named("toDtoBasic")
+    @BeanMapping(ignoreByDefault = true)
+  <%_ // Map all basic (non-relationship) fields
+    for (const field of basicFields) {
+      if (field.mapstructExpression) { _%>
+    @Mapping(target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
+      <%_ } else { _%>
+    @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
+      <%_ } _%>
   <%_ } _%>
-  <%_ for (const manyToManyRel of dtoRelationships.filter(r => r.collection)) { _%>
+  <%_ // Map ManyToOne relationships with qualifiedByName
+    for (relationship of manyToOneRelationships) {
+      let qualifiedByName = relationship.otherEntity.entityInstance + this._.upperFirst(relationship.otherEntityField);
+  _%>
+    @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName = "<%= qualifiedByName %>")
+  <%_ } _%>
+  <%_ // Ignore all ManyToMany relationships
+    for (const manyToManyRel of manyToManyRelationships) { _%>
     @Mapping(target = "<%= manyToManyRel.propertyName %>", ignore = true)
   <%_ } _%>
-  <%_ for (const field of fields.filter(field => field.mapstructExpression)) { _%>
-    @Mapping( target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
-  <%_ } _%>
-    <%= dtoClass %> toDtoBasic(<%= persistClass %> s);
+    <%= dtoClass %> toDtoBasic(<%= persistClass %> <%= persistInstance %>);
   <%_ } _%>
 
   <%_ var renMapAnotDto = false;  /*Render Mapping Annotation during DTO to Entity conversion?*/ _%>
