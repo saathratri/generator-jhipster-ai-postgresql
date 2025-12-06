@@ -156,7 +156,16 @@ _%>
                 </div>
             <% if (field.autoGenerate) { %>}<% } %>
 <%_ } _%>
-<%_ for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey)) {
+<%_
+const rawIgnoredOtherEntities =
+  typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
+const ignoreOtherEntities =
+  (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
+    .filter(value => typeof value === 'string')
+    .flatMap(value => value.split(','))
+    .map(value => value.trim())
+    .filter(Boolean);
+for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey)) {
   const { otherEntity, relationshipName, propertyName, otherEntityField, relationshipRequired } = relationship;
   const otherEntityName = relationship.otherEntityName;
   const relationshipFieldName = relationship.relationshipFieldName;
@@ -201,7 +210,7 @@ _%>
                 </div>
   <%_ } else if (relationship.persistableRelationship) { _%>
     <%_ 
-        if(!(annotations && annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation && annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation === otherEntity.entityInstancePlural)) { 
+        if(!ignoreOtherEntities.includes(otherEntity.entityInstancePlural)) { 
     _%>
                 <div class="mb-3">
                     <label for="field_<%= relationshipFieldNamePlural %>">__jhiTranslateTag__('<%- translationKey %>')</label>
