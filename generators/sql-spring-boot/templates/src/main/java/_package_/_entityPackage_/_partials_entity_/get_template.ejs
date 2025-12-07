@@ -1,0 +1,82 @@
+<%#
+ Copyright 2013-2025 the original author or authors from the JHipster project.
+
+ This file is part of the JHipster project, see https://www.jhipster.tech/
+ for more information.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-%>
+<%  const optionalOrMono = (reactive) ? 'Mono' : 'Optional';
+    const instanceType = `${optionalOrMono}<${restClass}>`;
+    const instanceName = restInstance;
+    const mapper = `${entityInstance}Mapper`;
+    const rawIgnoredOtherEntities =
+      typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
+    const ignoreOtherEntities =
+      (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
+        .filter(value => typeof value === 'string')
+        .flatMap(value => value.split(','))
+        .map(value => value.trim())
+        .filter(Boolean);
+    const normalizeDirectives = value =>
+      value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
+    const parseDirective = directive => {
+      if (typeof directive !== 'string') return undefined;
+      const [rawMethod, rawAttributes] = directive.split(':');
+      const methodName = rawMethod?.trim();
+      const attributePaths = (rawAttributes
+        ?.replace(/^\s*\[\s*|\s*\]\s*$/g, '')
+        ?.split(',')
+        ?.map(attribute => attribute.trim())
+        ?.filter(Boolean)) ?? [];
+      if (methodName && attributePaths.length > 0) {
+        return { methodName, attributePaths };
+      }
+      return undefined;
+    };
+    const excludeDirectives =
+      typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
+    const parsedExcludeDirectives = excludeDirectives
+      .map(parseDirective)
+      .filter(Boolean);
+    const defaultEntityGraphDirective = parsedExcludeDirectives.length > 0 ? parsedExcludeDirectives[0] : undefined;
+    const viewAndUpdateRelationships = relationships.filter(
+      relationship => !ignoreOtherEntities.includes(relationship.otherEntity.entityInstancePlural)
+    );
+    const hasViewAndUpdateRelationships = viewAndUpdateRelationships.length > 0;
+    const useViewAndUpdateRepositoryFetch = !reactive && hasViewAndUpdateRelationships;
+    const useDefaultEntityGraphDirective = !reactive && !!defaultEntityGraphDirective;
+    const entityGraphDirectiveMapperReference = defaultEntityGraphDirective
+      ? `${mapper}::to${this._.upperFirst(defaultEntityGraphDirective.methodName)}`
+      : undefined;
+    const entityToDtoReference = useViewAndUpdateRepositoryFetch
+      ? `${mapper}::toDtoForViewAndUpdate`
+      : (useDefaultEntityGraphDirective && entityGraphDirectiveMapperReference)
+        ? entityGraphDirectiveMapperReference
+        : `${mapper}::toDto`;
+    const returnPrefix = returnDirectly ? 'return' : `${instanceType} ${instanceName} =`;
+%>
+<%_ if (!viaService) { _%>
+  <%_ if (useViewAndUpdateRepositoryFetch) { _%>
+        <%- returnPrefix %> <%= entityInstance %>Repository.findOneWithViewAndUpdateRelationships(id)<% if (!dtoMapstruct) { %>;<% } else { %>
+            .map(<%= entityToDtoReference %>);<% } %>
+  <%_ } else if (useDefaultEntityGraphDirective) { _%>
+        <%- returnPrefix %> <%= entityInstance %>Repository.<%= defaultEntityGraphDirective.methodName %>(id)<% if (!dtoMapstruct) { %>;<% } else { %>
+            .map(<%= entityToDtoReference %>);<% } %>
+  <%_ } else { _%>
+        <%- returnPrefix %> <%= entityInstance %>Repository.<% if (implementsEagerLoadApis) { %>findOneWithEagerRelationships(id)<% } else { %>findById(id)<% } %><% if (!dtoMapstruct) { %>;<% } else { %>
+            .map(<%= entityToDtoReference %>);<% } %>
+  <%_ } _%>
+<%_ } else { _%>
+        <%- returnPrefix %> <%= entityInstance %>Service.findOne(id);
+<%_ } _%>

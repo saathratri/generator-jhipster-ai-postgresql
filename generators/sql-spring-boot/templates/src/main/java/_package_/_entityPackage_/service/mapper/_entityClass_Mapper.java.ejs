@@ -23,15 +23,10 @@ package <%= entityAbsolutePackage %>.service.mapper;
   const uuidMapMethod = restProperties.some(property => property.relatedField?.fieldTypeUUID);
   const byteMapMethod = restProperties.some(property => property.relatedField?.fieldTypeBytes);
   const dtoRelationships = restProperties.filter(property => property.relationshipName && !property.otherEntity.embedded);
-  const entityGraphAnnotationValue =
-    (typeof annotations !== 'undefined' && (annotations.entityGraphCustomAnnotation ?? annotations.entityGraph)) ??
-    (typeof entityGraph !== 'undefined' ? entityGraph : undefined);
-  const entityGraphEntries = entityGraphAnnotationValue !== undefined && entityGraphAnnotationValue !== null
-    ? (Array.isArray(entityGraphAnnotationValue) ? entityGraphAnnotationValue : [entityGraphAnnotationValue])
-    : [];
-  const entityGraphDirectives = [];
-  for (const directive of entityGraphEntries) {
-    if (typeof directive !== 'string') continue;
+  const normalizeDirectives = value =>
+    value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
+  const parseDirective = directive => {
+    if (typeof directive !== 'string') return undefined;
     const [rawMethod, rawAttributes] = directive.split(':');
     const methodName = rawMethod?.trim();
     const attributePaths = (rawAttributes
@@ -40,10 +35,59 @@ package <%= entityAbsolutePackage %>.service.mapper;
       ?.map(attribute => attribute.trim())
       ?.filter(Boolean)) ?? [];
     if (methodName && attributePaths.length > 0) {
+      return { methodName, attributePaths };
+    }
+    return undefined;
+  };
+  const entityGraphAnnotationValue =
+    (typeof annotations !== 'undefined' && (annotations.entityGraphCustomAnnotation ?? annotations.entityGraph)) ??
+    (typeof entityGraph !== 'undefined' ? entityGraph : undefined);
+  const includeDirectives =
+    typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
+  const excludeDirectives =
+    typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
+  const entityGraphEntries = [
+    ...normalizeDirectives(entityGraphAnnotationValue),
+    ...includeDirectives,
+  ];
+  const entityGraphDirectives = [];
+  for (const directive of entityGraphEntries) {
+    const parsedDirective = parseDirective(directive);
+    if (parsedDirective) {
+      entityGraphDirectives.push(parsedDirective);
+    }
+  }
+  const dtoRelationshipNames = dtoRelationships.map(relationship => relationship.propertyName);
+  for (const directive of excludeDirectives) {
+    if (typeof directive !== 'string') continue;
+    const [rawMethod, rawAttributes] = directive.split(':');
+    const methodName = rawMethod?.trim();
+    const excludedPaths = (rawAttributes
+      ?.replace(/^\s*\[\s*|\s*\]\s*$/g, '')
+      ?.split(',')
+      ?.map(attribute => attribute.trim())
+      ?.filter(Boolean)) ?? [];
+    const attributePaths = dtoRelationshipNames.filter(propertyName => !excludedPaths.includes(propertyName));
+    if (methodName && attributePaths.length > 0) {
       entityGraphDirectives.push({ methodName, attributePaths });
     }
   }
   const hasEntityGraphDirectives = entityGraphDirectives.length > 0;
+  const rawIgnoredOtherEntities =
+    typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
+  const ignoreOtherEntities =
+    (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
+      .filter(value => typeof value === 'string')
+      .flatMap(value => value.split(','))
+      .map(value => value.trim())
+      .filter(Boolean);
+  const viewAndUpdateRelationships = dtoRelationships.filter(
+    relationship => !ignoreOtherEntities.includes(relationship.otherEntity.entityInstancePlural)
+  );
+  const ignoredViewAndUpdateRelationships = dtoRelationships.filter(relationship =>
+    ignoreOtherEntities.includes(relationship.otherEntity.entityInstancePlural)
+  );
+  const hasViewAndUpdateRelationships = viewAndUpdateRelationships.length > 0;
   let otherEntitiesFields = otherEntities
     .filter(otherEntity => dtoRelationships.some(relationship => relationship.otherEntity === otherEntity))
     .map(otherEntity =>
@@ -197,6 +241,26 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
         return <%= otherEntity.persistInstance %>.stream().map(this:: toDto<%= this._.upperFirst(mapperName) %>).collect(Collectors.toSet());
     }
     <%_ } _%>
+  <%_ } _%>
+  <%_ if (hasViewAndUpdateRelationships) { _%>
+
+    @Named("toDtoForViewAndUpdate")
+    @BeanMapping(ignoreByDefault = true)
+<%_ for (const field of fields.filter(field => !field.relationship)) { _%>
+    <%_ if (field.mapstructExpression) { _%>
+    @Mapping(target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
+    <%_ } else { _%>
+    @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
+    <%_ } _%>
+  <%_ } _%>
+  <%_ for (const relationship of viewAndUpdateRelationships) { _%>
+    <%_ const qualifiedByName = relationship.otherEntity.entityInstance + this._.upperFirst(relationship.otherEntityField) + (relationship.collection ? 'Set' : ''); _%>
+    @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName = "<%= qualifiedByName %>")
+  <%_ } _%>
+  <%_ for (const relationship of ignoredViewAndUpdateRelationships) { _%>
+    @Mapping(target = "<%= relationship.propertyName %>", ignore = true)
+  <%_ } _%>
+    <%= dtoClass %> toDtoForViewAndUpdate(<%= persistClass %> <%= persistInstance %>);
   <%_ } _%>
   <%_ if (hasEntityGraphDirectives) { _%>
 

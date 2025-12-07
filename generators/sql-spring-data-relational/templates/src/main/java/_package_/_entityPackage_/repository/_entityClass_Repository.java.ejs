@@ -1,0 +1,195 @@
+<%#
+ Copyright 2013-2025 the original author or authors from the JHipster project.
+
+ This file is part of the JHipster project, see https://www.jhipster.tech/
+ for more information.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-%>
+package <%= entityAbsolutePackage %>.repository;
+
+import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
+
+<%_
+const normalizeDirectives = value =>
+  value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
+const parseDirective = directive => {
+  if (typeof directive !== 'string') return undefined;
+  const [rawMethod, rawAttributes] = directive.split(':');
+  const methodName = rawMethod?.trim();
+  const attributePaths = (rawAttributes
+    ?.replace(/^\s*\[\s*|\s*\]\s*$/g, '')
+    ?.split(',')
+    ?.map(attribute => attribute.trim())
+    ?.filter(Boolean)) ?? [];
+  if (methodName && attributePaths.length > 0) {
+    return { methodName, attributePaths };
+  }
+  return undefined;
+};
+const entityGraphAnnotationValue =
+  (typeof annotations !== 'undefined' && (annotations.entityGraphCustomAnnotation ?? annotations.entityGraph)) ??
+  (typeof entityGraph !== 'undefined' ? entityGraph : undefined);
+const includeDirectives =
+  typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
+const excludeDirectives =
+  typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
+const entityGraphEntries = [
+  ...normalizeDirectives(entityGraphAnnotationValue),
+  ...includeDirectives,
+];
+const entityGraphDirectives = [];
+for (const directive of entityGraphEntries) {
+  const parsedDirective = parseDirective(directive);
+  if (parsedDirective) {
+    entityGraphDirectives.push(parsedDirective);
+  }
+}
+const relationshipNames = relationships.map(relationship => relationship.reference.name);
+for (const directive of excludeDirectives) {
+  if (typeof directive !== 'string') continue;
+  const [rawMethod, rawAttributes] = directive.split(':');
+  const methodName = rawMethod?.trim();
+  const excludedPaths = (rawAttributes
+    ?.replace(/^\s*\[\s*|\s*\]\s*$/g, '')
+    ?.split(',')
+    ?.map(attribute => attribute.trim())
+    ?.filter(Boolean)) ?? [];
+  const attributePaths = relationshipNames.filter(propertyName => !excludedPaths.includes(propertyName));
+  if (methodName && attributePaths.length > 0) {
+    entityGraphDirectives.push({ methodName, attributePaths });
+  }
+}
+const hasEntityGraphQueries = entityGraphDirectives.length > 0;
+  
+const rawIgnoredOtherEntities =
+  typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
+const ignoreOtherEntities =
+  (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
+    .filter(value => typeof value === 'string')
+    .flatMap(value => value.split(','))
+    .map(value => value.trim())
+    .filter(Boolean);
+const viewAndUpdateRelationships = relationships.filter(
+  relationship => !ignoreOtherEntities.includes(relationship.otherEntity.entityInstancePlural)
+);
+const hasViewAndUpdateRelationships = viewAndUpdateRelationships.length > 0;
+const needsOptionalImport = implementsEagerLoadApis || hasViewAndUpdateRelationships || hasEntityGraphQueries;
+const needsPageAndPageableImport = implementsEagerLoadApis || relationships.some(r => r.relationshipManyToMany);
+const needsParamImport = implementsEagerLoadApis || hasViewAndUpdateRelationships || hasEntityGraphQueries;
+_%>
+<%_ if (needsPageAndPageableImport) { _%>
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+<%_ } _%>
+<%_ if (needsParamImport) { _%>
+import org.springframework.data.repository.query.Param;
+<%_ } _%>
+<%_ if (needsOptionalImport) { _%>
+import java.util.Optional;
+<%_ } _%>
+import org.springframework.data.jpa.repository.*;
+import org.springframework.stereotype.Repository;
+<%_ if (implementsEagerLoadApis || relationships.some(r => r.relationshipManyToOne && r.otherEntityUser)) { _%>
+import java.util.List;
+<%_ } _%>
+<%_ if (primaryKey.typeUUID) { _%>
+
+import java.util.UUID;
+<%_ } _%>
+
+/**
+ * <%= springDataDescription %> repository for the <%= persistClass %> entity.
+<%_ if (containsBagRelationships) { _%>
+ *
+ * When extending this class, extend <%= entityClass %>RepositoryWithBagRelationships too.
+ * For more information refer to https://github.com/jhipster/generator-jhipster/issues/17990.
+<%_ } _%>
+ */
+<%_ if (!implementsEagerLoadApis) { _%>
+@SuppressWarnings("unused")
+<%_ } _%>
+@Repository
+public interface <%= entityClass %>Repository extends <% if (containsBagRelationships) { %><%= entityClass %>RepositoryWithBagRelationships, <% } %>JpaRepository<<%= persistClass %>, <%= primaryKey.type %>><% if (jpaMetamodelFiltering) { %>, JpaSpecificationExecutor<<%= persistClass %>><% } %> {
+<%_ for (const relationship of relationships) { _%>
+  <%_ if (relationship.relationshipManyToOne && relationship.otherEntityUser) { _%>
+
+    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= relationship.relationshipFieldName %>.login = ?#{authentication.name}")
+    List<<%= persistClass %>> findBy<%= relationship.relationshipNameCapitalized %>IsCurrentUser();
+  <%_ } _%>
+<%_ } _%>
+<%_ if (hasEntityGraphQueries) { _%>
+
+  <%_ for (const entityGraphQuery of entityGraphDirectives) { _%>
+    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= primaryKey.name %> = :<%= primaryKey.name %>")
+    @EntityGraph(attributePaths = {
+<%_ entityGraphQuery.attributePaths.forEach((attributePath, index) => { _%>
+      "<%= attributePath %>"<% if (index !== entityGraphQuery.attributePaths.length - 1) { %>,<% } %>
+<%_ }); _%>
+    })
+    Optional<<%= persistClass %>> <%= entityGraphQuery.methodName %>(@Param("<%= primaryKey.name %>") <%= primaryKey.type %> <%= primaryKey.name %>);
+  <%_ } _%>
+<%_ } _%>
+<%_ if (implementsEagerLoadApis || relationships.some(r => r.relationshipManyToMany)) { _%>
+
+  <%_ const containsToOneEagerRelationship = relationships.some(relationship => (relationship.relationshipEagerLoad && !relationship.bagRelationship) || relationship.relationshipManyToMany); _%>
+    default Optional<<%= persistClass %>> findOneWithEagerRelationships(<%= primaryKey.type %> <%= primaryKey.name %>) {
+        return <% if (containsBagRelationships) { %>this.fetchBagRelationships(<% } %>
+            this.<% if (containsToOneEagerRelationship) { %>findOneWithToOneRelationships<% } else { %>findById<% } %>(<%= primaryKey.name %>)
+        <%  if (containsBagRelationships) { %>)<% } %>;
+    }
+
+    default List<<%= persistClass %>> findAllWithEagerRelationships() {
+        return <% if (containsBagRelationships) { %>this.fetchBagRelationships(<% } %>
+            this.<% if (containsToOneEagerRelationship) { %>findAllWithToOneRelationships<% } else { %>findAll<% } %>()
+        <%  if (containsBagRelationships) { %>)<% } %>;
+    }
+
+    default Page<<%= persistClass %>> findAllWithEagerRelationships(Pageable pageable) {
+        return <% if (containsBagRelationships) { %>this.fetchBagRelationships(<% } %>
+            this.<% if (containsToOneEagerRelationship) { %>findAllWithToOneRelationships<% } else { %>findAll<% } %>(pageable)
+        <%  if (containsBagRelationships) { %>)<% } %>;
+    }
+  <%_ if (containsToOneEagerRelationship) { _%>
+
+    @Query(value = "select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %><%
+      for (const relationship of relationships) {
+        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityInstanceDbSafe %>.<%= relationship.reference.name %><% }
+      } %>",
+        countQuery = "select count(<%= entityInstanceDbSafe %>) from <%= persistClass %> <%= entityInstanceDbSafe %>")
+    Page<<%= persistClass %>> findAllWithToOneRelationships(Pageable pageable);
+
+    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %><%
+      for (const relationship of relationships) {
+        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityInstanceDbSafe %>.<%= relationship.reference.name %><% }
+      } %>")
+    List<<%= persistClass %>> findAllWithToOneRelationships();
+
+    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %><%
+      for (const relationship of relationships) {
+        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityInstanceDbSafe %>.<%= relationship.reference.name %><% }
+      } %> where <%= entityInstanceDbSafe %>.id =:id")
+    Optional<<%= persistClass %>> findOneWithToOneRelationships(@Param("id") <%= primaryKey.type %> id);
+  <%_ } _%>
+<%_ } _%>
+<%_ if (hasViewAndUpdateRelationships) { _%>
+
+    @EntityGraph(attributePaths = {
+<%_ viewAndUpdateRelationships.forEach((relationship, index) => { _%>
+        "<%= relationship.reference.name %>"<% if (index < viewAndUpdateRelationships.length - 1) { %>,<% } %>
+<%_ }); _%>
+    })
+    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= primaryKey.name %> = :id")
+    Optional<<%= persistClass %>> findOneWithViewAndUpdateRelationships(@Param("id") <%= primaryKey.type %> id);
+<%_ } _%>
+}

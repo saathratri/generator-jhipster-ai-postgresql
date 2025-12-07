@@ -125,6 +125,9 @@ export default class extends BaseApplicationGenerator {
       async writingEntitiesTemplateTask({ application, entities }) {
 
         for (const entity of entities.filter(e => !e.builtIn)) {
+
+          entity.serviceImpl = true;
+
           await this.writeFiles({
             sections: {
               files: [
@@ -132,6 +135,10 @@ export default class extends BaseApplicationGenerator {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer,
                   ...javaMainPackageTemplatesBlock('_entityPackage_/'),
                   templates: [
+                    'web/rest/_entityClass_Resource.java',
+                    'service/_entityClass_QueryService.java',
+                    'service/_entityClass_Service.java',
+                    'service/impl/_entityClass_ServiceImpl.java',
                     /* saathratri-needle-sql-copy-dto-class */
                     'service/mapper/_entityClass_Mapper.java',
                   ]

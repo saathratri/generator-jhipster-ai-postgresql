@@ -1,5 +1,6 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import command from './command.js';
+import { javaMainPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -29,19 +30,7 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
-      async composingTemplateTask() {
-        if (['sql'].includes(this.jhipsterConfigWithDefaults.databaseType)) {
-          // Delegate the client sub-generator to the angular blueprint.
-          await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:sql-spring-boot');
-          await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:sql-spring-data-relational');
-         }
-      },
-    });
-  }
-
-  get [BaseApplicationGenerator.COMPOSING_COMPONENT]() {
-    return this.asComposingComponentTaskGroup({
-      async composingComponentTemplateTask() {},
+      async composingTemplateTask() {},
     });
   }
 
@@ -104,7 +93,13 @@ export default class extends BaseApplicationGenerator {
       async writingTemplateTask({ application }) {
         await this.writeFiles({
           sections: {
-            files: [{ templates: ['template-file-spring-boot'] }],
+            files: [
+              { 
+                templates: [
+                  'template-file-sql-spring-data-relational',
+                ] 
+              }
+            ],
           },
           context: application,
         });
@@ -114,7 +109,34 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.WRITING_ENTITIES]() {
     return this.asWritingEntitiesTaskGroup({
-      async writingEntitiesTemplateTask() {},
+      async writingEntitiesTemplateTask({ application, entities }) {
+
+        for (const entity of entities.filter(e => !e.builtIn)) {
+
+          await this.writeFiles({
+            sections: {
+              files: [
+                {
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer,
+                  ...javaMainPackageTemplatesBlock('_entityPackage_/'),
+                  templates: [
+                    'repository/_entityClass_Repository.java',
+                  ]
+                },
+                {
+                  condition: generator => generator.databaseTypeSql && !generator.reactive && !generator.embedded && (generator.containsBagRelationships ||  generator.relationships.some(r => (r.relationshipManyToMany))) && generator.entityPersistenceLayer,
+                  ...javaMainPackageTemplatesBlock('_entityPackage_'),
+                  templates: [
+                      'repository/_entityClass_RepositoryWithBagRelationships.java',
+                      'repository/_entityClass_RepositoryWithBagRelationshipsImpl.java',
+                  ],
+              },
+              ]
+            },
+            context: { ...application, ...entity },
+          });
+        }
+      },
     });
   }
 
