@@ -66,14 +66,6 @@ _%>
         </dd>
 <%_ } _%>
 <%_
-const rawIgnoredOtherEntities =
-  typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
-const ignoreOtherEntities =
-  (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
-    .filter(value => typeof value === 'string')
-    .flatMap(value => value.split(','))
-    .map(value => value.trim())
-    .filter(Boolean);
 for (const relationship of relationships.filter(rel => !rel.otherEntityIsEmbedded)) {
     const { persistableRelationship } = relationship;
     const relationshipName = relationship.relationshipName;
@@ -84,9 +76,6 @@ for (const relationship of relationships.filter(rel => !rel.otherEntityIsEmbedde
     const otherEntity = relationship.otherEntity;
     if (persistableRelationship) {
 _%>
-    <%_ 
-      if(!ignoreOtherEntities.includes(otherEntity.entityInstancePlural)) { 
-    _%>
         <dt><span>__jhiTranslateTag__('<%- i18nKeyPrefix %>.<%- relationshipName %>')</span></dt>
         <dd>
     <%_ if (relationship.otherEntityUser) { _%>
@@ -142,7 +131,6 @@ _%>
     <%_ } _%>
         </dd>
 <%_
-      }
     }
 }
 _%>

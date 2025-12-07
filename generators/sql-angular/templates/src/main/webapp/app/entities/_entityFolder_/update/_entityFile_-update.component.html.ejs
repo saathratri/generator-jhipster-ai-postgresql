@@ -157,14 +157,6 @@ _%>
             <% if (field.autoGenerate) { %>}<% } %>
 <%_ } _%>
 <%_
-const rawIgnoredOtherEntities =
-  typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
-const ignoreOtherEntities =
-  (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
-    .filter(value => typeof value === 'string')
-    .flatMap(value => value.split(','))
-    .map(value => value.trim())
-    .filter(Boolean);
 for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey)) {
   const { otherEntity, relationshipName, propertyName, otherEntityField, relationshipRequired } = relationship;
   const otherEntityName = relationship.otherEntityName;
@@ -209,9 +201,6 @@ _%>
                     </select>
                 </div>
   <%_ } else if (relationship.persistableRelationship) { _%>
-    <%_ 
-        if(!ignoreOtherEntities.includes(otherEntity.entityInstancePlural)) { 
-    _%>
                 <div class="mb-3">
                     <label for="field_<%= relationshipFieldNamePlural %>">__jhiTranslateTag__('<%- translationKey %>')</label>
                     <select class="form-control" id="field_<%= relationshipFieldNamePlural %>" data-cy="<%= relationshipFieldName %>" multiple name="<%= propertyName %>" formControlName="<%= propertyName %>" [compareWith]="compare<%= otherEntity.entityAngularName %>">
@@ -235,7 +224,6 @@ _%>
                     _%>
                     </select>
                 </div>
-    <%_ } _%>
   <%_ } _%>
   <%_ if (relationship.relationshipValidate && relationship.persistableRelationship) { _%>
             @if (editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.invalid && (editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.dirty || editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.touched)) {
