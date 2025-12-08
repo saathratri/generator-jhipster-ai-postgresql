@@ -20,14 +20,6 @@
     const instanceType = `${optionalOrMono}<${restClass}>`;
     const instanceName = restInstance;
     const mapper = `${entityInstance}Mapper`;
-    const rawIgnoredOtherEntities =
-      typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
-    const ignoreOtherEntities =
-      (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
-        .filter(value => typeof value === 'string')
-        .flatMap(value => value.split(','))
-        .map(value => value.trim())
-        .filter(Boolean);
     const normalizeDirectives = value =>
       value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
     const parseDirective = directive => {
@@ -44,33 +36,25 @@
       }
       return undefined;
     };
-    const excludeDirectives =
+    const entityGraphIncludeDirectives =
+      typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
+    const entityGraphExcludeDirectives =
       typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
-    const parsedExcludeDirectives = excludeDirectives
+    const parsedExcludeDirectives = entityGraphExcludeDirectives
       .map(parseDirective)
       .filter(Boolean);
     const defaultEntityGraphDirective = parsedExcludeDirectives.length > 0 ? parsedExcludeDirectives[0] : undefined;
-    const viewAndUpdateRelationships = relationships.filter(
-      relationship => !ignoreOtherEntities.includes(relationship.otherEntity.entityInstancePlural)
-    );
-    const hasViewAndUpdateRelationships = viewAndUpdateRelationships.length > 0;
-    const useViewAndUpdateRepositoryFetch = !reactive && hasViewAndUpdateRelationships;
     const useDefaultEntityGraphDirective = !reactive && !!defaultEntityGraphDirective;
     const entityGraphDirectiveMapperReference = defaultEntityGraphDirective
       ? `${mapper}::to${this._.upperFirst(defaultEntityGraphDirective.methodName)}`
       : undefined;
-    const entityToDtoReference = useViewAndUpdateRepositoryFetch
-      ? `${mapper}::toDtoForViewAndUpdate`
-      : (useDefaultEntityGraphDirective && entityGraphDirectiveMapperReference)
-        ? entityGraphDirectiveMapperReference
-        : `${mapper}::toDto`;
+    const entityToDtoReference = (useDefaultEntityGraphDirective && entityGraphDirectiveMapperReference)
+      ? entityGraphDirectiveMapperReference
+      : `${mapper}::toDto`;
     const returnPrefix = returnDirectly ? 'return' : `${instanceType} ${instanceName} =`;
 %>
 <%_ if (!viaService) { _%>
-  <%_ if (useViewAndUpdateRepositoryFetch) { _%>
-        <%- returnPrefix %> <%= entityInstance %>Repository.findOneWithViewAndUpdateRelationships(id)<% if (!dtoMapstruct) { %>;<% } else { %>
-            .map(<%= entityToDtoReference %>);<% } %>
-  <%_ } else if (useDefaultEntityGraphDirective) { _%>
+  <%_ if (useDefaultEntityGraphDirective) { _%>
         <%- returnPrefix %> <%= entityInstance %>Repository.<%= defaultEntityGraphDirective.methodName %>(id)<% if (!dtoMapstruct) { %>;<% } else { %>
             .map(<%= entityToDtoReference %>);<% } %>
   <%_ } else { _%>

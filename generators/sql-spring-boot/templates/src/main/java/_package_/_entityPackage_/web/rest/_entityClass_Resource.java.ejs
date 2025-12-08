@@ -478,54 +478,6 @@ public class <%= entityClass %>Resource {
     @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
 <%_ } _%>
 <%- include('../../_partials_entity_/get_all_template', {viaService}); -%>
-<%_ if (jpaMetamodelFiltering && databaseTypeSql) { _%>
-  /**
-   * {@code GET  /saathratri-orchestrator/by-criteria} : get all the <%= entityInstancePlural %>.
-   *
-   * @param criteria the criteria which the requested entities should match.
-   * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of <%= entityInstancePlural %> in body.
-   */
-  @GetMapping("/saathratri-orchestrator/by-criteria")
-  public ResponseEntity<List<<%= instanceType %>>> getAll<%= entityClassPlural %>(<%= entityClass %>Criteria criteria) {
-    log.debug("REST request to get <%= entityClassPlural %> by criteria: {}", criteria);
-    List<<%= instanceType %>> entityList = <%= entityInstance %>QueryService.findByCriteria(criteria);
-    return ResponseEntity.ok().body(entityList);
-  }
-<%_ } _%>
-
-<%_ 
-  // Saathratri Modification
-  if (databaseTypeSql && relationships.some(relationship => relationship.relationshipManyToMany)) { 
-_%>
-  /**
-   * {@code GET  /saathratri-orchestrator/:<%= primaryKey.name %>} : get "<%= primaryKey.name %>" the <%= entityInstance %>.
-   *
-   * @param <%= primaryKey.name %> the <%= primaryKey.name %> of the <%= entityInstance %> to retrieve.
-   * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of <%= entityInstance %> in body.
-   */
-  @GetMapping("/saathratri-orchestrator/{<%= primaryKey.name %>}")
-  public ResponseEntity<<%= instanceType %>> get<%= entityClass %>ById(@PathVariable UUID <%= primaryKey.name %>) {
-    log.debug("REST request to get <%= entityClass %> : {}", <%= primaryKey.name %>);
-
-    Optional<<%= instanceType %>> <%= instanceName %> = <%= entityInstance %>Service.findOneWithEagerRelationships(<%= primaryKey.name %>);
-    return ResponseUtil.wrapOrNotFound(<%= instanceName %>);
-  }
-
-  /**
-    * {@code GET  /saathratri-orchestrator} : get all the <%= entityInstancePlural %>.
-    *
-    * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of <%= entityInstancePlural %> in body.
-    */
-  @GetMapping("/saathratri-orchestrator")
-    public ResponseEntity<List<<%= instanceType %>>> getAll<%= entityClassPlural %>() {
-    log.debug("REST request to get all <%= entityClassPlural %>");
-
-    List<<%= instanceType %>> entityList = <%= entityInstance %>Service.findAllWithEagerRelationships();
-    return ResponseEntity.ok().body(entityList);
-  }
-<%_ 
-  } 
-_%>
 
 <%_ if (!jpaMetamodelFiltering && reactive && paginationNo) { _%>
     /**

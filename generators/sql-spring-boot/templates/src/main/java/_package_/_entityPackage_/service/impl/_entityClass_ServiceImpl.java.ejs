@@ -81,6 +81,9 @@ for (const directive of excludeDirectives) {
   }
 }
 const hasEntityGraphQueries = entityGraphDirectives.length > 0 && !reactive;
+const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
+  relationship.relationshipEagerLoad || relationship.relationshipManyToMany
+);
 
 _%>
 <%_ if (serviceImpl) { _%>
@@ -104,7 +107,7 @@ import <%= entityAbsolutePackage %>.service.mapper.<%= entityClass %>Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-<%_ if (!paginationNo || implementsEagerLoadApis) { _%>
+<%_ if (!paginationNo || hasEagerLoadableRelationships) { _%>
   <%_ if (!reactive) { _%>
 import org.springframework.data.domain.Page;
   <%_ } _%>
@@ -236,21 +239,16 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
     }
 <%_ } _%>
 
-<%_ 
-    // Saathratri Modification
-    if (databaseTypeSql) { 
-      for( relationship of relationships ) {
-        if (relationship.relationshipManyToMany) {
-_%>
+<%_ if (serviceImpl && hasEagerLoadableRelationships && relationships.some(relationship => relationship.relationshipManyToMany)) { _%>
       @Override
       @Transactional(readOnly = true)
       public <%= optionalOrMono %><<%= instanceType %>> findOneWithEagerRelationships(<%= primaryKey.type %> id) {
         log.debug("Request to get <%= entityClass %> : {}", id);
-        
+
         return <%= entityInstance %>Repository.findOneWithEagerRelationships(<%= primaryKey.name %>)<% if (!dtoMapstruct) { %>;<% } else { %>
             .map(<%= entityToDtoReference %>);<% } %>
       }
-      
+
       @Override
       @Transactional(readOnly = true)
       public List<<%= instanceType %>> findAllWithEagerRelationships() {
@@ -267,12 +265,7 @@ _%>
 
         return <%= instanceName %>List;
       }
-<%_ 
-          break;
-        }
-      }
-    }
-_%>
+<%_ } _%>
 
 <%_ if (jpaMetamodelFiltering && reactive) {  _%>
 
@@ -313,7 +306,7 @@ _%>
 <%_ }  _%>
 
 
-<%_ if (implementsEagerLoadApis) { _%>
+<%_ if (hasEagerLoadableRelationships) { _%>
 
   <%_ if (!serviceImpl) { _%>
     /**
@@ -367,7 +360,7 @@ _%>
     @Transactional(readOnly = true)
     <%_ } _%>
     public <%= optionalOrMono %><<%= instanceType %>> findOne(<%= primaryKey.type %> id) {
-        log.debug("Request to get <%= entityClass %> : {}", id);<%- include('../../_partials_entity_/get_template', {viaService: false, returnDirectly:true, implementsEagerLoadApis}); -%>
+        log.debug("Request to get <%= entityClass %> : {}", id);<%- include('../../_partials_entity_/get_template', {viaService: false, returnDirectly:true, implementsEagerLoadApis: hasEagerLoadableRelationships}); -%>
     }
 <%_ if (hasEntityGraphQueries) { _%>
 

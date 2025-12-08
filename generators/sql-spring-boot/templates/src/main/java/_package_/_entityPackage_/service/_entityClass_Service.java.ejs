@@ -74,6 +74,9 @@ for (const directive of excludeDirectives) {
   }
 }
 const hasEntityGraphQueries = entityGraphDirectives.length > 0 && !reactive;
+const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
+  relationship.relationshipEagerLoad || relationship.relationshipManyToMany
+);
 _%>
 <%_ if (dtoMapstruct) { _%>
 import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>;
@@ -83,7 +86,7 @@ import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
 <%_ if (jpaMetamodelFiltering && reactive) {  _%>
 import <%= entityAbsolutePackage %>.domain.criteria.<%= entityClass %>Criteria;
 <%_ }  _%>
-<%_ if (!paginationNo || implementsEagerLoadApis) { _%>
+<%_ if (!paginationNo || hasEagerLoadableRelationships) { _%>
 
   <%_ if (!reactive) { _%>
 import org.springframework.data.domain.Page;
@@ -142,12 +145,7 @@ public interface <%= entityClass %>Service {
      */
     <% if (reactive) { %>Mono<% } else { %>Optional<% } %><<%= instanceType %>> partialUpdate(<%= instanceType %> <%= instanceName %>);
 
-    <%_ 
-      // Saathratri Modification
-      if (databaseTypeSql) { 
-        for( relationship of relationships ) {
-          if (relationship.relationshipManyToMany) {
-    _%>
+    <%_ if (hasEagerLoadableRelationships) { _%>
     /**
      * Get the "<%= primaryKey.name %>" <%= entityInstance %>.
      *
@@ -161,13 +159,7 @@ public interface <%= entityClass %>Service {
      * @return the list of entities.
      */
     List<<%= instanceType %>> findAllWithEagerRelationships();
-    
-    <%_ 
-      // Saathratri Modification
-          break;
-          }
-        }
-      }
+    <%_ } _%>
 _%>
 
 <%_ if (hasEntityGraphQueries) { _%>

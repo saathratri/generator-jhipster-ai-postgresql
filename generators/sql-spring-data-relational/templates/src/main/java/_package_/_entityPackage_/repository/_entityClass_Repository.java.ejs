@@ -37,26 +37,25 @@ const parseDirective = directive => {
   }
   return undefined;
 };
-const entityGraphAnnotationValue =
-  (typeof annotations !== 'undefined' && (annotations.entityGraphCustomAnnotation ?? annotations.entityGraph)) ??
-  (typeof entityGraph !== 'undefined' ? entityGraph : undefined);
-const includeDirectives =
+const entityGraphAnnotationValue = typeof entityGraph !== 'undefined' ? entityGraph : undefined;
+const entityGraphIncludeDirectives =
   typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
-const excludeDirectives =
+const entityGraphExcludeDirectives =
   typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
-const entityGraphEntries = [
+const hasEntityGraphIncludeDirectives = entityGraphIncludeDirectives.length > 0;
+const entityGraphRequestedDirectives = [
   ...normalizeDirectives(entityGraphAnnotationValue),
-  ...includeDirectives,
+  ...entityGraphIncludeDirectives,
 ];
-const entityGraphDirectives = [];
-for (const directive of entityGraphEntries) {
+const entityGraphParsedDirectives = [];
+for (const directive of entityGraphRequestedDirectives) {
   const parsedDirective = parseDirective(directive);
   if (parsedDirective) {
-    entityGraphDirectives.push(parsedDirective);
+    entityGraphParsedDirectives.push(parsedDirective);
   }
 }
 const relationshipNames = relationships.map(relationship => relationship.reference.name);
-for (const directive of excludeDirectives) {
+for (const directive of entityGraphExcludeDirectives) {
   if (typeof directive !== 'string') continue;
   const [rawMethod, rawAttributes] = directive.split(':');
   const methodName = rawMethod?.trim();
@@ -67,26 +66,17 @@ for (const directive of excludeDirectives) {
     ?.filter(Boolean)) ?? [];
   const attributePaths = relationshipNames.filter(propertyName => !excludedPaths.includes(propertyName));
   if (methodName && attributePaths.length > 0) {
-    entityGraphDirectives.push({ methodName, attributePaths });
+    entityGraphParsedDirectives.push({ methodName, attributePaths });
   }
 }
-const hasEntityGraphQueries = entityGraphDirectives.length > 0;
-  
-const rawIgnoredOtherEntities =
-  typeof annotations !== 'undefined' ? annotations.ignoreOtherEntityForViewAndUpdatePageCustomAnnotation : undefined;
-const ignoreOtherEntities =
-  (Array.isArray(rawIgnoredOtherEntities) ? rawIgnoredOtherEntities : [rawIgnoredOtherEntities])
-    .filter(value => typeof value === 'string')
-    .flatMap(value => value.split(','))
-    .map(value => value.trim())
-    .filter(Boolean);
-const viewAndUpdateRelationships = relationships.filter(
-  relationship => !ignoreOtherEntities.includes(relationship.otherEntity.entityInstancePlural)
+const hasEntityGraphQueries = entityGraphParsedDirectives.length > 0;
+
+const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
+  relationship.relationshipEagerLoad || relationship.relationshipManyToMany
 );
-const hasViewAndUpdateRelationships = viewAndUpdateRelationships.length > 0;
-const needsOptionalImport = implementsEagerLoadApis || hasViewAndUpdateRelationships || hasEntityGraphQueries;
-const needsPageAndPageableImport = implementsEagerLoadApis || relationships.some(r => r.relationshipManyToMany);
-const needsParamImport = implementsEagerLoadApis || hasViewAndUpdateRelationships || hasEntityGraphQueries;
+const needsOptionalImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
+const needsPageAndPageableImport = hasEagerLoadableRelationships && relationships.some(r => r.relationshipManyToMany);
+const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
 _%>
 <%_ if (needsPageAndPageableImport) { _%>
 import org.springframework.data.domain.Page;
@@ -128,19 +118,7 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     List<<%= persistClass %>> findBy<%= relationship.relationshipNameCapitalized %>IsCurrentUser();
   <%_ } _%>
 <%_ } _%>
-<%_ if (hasEntityGraphQueries) { _%>
-
-  <%_ for (const entityGraphQuery of entityGraphDirectives) { _%>
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= primaryKey.name %> = :<%= primaryKey.name %>")
-    @EntityGraph(attributePaths = {
-<%_ entityGraphQuery.attributePaths.forEach((attributePath, index) => { _%>
-      "<%= attributePath %>"<% if (index !== entityGraphQuery.attributePaths.length - 1) { %>,<% } %>
-<%_ }); _%>
-    })
-    Optional<<%= persistClass %>> <%= entityGraphQuery.methodName %>(@Param("<%= primaryKey.name %>") <%= primaryKey.type %> <%= primaryKey.name %>);
-  <%_ } _%>
-<%_ } _%>
-<%_ if (implementsEagerLoadApis || relationships.some(r => r.relationshipManyToMany)) { _%>
+<%_ if (hasEagerLoadableRelationships) { _%>
 
   <%_ const containsToOneEagerRelationship = relationships.some(relationship => (relationship.relationshipEagerLoad && !relationship.bagRelationship) || relationship.relationshipManyToMany); _%>
     default Optional<<%= persistClass %>> findOneWithEagerRelationships(<%= primaryKey.type %> <%= primaryKey.name %>) {
@@ -182,14 +160,16 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     Optional<<%= persistClass %>> findOneWithToOneRelationships(@Param("id") <%= primaryKey.type %> id);
   <%_ } _%>
 <%_ } _%>
-<%_ if (hasViewAndUpdateRelationships) { _%>
+<%_ if (hasEntityGraphQueries) { _%>
 
+  <%_ for (const entityGraphQuery of entityGraphParsedDirectives) { _%>
+    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= primaryKey.name %> = :<%= primaryKey.name %>")
     @EntityGraph(attributePaths = {
-<%_ viewAndUpdateRelationships.forEach((relationship, index) => { _%>
-        "<%= relationship.reference.name %>"<% if (index < viewAndUpdateRelationships.length - 1) { %>,<% } %>
+<%_ entityGraphQuery.attributePaths.forEach((attributePath, index) => { _%>
+      "<%= attributePath %>"<% if (index !== entityGraphQuery.attributePaths.length - 1) { %>,<% } %>
 <%_ }); _%>
     })
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= primaryKey.name %> = :id")
-    Optional<<%= persistClass %>> findOneWithViewAndUpdateRelationships(@Param("id") <%= primaryKey.type %> id);
+    Optional<<%= persistClass %>> <%= entityGraphQuery.methodName %>(@Param("<%= primaryKey.name %>") <%= primaryKey.type %> <%= primaryKey.name %>);
+  <%_ } _%>
 <%_ } _%>
 }
