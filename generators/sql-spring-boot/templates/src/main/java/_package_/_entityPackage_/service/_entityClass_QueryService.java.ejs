@@ -82,11 +82,19 @@ public class <%= serviceClassName %> extends QueryService<<%= persistClass %>> {
     public List<<%= instanceType %>> findByCriteria(<%= criteria %> criteria) {
         log.debug("find by criteria : {}", criteria);
         final Specification<<%= persistClass %>> specification = createSpecification(criteria);
- 
-  <%_ if (dtoMapstruct) { _%>
-        return <%= entityListToDto %>(<% if (containsBagRelationships) { %><%= repository %>.fetchBagRelationships(<% } %><%= repository %>.findAll(specification)<% if (containsBagRelationships) { %>)<% } %>);
-  <%_ } else { _%>
-        return <% if (containsBagRelationships) { %><%= repository %>.fetchBagRelationships(<% } %><%= repository %>.findAll(specification)<% if (containsBagRelationships) { %>)<% } %>;
+
+  <%_ if (dtoMapstruct) {
+      const repositoryFindAll = containsBagRelationships
+        ? `${repository}.fetchBagRelationships(${repository}.findAll(specification))`
+        : `${repository}.findAll(specification)`;
+  _%>
+        return <%= entityListToDto %>(<%- repositoryFindAll %>);
+  <%_ } else {
+      const repositoryFindAll = containsBagRelationships
+        ? `${repository}.fetchBagRelationships(${repository}.findAll(specification))`
+        : `${repository}.findAll(specification)`;
+  _%>
+        return <%- repositoryFindAll %>;
   <%_ } _%>
     }
 

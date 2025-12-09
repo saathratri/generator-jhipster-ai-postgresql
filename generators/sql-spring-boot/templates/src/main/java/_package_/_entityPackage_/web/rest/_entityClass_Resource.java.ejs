@@ -478,6 +478,20 @@ public class <%= entityClass %>Resource {
     @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
 <%_ } _%>
 <%- include('../../_partials_entity_/get_all_template', {viaService}); -%>
+<%_ if (jpaMetamodelFiltering && databaseTypeSql) { _%>
+  /**
+   * {@code GET  /saathratri-orchestrator/by-criteria} : get all the <%= entityInstancePlural %>.
+   *
+   * @param criteria the criteria which the requested entities should match.
+   * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of <%= entityInstancePlural %> in body.
+   */
+  @GetMapping("/saathratri-orchestrator/by-criteria")
+  public ResponseEntity<List<<%= instanceType %>>> getAll<%= entityClassPlural %>(<%= entityClass %>Criteria criteria) {
+    log.debug("REST request to get <%= entityClassPlural %> by criteria: {}", criteria);
+    List<<%= instanceType %>> entityList = <%= entityInstance %>QueryService.findByCriteria(criteria);
+    return ResponseEntity.ok().body(entityList);
+  }
+<%_ } _%>
 
 <%_ if (!jpaMetamodelFiltering && reactive && paginationNo) { _%>
     /**
