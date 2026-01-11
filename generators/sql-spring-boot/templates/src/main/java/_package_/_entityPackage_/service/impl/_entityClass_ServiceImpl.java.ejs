@@ -122,10 +122,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 <%_ } _%>
 
-<%_ if (dtoMapstruct && (paginationNo || fieldsContainNoOwnerOneToOne)) { _%>
+<%_ if (dtoMapstruct && !reactive) { _%>
 import java.util.LinkedList;
 <%_ } _%>
-<%_ if (paginationNo || fieldsContainNoOwnerOneToOne || relationshipsContainEagerLoad) { _%>
+<%_ if (!reactive || paginationNo || fieldsContainNoOwnerOneToOne || relationshipsContainEagerLoad) { _%>
 import java.util.List;
 <%_ } _%>
 <%_ if (!reactive) { _%>
@@ -134,7 +134,7 @@ import java.util.Optional;
 <%_ if (primaryKey.typeUUID) { _%>
 import java.util.UUID;
 <%_ } _%>
-<%_ if (fieldsContainNoOwnerOneToOne || (paginationNo && ((searchEngine) || dtoMapstruct))) { _%>
+<%_ if (!reactive && (fieldsContainNoOwnerOneToOne || (paginationNo && ((searchEngine) || dtoMapstruct)) || dtoMapstruct)) { _%>
 import java.util.stream.Collectors;
 <%_ } _%>
 <%_ if (fieldsContainNoOwnerOneToOne || (paginationNo && searchEngineElasticsearch)) { _%>
@@ -208,6 +208,28 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
 <%- include('../../_partials_entity_/patch_template', {isService: true, viaService: false}); -%>
     }
 <%_ } _%>
+<%_ if (serviceImpl) { _%>
+    @Override
+<%_ } _%>
+<%_ if (databaseTypeSql) { _%>
+    @Transactional(readOnly = true)
+<%_ } _%>
+    public <%= listOrFlux %><<%= instanceType %>> findAllForSaathratriOrchestrator() {
+        log.debug("Request to get all <%= entityClassPlural %> for saathratri orchestrator");
+  <%_ if (reactive) { _%>
+        return <%= entityInstance %>Repository.findAll()<% if (dtoMapstruct) { %>.map(<%= entityToDtoReference %>)<% } %>;
+  <%_ } else { _%>
+    <%_ if (dtoMapstruct) { _%>
+        return <%= entityInstance %>Repository
+            .findAll()
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toCollection(LinkedList::new));
+    <%_ } else { _%>
+        return <%= entityInstance %>Repository.findAll();
+    <%_ } _%>
+  <%_ } _%>
+    }
 <%_ if (!jpaMetamodelFiltering) { _%>
 
   <%_ if (!serviceImpl) { _%>

@@ -170,7 +170,7 @@ import java.util.Optional;
 <%_ if (primaryKey.hasUUID) { _%>
 import java.util.UUID;
 <%_ } _%>
-<%_ if ((searchEngineAny || fieldsContainNoOwnerOneToOne) && !reactive) { _%>
+<%_ if ((searchEngineAny || fieldsContainNoOwnerOneToOne || (dtoMapstruct && !viaService)) && !reactive) { _%>
   <%_ if (!viaService) { _%>
 import java.util.stream.Collectors;
   <%_ } _%>
@@ -478,6 +478,32 @@ public class <%= entityClass %>Resource {
     @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
 <%_ } _%>
 <%- include('../../_partials_entity_/get_all_template', {viaService}); -%>
+<%_ if (!reactive) { _%>
+    /**
+     * {@code GET  /saathratri-orchestrator} : get all the <%= entityInstancePlural %>.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of <%= entityInstancePlural %> in body.
+     */
+    @GetMapping("/saathratri-orchestrator")
+    public ResponseEntity<List<<%= instanceType %>>> getAll<%= entityClassPlural %>ForSaathratriOrchestrator() {
+        log.debug("REST request to get all <%= entityClassPlural %> for saathratri orchestrator");
+        List<<%= instanceType %>> entityList;
+  <%_ if (viaService) { _%>
+        entityList = <%= entityInstance %>Service.findAllForSaathratriOrchestrator();
+  <%_ } else { _%>
+    <%_ if (dtoMapstruct) { _%>
+        entityList = <%= entityInstance %>Repository
+            .findAll()
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+    <%_ } else { _%>
+        entityList = <%= entityInstance %>Repository.findAll();
+    <%_ } _%>
+  <%_ } _%>
+        return ResponseEntity.ok().body(entityList);
+    }
+<%_ } _%>
 <%_ if (jpaMetamodelFiltering && databaseTypeSql) { _%>
   /**
    * {@code GET  /saathratri-orchestrator/by-criteria} : get all the <%= entityInstancePlural %>.

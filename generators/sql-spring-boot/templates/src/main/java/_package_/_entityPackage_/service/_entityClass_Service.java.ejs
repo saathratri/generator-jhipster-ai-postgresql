@@ -98,7 +98,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 <%_ } _%>
 
-<%_ if (paginationNo || fieldsContainNoOwnerOneToOne || relationshipsContainEagerLoad) { _%>
+<%_ if (!reactive || paginationNo || fieldsContainNoOwnerOneToOne || relationshipsContainEagerLoad) { _%>
 import java.util.List;
 <%_ } _%>
 <%_ if (!reactive) { _%>
@@ -144,6 +144,13 @@ public interface <%= entityClass %>Service {
      * @return the persisted entity.
      */
     <% if (reactive) { %>Mono<% } else { %>Optional<% } %><<%= instanceType %>> partialUpdate(<%= instanceType %> <%= instanceName %>);
+
+    /**
+     * Get all the <%= entityInstancePlural %> for saathratri orchestrator.
+     *
+     * @return the list of entities.
+     */
+    <%= listOrFlux %><<%= instanceType %>> findAllForSaathratriOrchestrator();
 
     <%_ if (hasEagerLoadableRelationships) { _%>
     /**
