@@ -5,6 +5,19 @@ import { generateEntityClientEnumImports } from 'generator-jhipster/generators/c
 import { angularSaathratriUtils } from './sql-angular-utils.js';
 import { angularFilesFromSaathratri } from './entity-files.js';
 
+// Navbar template files with alphabetical sorting and microfrontend grouping
+const navbarFiles = {
+  navbar: [
+    {
+      ...clientApplicationTemplatesBlock(),
+      templates: [
+        'layouts/navbar/navbar.component.ts',
+        'layouts/navbar/navbar.component.html',
+      ]
+    }
+  ]
+};
+
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
     super(args, opts, { ...features, sbsBlueprint: true });
@@ -97,11 +110,17 @@ export default class extends BaseApplicationGenerator {
         await this.writeFiles({
           sections: {
             files: [
-              { 
-                templates: ['template-file-sql-angular'] 
+              {
+                templates: ['template-file-sql-angular']
               },
             ],
           },
+          context: application,
+        });
+
+        // Write navbar files with alphabetical sorting and microfrontend grouping
+        await this.writeFiles({
+          sections: navbarFiles,
           context: application,
         });
       },
