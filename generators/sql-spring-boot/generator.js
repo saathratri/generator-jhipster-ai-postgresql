@@ -98,6 +98,7 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
+        
         if (application. applicationTypeMicroservice) {
           sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);
           const portData = sqlSpringBootUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
@@ -106,7 +107,7 @@ export default class extends BaseApplicationGenerator {
         await this.writeFiles({
           sections: {
               files: [
-                { 
+                {
                   templates: [
                     'src/main/resources/config/application-dev.yml',
                   ]
