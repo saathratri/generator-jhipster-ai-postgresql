@@ -71,7 +71,18 @@ import <%- `${otherEntity.entityAbsolutePackage}.service.dto.${otherEntity.dtoCl
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class <%- dtoClass %> implements Serializable {
 
-<%_ for (property of restProperties) { _%>
+<%_
+// Filter out vector fields from DTO - they are large embeddings (1536 floats = ~6KB each)
+// and only used for database-level similarity search, not API responses
+const dtoProperties = restProperties.filter(property => {
+  const field = property.fieldName ? property : undefined;
+  if (field && field.fieldTypeVectorSaathratri) {
+    return false; // Exclude vector fields from DTO
+  }
+  return true;
+});
+_%>
+<%_ for (property of dtoProperties) { _%>
   <%_ if (typeof property.propertyJavadoc) { _%>
 <%- property.propertyJavadoc %>
   <%_ }
@@ -101,12 +112,12 @@ public class <%- dtoClass %> implements Serializable {
 }
 _%>
 
-<%_ for (property of restProperties) { _%>
+<%_ for (property of dtoProperties) { _%>
     public <%- property.propertyDtoJavaType %> get<%- property.propertyJavaBeanName %>() {
         return <%- property.propertyName %>;
     }
 
-    public void set<%- property.propertyJavaBeanName %>(<%- property.propertyDtoJavaType %> <%- property.propertyName %>) %> {
+    public void set<%- property.propertyJavaBeanName %>(<%- property.propertyDtoJavaType %> <%- property.propertyName %>) {
         this.<%- property.propertyName %> = <%- property.propertyName %>;
     }
   <%_ if (property.fieldWithContentType) { _%>
@@ -155,7 +166,7 @@ _%>
     @Override
     public String toString() {
         return "<%- dtoClass %>{" +
-<%_ for ([idx, property] of restProperties.entries()) {
+<%_ for ([idx, property] of dtoProperties.entries()) {
   const isQuoted = property.fieldName && !property.fieldTypeNumeric _%>
             "<%- idx === 0 ? '' : ', ' %><%- property.propertyName %>=<% if (isQuoted) { %>'<% } %>" + get<%- property.propertyJavaBeanName %>() <% if (isQuoted) { %>+ "'" <% } %>+
 <%_ } _%>

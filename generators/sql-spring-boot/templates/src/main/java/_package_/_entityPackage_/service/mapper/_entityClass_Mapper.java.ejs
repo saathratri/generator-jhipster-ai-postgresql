@@ -120,7 +120,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     _%>
     @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName="<%= qualifiedByName %>")
   <%_ } _%>
-  <%_ for (const field of fields.filter(field => field.mapstructExpression)) {
+  <%_ for (const field of fields.filter(field => field.mapstructExpression && !field.fieldTypeVectorSaathratri)) {
       renMapAnotEnt = true; _%>
     @Mapping( target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
   <%_ } _%>
@@ -136,8 +136,9 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
       const manyToOneRelationships = dtoRelationships.filter(r => !r.collection);
       const manyToManyRelationships = dtoRelationships.filter(r => r.collection);
 
-      // Get all basic fields (non-relationship fields)
-      const basicFields = fields.filter(field => !field.relationship);
+      // Get all basic fields (non-relationship fields), excluding vector fields
+      // Vector fields are large embeddings (~6KB each) and should not be in DTOs
+      const basicFields = fields.filter(field => !field.relationship && !field.fieldTypeVectorSaathratri);
   _%>
 
     /**
@@ -230,7 +231,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%_ for (const entityGraphQuery of entityGraphDirectives) { _%>
       @Named("to<%= this._.upperFirst(entityGraphQuery.methodName) %>")
       @BeanMapping(ignoreByDefault = true)
-    <%_ for (const field of fields.filter(field => !field.relationship)) { _%>
+    <%_ for (const field of fields.filter(field => !field.relationship && !field.fieldTypeVectorSaathratri)) { _%>
       <%_ if (field.mapstructExpression) { _%>
       @Mapping(target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
       <%_ } else { _%>

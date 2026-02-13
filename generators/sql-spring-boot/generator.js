@@ -73,7 +73,25 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.PREPARING_EACH_ENTITY_FIELD]() {
     return this.asPreparingEachEntityFieldTaskGroup({
-      async preparingEachEntityFieldTemplateTask() {},
+      async preparingEachEntityFieldTemplateTask({ entity, field }) {
+        // Check for VECTOR custom annotation to exclude from DTOs
+        const vectorAnnotation = field.options?.customAnnotation?.[0];
+        if (vectorAnnotation === 'VECTOR') {
+          // Get the vector dimension from the second annotation (e.g., "1536")
+          const vectorDimension = field.options?.customAnnotation?.[1] || '1536';
+
+          // Mark field as vector type for exclusion from DTO
+          field.fieldTypeVectorSaathratri = true;
+          field.vectorDimensionSaathratri = vectorDimension;
+
+          // IMPORTANT: Exclude vector fields from DTOs - they are large (1536 floats = ~6KB)
+          // and only used for database-level similarity search, not API responses
+          field.transient = true;
+          field.hidden = true;
+
+          this.log.info(`Field '${field.fieldName}' in entity '${entity.entityClass}' marked as vector(${vectorDimension}) type (excluded from DTO)`);
+        }
+      },
     });
   }
 
