@@ -630,4 +630,77 @@ public class <%= entityClass %>Resource {
   <%_ } _%>
 <%- include('../../_partials_entity_/search_template', {viaService}); -%>
 <%_ } _%>
+<%_
+// Check if entity has vector fields for similarity search
+const vectorFieldsForResource = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const hasVectorFieldsForResource = vectorFieldsForResource.length > 0;
+_%>
+<%_ if (hasVectorFieldsForResource && !reactive) { _%>
+
+    // ==================== Vector Similarity Search Endpoints ====================
+  <%_ for (const vectorField of vectorFieldsForResource) { _%>
+
+    /**
+     * {@code POST  /<%= entityApiUrl %>/vector-search/<%= vectorField.fieldName %>} : search for <%= entityInstancePlural %> similar to the given embedding.
+     *
+     * @param embedding the query embedding vector as a JSON array string (e.g., "[0.1, 0.2, ...]")
+     * @param limit maximum number of results to return (default: 10)
+     * @return the list of similar <%= entityInstancePlural %> ordered by similarity.
+     */
+    @PostMapping("/vector-search/<%= vectorField.fieldName %>")
+  <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+  <%_ } _%>
+    public ResponseEntity<List<<%= instanceType %>>> searchSimilarBy<%= vectorField.fieldNameCapitalized %>(
+            @RequestBody String embedding,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        log.debug("REST request to search <%= entityClassPlural %> similar by <%= vectorField.fieldName %>, limit: {}", limit);
+    <%_ if (viaService) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Service.findSimilarBy<%= vectorField.fieldNameCapitalized %>(embedding, limit);
+    <%_ } else { _%>
+      <%_ if (dtoMapstruct) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>(embedding, limit)
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+      <%_ } else { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>(embedding, limit);
+      <%_ } _%>
+    <%_ } _%>
+        return ResponseEntity.ok().body(result);
+    }
+
+    /**
+     * {@code POST  /<%= entityApiUrl %>/vector-search/<%= vectorField.fieldName %>/threshold} : search for <%= entityInstancePlural %> similar to the given embedding with distance threshold.
+     *
+     * @param embedding the query embedding vector as a JSON array string (e.g., "[0.1, 0.2, ...]")
+     * @param maxDistance maximum cosine distance (0 = identical, 2 = opposite). Default: 0.5
+     * @param limit maximum number of results to return (default: 10)
+     * @return the list of similar <%= entityInstancePlural %> ordered by similarity.
+     */
+    @PostMapping("/vector-search/<%= vectorField.fieldName %>/threshold")
+  <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+  <%_ } _%>
+    public ResponseEntity<List<<%= instanceType %>>> searchSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(
+            @RequestBody String embedding,
+            @RequestParam(value = "maxDistance", defaultValue = "0.5") double maxDistance,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        log.debug("REST request to search <%= entityClassPlural %> similar by <%= vectorField.fieldName %> with threshold, maxDistance: {}, limit: {}", maxDistance, limit);
+    <%_ if (viaService) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Service.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embedding, maxDistance, limit);
+    <%_ } else { _%>
+      <%_ if (dtoMapstruct) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embedding, maxDistance, limit)
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+      <%_ } else { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embedding, maxDistance, limit);
+      <%_ } _%>
+    <%_ } _%>
+        return ResponseEntity.ok().body(result);
+    }
+  <%_ } _%>
+<%_ } _%>
 }

@@ -278,4 +278,34 @@ _%>
      */
     <% if (!paginationNo) { %><%= pageOrFlux %><<%= instanceType %><% } else { %><%= listOrFlux %><<%= instanceType %><% } %>> search(String query<% if (!paginationNo) { %>, Pageable pageable<% } %>);
 <%_ } _%>
+<%_
+// Check if entity has vector fields for similarity search
+const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const hasVectorFields = vectorFields.length > 0;
+_%>
+<%_ if (hasVectorFields && !reactive) { _%>
+
+    // ==================== Vector Similarity Search Methods ====================
+  <%_ for (const vectorField of vectorFields) { _%>
+
+    /**
+     * Find <%= entityInstancePlural %> similar to the given embedding vector using <%= vectorField.fieldName %>.
+     *
+     * @param embedding the query embedding vector as a formatted string "[0.1, 0.2, ...]"
+     * @param limit maximum number of results to return
+     * @return list of <%= entityInstancePlural %> ordered by similarity (most similar first)
+     */
+    List<<%= instanceType %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>(String embedding, int limit);
+
+    /**
+     * Find <%= entityInstancePlural %> similar to the given embedding vector using <%= vectorField.fieldName %> with threshold.
+     *
+     * @param embedding the query embedding vector as a formatted string "[0.1, 0.2, ...]"
+     * @param maxDistance maximum cosine distance (0 = identical, 2 = opposite)
+     * @param limit maximum number of results to return
+     * @return list of <%= entityInstancePlural %> ordered by similarity (most similar first)
+     */
+    List<<%= instanceType %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(String embedding, double maxDistance, int limit);
+  <%_ } _%>
+<%_ } _%>
 }

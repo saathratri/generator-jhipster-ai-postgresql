@@ -95,6 +95,11 @@ import java.util.List;
 
 import java.util.UUID;
 <%_ } _%>
+<%_
+// Check if entity has vector fields for similarity search
+const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const hasVectorFields = vectorFields.length > 0;
+_%>
 
 /**
  * <%= springDataDescription %> repository for the <%= persistClass %> entity.
@@ -168,6 +173,36 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
 <%_ }); _%>
     })
     Optional<<%= persistClass %>> <%= entityGraphQuery.methodName %>(@Param("<%= primaryKey.name %>") <%= primaryKey.type %> <%= primaryKey.name %>);
+  <%_ } _%>
+<%_ } _%>
+<%_ if (hasVectorFields) { _%>
+
+    // ==================== Vector Similarity Search Methods ====================
+    // These methods use pgvector for semantic similarity search using cosine distance
+  <%_ for (const vectorField of vectorFields) { _%>
+
+    /**
+     * Find <%= entityInstancePlural %> similar to the given embedding vector using <%= vectorField.fieldName %>.
+     * Uses pgvector cosine distance operator (<=>) for similarity search.
+     *
+     * @param embedding the query embedding vector (must match dimension <%= vectorField.vectorDimensionSaathratri %>)
+     * @param limit maximum number of results to return
+     * @return list of <%= entityInstancePlural %> ordered by similarity (most similar first)
+     */
+    @Query(value = "SELECT * FROM <%= entityTableName %> ORDER BY <%= vectorField.columnName %> <=> cast(:embedding as vector) LIMIT :limit", nativeQuery = true)
+    List<<%= persistClass %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>(@Param("embedding") String embedding, @Param("limit") int limit);
+
+    /**
+     * Find <%= entityInstancePlural %> similar to the given embedding vector using <%= vectorField.fieldName %> with minimum similarity threshold.
+     * Uses pgvector cosine distance operator (<=>) for similarity search.
+     *
+     * @param embedding the query embedding vector (must match dimension <%= vectorField.vectorDimensionSaathratri %>)
+     * @param maxDistance maximum cosine distance (0 = identical, 2 = opposite)
+     * @param limit maximum number of results to return
+     * @return list of <%= entityInstancePlural %> ordered by similarity (most similar first)
+     */
+    @Query(value = "SELECT * FROM <%= entityTableName %> WHERE <%= vectorField.columnName %> <=> cast(:embedding as vector) < :maxDistance ORDER BY <%= vectorField.columnName %> <=> cast(:embedding as vector) LIMIT :limit", nativeQuery = true)
+    List<<%= persistClass %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(@Param("embedding") String embedding, @Param("maxDistance") double maxDistance, @Param("limit") int limit);
   <%_ } _%>
 <%_ } _%>
 }

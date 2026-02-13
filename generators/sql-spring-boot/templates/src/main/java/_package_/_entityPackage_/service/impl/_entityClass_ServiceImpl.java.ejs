@@ -446,4 +446,43 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
   <%_ } } _%>
     }
 <%_ } _%>
+<%_
+// Check if entity has vector fields for similarity search
+const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const hasVectorFields = vectorFields.length > 0;
+_%>
+<%_ if (hasVectorFields && !reactive) { _%>
+
+    // ==================== Vector Similarity Search Methods ====================
+  <%_ for (const vectorField of vectorFields) { _%>
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<<%= instanceType %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>(String embedding, int limit) {
+        log.debug("Request to find <%= entityClassPlural %> similar by <%= vectorField.fieldName %>, limit: {}", limit);
+    <%_ if (dtoMapstruct) { _%>
+        return <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>(embedding, limit)
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+    <%_ } else { _%>
+        return <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>(embedding, limit);
+    <%_ } _%>
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<<%= instanceType %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(String embedding, double maxDistance, int limit) {
+        log.debug("Request to find <%= entityClassPlural %> similar by <%= vectorField.fieldName %> with threshold, maxDistance: {}, limit: {}", maxDistance, limit);
+    <%_ if (dtoMapstruct) { _%>
+        return <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embedding, maxDistance, limit)
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+    <%_ } else { _%>
+        return <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embedding, maxDistance, limit);
+    <%_ } _%>
+    }
+  <%_ } _%>
+<%_ } _%>
 }
