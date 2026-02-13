@@ -84,10 +84,10 @@ export default class extends BaseApplicationGenerator {
           field.fieldTypeVectorSaathratri = true;
           field.vectorDimensionSaathratri = vectorDimension;
 
-          // IMPORTANT: Exclude vector fields from DTOs - they are large (1536 floats = ~6KB)
-          // and only used for database-level similarity search, not API responses
-          field.transient = true;
-          field.hidden = true;
+          // IMPORTANT: Vector fields should be in the JPA entity (for database access)
+          // but excluded from DTOs (they are large - 1536 floats = ~6KB each)
+          // The DTO template filters out fields with fieldTypeVectorSaathratri = true
+          // Do NOT set field.transient = true as that removes the field from the entity entirely
 
           this.log.info(`Field '${field.fieldName}' in entity '${entity.entityClass}' marked as vector(${vectorDimension}) type (excluded from DTO)`);
         }
