@@ -188,6 +188,10 @@ export default class extends BaseApplicationGenerator {
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/service/embedding/EmbeddingMigrationService.java`,
                     },
                     {
+                      sourceFile: 'src/main/java/_package_/service/embedding/EmbeddingStartupMigrationRunner.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/service/embedding/EmbeddingStartupMigrationRunner.java`,
+                    },
+                    {
                       sourceFile: 'src/main/java/_package_/web/rest/EmbeddingMigrationResource.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/web/rest/EmbeddingMigrationResource.java`,
                     },
