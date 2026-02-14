@@ -73,7 +73,7 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.PREPARING_EACH_ENTITY_FIELD]() {
     return this.asPreparingEachEntityFieldTaskGroup({
-      async preparingEachEntityFieldTemplateTask({ entity, field }) {
+      async preparingEachEntityFieldTemplateTask({ application, entity, field }) {
         // Check for VECTOR custom annotation to exclude from DTOs
         const vectorAnnotation = field.options?.customAnnotation?.[0];
         if (vectorAnnotation === 'VECTOR') {
@@ -84,12 +84,43 @@ export default class extends BaseApplicationGenerator {
           field.fieldTypeVectorSaathratri = true;
           field.vectorDimensionSaathratri = vectorDimension;
 
+          // Determine the source field name (the field this embedding is derived from)
+          // Convention: nameEmbedding -> name, descriptionEmbedding -> description
+          const sourceFieldName = field.fieldName.replace(/Embedding$/, '');
+          field.sourceFieldNameSaathratri = sourceFieldName;
+          field.sourceFieldNameCapitalizedSaathratri = sourceFieldName.charAt(0).toUpperCase() + sourceFieldName.slice(1);
+
           // IMPORTANT: Vector fields should be in the JPA entity (for database access)
           // but excluded from DTOs (they are large - 1536 floats = ~6KB each)
           // The DTO template filters out fields with fieldTypeVectorSaathratri = true
           // Do NOT set field.transient = true as that removes the field from the entity entirely
 
-          this.log.info(`Field '${field.fieldName}' in entity '${entity.entityClass}' marked as vector(${vectorDimension}) type (excluded from DTO)`);
+          // Track vector entities at application level for embedding service generation
+          application.hasVectorFieldsSaathratri = true;
+          application.vectorEntitiesSaathratri = application.vectorEntitiesSaathratri || [];
+
+          // Find or create entity entry in vectorEntitiesSaathratri
+          let vectorEntity = application.vectorEntitiesSaathratri.find(e => e.entityClass === entity.entityClass);
+          if (!vectorEntity) {
+            vectorEntity = {
+              entityClass: entity.entityClass,
+              entityInstance: entity.entityInstance,
+              entityInstancePlural: entity.entityInstancePlural,
+              vectorFields: []
+            };
+            application.vectorEntitiesSaathratri.push(vectorEntity);
+          }
+
+          // Add this field to the entity's vector fields
+          vectorEntity.vectorFields.push({
+            fieldName: field.fieldName,
+            fieldNameCapitalized: field.fieldNameCapitalized,
+            sourceFieldName: sourceFieldName,
+            sourceFieldNameCapitalized: field.sourceFieldNameCapitalizedSaathratri,
+            vectorDimension: vectorDimension
+          });
+
+          this.log.info(`Field '${field.fieldName}' in entity '${entity.entityClass}' marked as vector(${vectorDimension}) type (source: ${sourceFieldName}, excluded from DTO)`);
         }
       },
     });
@@ -116,24 +147,56 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
-        
-        if (application. applicationTypeMicroservice) {
+
+        if (application.applicationTypeMicroservice) {
           sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);
           const portData = sqlSpringBootUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
           this.log(`The server port is: ${portData[this.appname].port}`);
           application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}/${application.devDatabaseName}`;
-        await this.writeFiles({
-          sections: {
+          await this.writeFiles({
+            sections: {
               files: [
                 {
                   templates: [
                     'src/main/resources/config/application-dev.yml',
                   ]
-          },
+                },
               ],
             },
-          context: application,
-        });
+            context: application,
+          });
+        }
+
+        // Write embedding service files if any entity has vector fields
+        if (application.hasVectorFieldsSaathratri && application.vectorEntitiesSaathratri?.length > 0) {
+          this.log.info(`Generating embedding services for ${application.vectorEntitiesSaathratri.length} entities with vector fields`);
+          await this.writeFiles({
+            sections: {
+              files: [
+                {
+                  templates: [
+                    {
+                      sourceFile: 'src/main/java/_package_/config/EmbeddingConfiguration.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/config/EmbeddingConfiguration.java`,
+                    },
+                    {
+                      sourceFile: 'src/main/java/_package_/service/embedding/EmbeddingService.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/service/embedding/EmbeddingService.java`,
+                    },
+                    {
+                      sourceFile: 'src/main/java/_package_/service/embedding/EmbeddingMigrationService.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/service/embedding/EmbeddingMigrationService.java`,
+                    },
+                    {
+                      sourceFile: 'src/main/java/_package_/web/rest/EmbeddingMigrationResource.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/web/rest/EmbeddingMigrationResource.java`,
+                    },
+                  ]
+                },
+              ],
+            },
+            context: application,
+          });
         }
       },
     });

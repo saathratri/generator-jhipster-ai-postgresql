@@ -78,7 +78,35 @@
         <maven-site-plugin.version><%- javaDependencies['maven-site-plugin'] %></maven-site-plugin.version>
         <maven-surefire-plugin.version><%- javaDependencies['maven-surefire-plugin'] %></maven-surefire-plugin.version>
         <maven-war-plugin.version><%- javaDependencies['maven-war-plugin'] %></maven-war-plugin.version>
+<%_ if (hasVectorFieldsSaathratri) { _%>
+        <spring-ai.version>1.0.0-M5</spring-ai.version>
+<%_ } _%>
     </properties>
+<%_ if (hasVectorFieldsSaathratri) { _%>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+<%_ } _%>
 
     <dependencies>
         <dependency>
@@ -312,6 +340,13 @@
 			<artifactId>aws-java-sdk-s3</artifactId>
 			<version>1.12.762</version>
 	    </dependency>
+<%_ } _%>
+<%_ if (hasVectorFieldsSaathratri) { _%>
+        <!-- Spring AI dependencies for vector embedding generation -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-openai</artifactId>
+        </dependency>
 <%_ } _%>
     </dependencies>
 
