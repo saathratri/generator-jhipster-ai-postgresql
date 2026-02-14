@@ -46,7 +46,7 @@ public class EmbeddingService {
         this.embeddingModel = embeddingModel;
         if (embeddingModel == null) {
             LOG.warn("EmbeddingModel is null. Embedding generation will be disabled. " +
-                "Configure spring.ai.openai.api-key to enable embeddings.");
+                "Configure openai.api-key or set OPENAI_API_KEY environment variable to enable embeddings.");
         }
     }
 

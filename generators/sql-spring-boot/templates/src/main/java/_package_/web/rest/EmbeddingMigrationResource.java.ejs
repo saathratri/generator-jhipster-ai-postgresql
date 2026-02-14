@@ -58,7 +58,7 @@ public class EmbeddingMigrationResource {
         boolean available = embeddingService.isAvailable();
         return ResponseEntity.ok(new EmbeddingStatus(
             available,
-            available ? "Embedding service is ready" : "Embedding service not configured. Set spring.ai.openai.api-key"
+            available ? "Embedding service is ready" : "Embedding service not configured. Set OPENAI_API_KEY environment variable"
         ));
     }
 
