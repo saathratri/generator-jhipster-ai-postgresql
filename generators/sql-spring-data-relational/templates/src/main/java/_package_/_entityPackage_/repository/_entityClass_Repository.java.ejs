@@ -74,9 +74,12 @@ const hasEntityGraphQueries = entityGraphParsedDirectives.length > 0;
 const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
   relationship.relationshipEagerLoad || relationship.relationshipManyToMany
 );
+// Check if entity has vector fields for similarity search (needs @Param import)
+const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const hasVectorFields = vectorFields.length > 0;
 const needsOptionalImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
 const needsPageAndPageableImport = hasEagerLoadableRelationships && relationships.some(r => r.relationshipManyToMany);
-const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
+const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries || hasVectorFields;
 _%>
 <%_ if (needsPageAndPageableImport) { _%>
 import org.springframework.data.domain.Page;
@@ -95,11 +98,6 @@ import java.util.List;
 
 import java.util.UUID;
 <%_ } _%>
-<%_
-// Check if entity has vector fields for similarity search
-const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
-const hasVectorFields = vectorFields.length > 0;
-_%>
 
 /**
  * <%= springDataDescription %> repository for the <%= persistClass %> entity.
