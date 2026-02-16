@@ -99,6 +99,7 @@ import <%= otherEntity.entityAbsolutePackage %>.service.dto.<%= otherEntity.dtoC
 <%_ } _%>
 
 import org.mapstruct.*;
+import org.mapstruct.control.NoComplexMapping;
 <%_ if (uuidMapMethod) { _%>
 
 import java.util.Objects;
@@ -107,8 +108,13 @@ import java.util.UUID;
 
 /**
  * Mapper for the entity {@link <%= persistClass %>} and its DTO {@link <%= dtoClass %>}.
+ *
+ * Uses NoComplexMapping to prevent MapStruct from generating deep/complex mappings
+ * that can cause infinite recursion with bidirectional entity relationships.
+ * This limits MapStruct to direct field mappings only, requiring explicit @Mapping
+ * annotations for any relationship mappings.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", mappingControl = NoComplexMapping.class)
 public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, <%= persistClass %>> {
 <%_ if (!embedded) { _%>
   <%_ var renMapAnotEnt = false; /*Render Mapping Annotation during Entity to DTO conversion?*/ _%>

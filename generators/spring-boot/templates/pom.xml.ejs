@@ -407,6 +407,12 @@
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                         <parameters>true</parameters>
+                        <!-- Fork the compiler in a separate process with more memory -->
+                        <!-- This helps prevent OutOfMemoryError during MapStruct annotation processing -->
+                        <!-- especially with complex entity relationships -->
+                        <fork>true</fork>
+                        <meminitial>2048m</meminitial>
+                        <maxmem>8192m</maxmem>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.springframework.boot</groupId>

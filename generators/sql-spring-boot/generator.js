@@ -134,7 +134,63 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.POST_PREPARING_EACH_ENTITY]() {
     return this.asPostPreparingEachEntityTaskGroup({
-      async postPreparingEachEntityTemplateTask() {},
+      async postPreparingEachEntityTemplateTask({ entity }) {
+        // Deduplicate entityJavaFilterableProperties to prevent compilation errors
+        // This can happen when multiple relationships generate the same filter name
+        // (e.g., two relationships both named "workOrder" would both generate "workOrderId" filter)
+        if (entity.entityJavaFilterableProperties && entity.entityJavaFilterableProperties.length > 0) {
+          const seen = new Set();
+          const duplicates = [];
+          const uniqueProperties = [];
+
+          for (const prop of entity.entityJavaFilterableProperties) {
+            const filterName = prop.propertyJavaFilterName;
+            if (seen.has(filterName)) {
+              duplicates.push(filterName);
+            } else {
+              seen.add(filterName);
+              uniqueProperties.push(prop);
+            }
+          }
+
+          if (duplicates.length > 0) {
+            this.log.warn(
+              `Entity '${entity.entityClass}' has duplicate filter names in Criteria class: [${duplicates.join(', ')}]. ` +
+              `This is likely caused by multiple relationships with the same name. ` +
+              `Consider renaming one of the relationships in your JDL to avoid conflicts. ` +
+              `Duplicates have been removed to prevent compilation errors.`
+            );
+            entity.entityJavaFilterableProperties = uniqueProperties;
+          }
+        }
+
+        // Also deduplicate relationships array for QueryService specification building
+        // to ensure consistency with the deduplicated Criteria filters
+        if (entity.relationships && entity.relationships.length > 0) {
+          const seenRelationships = new Set();
+          const duplicateRelationships = [];
+          const uniqueRelationships = [];
+
+          for (const rel of entity.relationships) {
+            // The filter name is based on relationshipNameCapitalized + "Id"
+            const filterKey = rel.relationshipNameCapitalized;
+            if (seenRelationships.has(filterKey)) {
+              duplicateRelationships.push(rel.relationshipName);
+            } else {
+              seenRelationships.add(filterKey);
+              uniqueRelationships.push(rel);
+            }
+          }
+
+          if (duplicateRelationships.length > 0) {
+            this.log.warn(
+              `Entity '${entity.entityClass}' has duplicate relationship names: [${duplicateRelationships.join(', ')}]. ` +
+              `Only the first occurrence will be used in QueryService specifications.`
+            );
+            entity.relationships = uniqueRelationships;
+          }
+        }
+      },
     });
   }
 
