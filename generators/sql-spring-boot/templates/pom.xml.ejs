@@ -78,11 +78,11 @@
         <maven-site-plugin.version><%- javaDependencies['maven-site-plugin'] %></maven-site-plugin.version>
         <maven-surefire-plugin.version><%- javaDependencies['maven-surefire-plugin'] %></maven-surefire-plugin.version>
         <maven-war-plugin.version><%- javaDependencies['maven-war-plugin'] %></maven-war-plugin.version>
-<%_ if (hasVectorFieldsSaathratri) { _%>
+<%_ if (typeof hasVectorFieldsSaathratri !== 'undefined' && hasVectorFieldsSaathratri) { _%>
         <spring-ai.version>1.0.0-M5</spring-ai.version>
 <%_ } _%>
     </properties>
-<%_ if (hasVectorFieldsSaathratri) { _%>
+<%_ if (typeof hasVectorFieldsSaathratri !== 'undefined' && hasVectorFieldsSaathratri) { _%>
 
     <dependencyManagement>
         <dependencies>
@@ -341,7 +341,7 @@
 			<version>1.12.762</version>
 	    </dependency>
 <%_ } _%>
-<%_ if (hasVectorFieldsSaathratri) { _%>
+<%_ if (typeof hasVectorFieldsSaathratri !== 'undefined' && hasVectorFieldsSaathratri) { _%>
         <!-- Spring AI dependencies for vector embedding generation -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
