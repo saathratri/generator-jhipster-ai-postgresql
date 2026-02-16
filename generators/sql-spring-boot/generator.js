@@ -258,6 +258,19 @@ export default class extends BaseApplicationGenerator {
             context: application,
           });
         }
+
+        // Write pom.xml with enhanced maven-compiler-plugin configuration
+        // (fork mode with increased memory for MapStruct annotation processing)
+        await this.writeFiles({
+          sections: {
+            files: [
+              {
+                templates: ['pom.xml'],
+              },
+            ],
+          },
+          context: application,
+        });
       },
     });
   }
