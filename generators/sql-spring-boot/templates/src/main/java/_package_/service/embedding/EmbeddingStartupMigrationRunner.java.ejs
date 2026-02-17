@@ -116,7 +116,8 @@ public class EmbeddingStartupMigrationRunner implements ApplicationRunner {
             if (entity.get<%= field.fieldNameCapitalized %>() == null && entity.get<%= field.sourceFieldNameCapitalized %>() != null) {
                 String sourceText = entity.get<%= field.sourceFieldNameCapitalized %>()<% if (field.sourceFieldName !== 'name' && field.sourceFieldName !== 'title' && field.sourceFieldName !== 'description' && field.sourceFieldName !== 'note' && field.sourceFieldName !== 'notes' && field.sourceFieldName !== 'termsAndConditions') { %>.toString()<% } %>;
                 if (sourceText != null && !sourceText.isBlank()) {
-                    byte[] embedding = embeddingService.generateEmbeddingAsBytes(sourceText);
+                    // Use vector string format for pgvector compatibility: "[0.1, 0.2, ...]"
+                    String embedding = embeddingService.generateEmbeddingAsVectorString(sourceText);
                     if (embedding != null) {
                         entity.set<%= field.fieldNameCapitalized %>(embedding);
                         wasUpdated = true;

@@ -84,6 +84,13 @@ export default class extends BaseApplicationGenerator {
           field.fieldTypeVectorSaathratri = true;
           field.vectorDimensionSaathratri = vectorDimension;
 
+          // CRITICAL FIX: Change field type from byte[] to String for pgvector compatibility
+          // pgvector expects vector data as string format "[0.1, 0.2, ...]" not as binary blob
+          // This prevents the "column is of type vector but expression is of type bigint" error
+          field.javaFieldType = 'String';
+          field.fieldTypeBytes = false;  // Prevents @Lob annotation from being added
+          field.fieldWithContentType = false;  // No need for ContentType field
+
           // Determine the source field name (the field this embedding is derived from)
           // Convention: nameEmbedding -> name, descriptionEmbedding -> description
           const sourceFieldName = field.fieldName.replace(/Embedding$/, '');
