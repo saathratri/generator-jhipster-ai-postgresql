@@ -81,16 +81,14 @@ export default class extends BaseApplicationGenerator {
           const vectorDimension = field.options?.customAnnotation?.[1] || '1536';
 
           // Mark field as vector type for exclusion from DTO
-          field.fieldTypeVectorSaathratri = true;
+                    field.fieldTypeVectorSaathratri = true;
           field.vectorDimensionSaathratri = vectorDimension;
 
           // CRITICAL FIX: Change field type from byte[] to String for pgvector compatibility
-          // pgvector expects vector data as string format "[0.1, 0.2, ...]" not as binary blob
-          // This prevents the "column is of type vector but expression is of type bigint" error
           field.javaFieldType = 'String';
-          field.fieldTypeBytes = false;  // Prevents @Lob annotation from being added
-          field.fieldWithContentType = false;  // No need for ContentType field
-          field.fieldTypeBinary = false; // Prevents binary logic in tests
+          field.fieldTypeBytes = false;
+          field.fieldWithContentType = false;
+          field.fieldTypeBinary = false;
           field.blobContentTypeText = true;
           field.fieldDefaultValue = '"[0.1, 0.2]"';
           field.fieldUpdatedValue = '"[0.3, 0.4]"';
