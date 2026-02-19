@@ -21,7 +21,13 @@ package <%= entityAbsolutePackage %>.service.mapper;
 <%_
   const getOriginalField = field => field.originalField || field;
   const uuidMapMethod = restProperties.some(property => property.relatedField?.fieldTypeUUID);
-  const byteMapMethod = restProperties.some(property => property.relatedField?.fieldTypeBytes);
+  // Include byte map method if:
+  // 1. Any related field is a byte type, OR
+  // 2. Application has any vector fields (which have byte[] in entity but String in DTO)
+  // This ensures MapStruct can handle byte[] -> String conversions in nested relationships
+  // Note: hasVectorFieldsSaathratri is spread directly into context from application object
+  const hasVectorFieldsInApp = typeof hasVectorFieldsSaathratri !== 'undefined' && hasVectorFieldsSaathratri;
+  const byteMapMethod = restProperties.some(property => property.relatedField?.fieldTypeBytes) || hasVectorFieldsInApp;
   const dtoRelationships = restProperties.filter(property => property.relationshipName && !property.otherEntity.embedded);
   const normalizeDirectives = value =>
     value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
@@ -192,6 +198,9 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%_ } _%>
   <%_ } _%>
   <%_ if (renMapAnotDto) { _%>
+<%_ for (const field of fields.filter(f => f.fieldTypeVectorSaathratri)) { _%>
+    @Mapping(target = "<%= field.propertyName %>", ignore = true)
+  <%_ } _%>
     <%= persistClass %> toEntity(<%= dtoClass %> <%= dtoInstance %>);
   <%_ } _%>
   <%_ for (const {otherEntity, relatedField, collection} of otherEntitiesFields) { _%>
@@ -264,7 +273,11 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
   <%_ if (byteMapMethod) { _%>
 
     default String map(byte[] value) {
-        return new String(value);
+        return value == null ? null : new String(value);
+    }
+
+    default byte[] map(String value) {
+        return value == null ? null : value.getBytes();
     }
   <%_ } _%>
 <%_ } _%>

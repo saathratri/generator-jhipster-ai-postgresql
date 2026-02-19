@@ -90,9 +90,12 @@ export default class extends BaseApplicationGenerator {
           field.javaFieldType = 'String';
           field.fieldTypeBytes = false;  // Prevents @Lob annotation from being added
           field.fieldWithContentType = false;  // No need for ContentType field
+          field.fieldTypeBinary = false; // Prevents binary logic in tests
+          field.blobContentTypeText = true;
+          field.fieldDefaultValue = '"[0.1, 0.2]"';
+          field.fieldUpdatedValue = '"[0.3, 0.4]"';
 
           // Determine the source field name (the field this embedding is derived from)
-          // Convention: nameEmbedding -> name, descriptionEmbedding -> description
           const sourceFieldName = field.fieldName.replace(/Embedding$/, '');
           field.sourceFieldNameSaathratri = sourceFieldName;
           field.sourceFieldNameCapitalizedSaathratri = sourceFieldName.charAt(0).toUpperCase() + sourceFieldName.slice(1);

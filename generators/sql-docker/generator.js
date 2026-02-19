@@ -117,6 +117,10 @@ export default class extends BaseApplicationGenerator {
                     {
                       file: 'docker/postgresql-init-scripts/init-vector-extension.sql',
                       renameTo: ctx => `src/main/docker/postgresql-init-scripts/init-vector-extension.sql`,
+                    },
+                    {
+                      file: "docker/postgresql/Dockerfile",
+                      renameTo: ctx => `src/main/docker/postgresql/Dockerfile`,
                     }
                   ] 
                 }
