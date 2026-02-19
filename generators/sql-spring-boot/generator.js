@@ -330,9 +330,30 @@ export default class extends BaseApplicationGenerator {
     });
   }
 
-  get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
+    get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
     return this.asPostWritingEntitiesTaskGroup({
-      async postWritingEntitiesTemplateTask() {},
+      async postWritingEntitiesTemplateTask({ entities, application }) {
+        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
+          const vectorFields = entity.fields.filter(f => f.fieldTypeVectorSaathratri);
+          if (vectorFields.length > 0) {
+            const entityFile = `src/main/java/${application.packageFolder}/domain/${entity.persistClass}.java`;
+            this.editFile(entityFile, content => {
+              // Add import if missing
+              if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
+                content = content.replace('import jakarta.persistence.*;', 'import jakarta.persistence.*;\nimport org.hibernate.annotations.ColumnTransformer;');
+              }
+
+              for (const field of vectorFields) {
+                // Find the @Column annotation for this field and replace it
+                const columnRegex = new RegExp(`@Column\\(name = "${field.fieldNameAsDatabaseColumn}"(.*?)\\)`, 'g');
+                const replacement = `@Column(name = "${field.fieldNameAsDatabaseColumn}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @ColumnTransformer(write = "?::vector")`;
+                content = content.replace(columnRegex, replacement);
+              }
+              return content;
+            });
+          }
+        }
+      },
     });
   }
 

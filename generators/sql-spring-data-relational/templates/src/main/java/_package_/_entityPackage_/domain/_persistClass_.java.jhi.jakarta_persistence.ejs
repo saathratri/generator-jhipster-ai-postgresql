@@ -1,0 +1,10 @@
+<&_ if (fragment.importSection) { -&>
+import org.hibernate.annotations.ColumnTransformer;
+<&_ } -&>
+
+<%_ for (const field of fields.filter(f => f.fieldTypeVectorSaathratri)) { -%>
+<&_ if (fragment.field<%- field.fieldNameCapitalized %>AnnotationSection) { -&>
+    @Column(name = "<%- field.fieldNameAsDatabaseColumn %>", columnDefinition = "vector(<%= field.vectorDimensionSaathratri %>)")
+    @ColumnTransformer(write = "?::vector")
+<&_ } -&>
+<%_ } -%>
