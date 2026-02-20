@@ -94,9 +94,9 @@ public class EmbeddingService {
      * @return the embedding as bytes, or null if generation fails
      */
     @Nullable
-    public byte[] generateEmbeddingAsBytes(String text) {
+    public float[] generateEmbeddingAsFloats(String text) {
         float[] embedding = generateEmbedding(text);
-        return embedding != null ? floatArrayToBytes(embedding) : null;
+        return embedding;
     }
 
     /**

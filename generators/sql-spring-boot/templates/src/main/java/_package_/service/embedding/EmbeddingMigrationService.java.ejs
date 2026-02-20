@@ -116,7 +116,7 @@ public class EmbeddingMigrationService {
                 // Generate embedding for <%= field.sourceFieldName %> -> <%= field.fieldName %>
                 if (entity.get<%= field.fieldNameCapitalized %>() == null && entity.get<%= field.sourceFieldNameCapitalized %>() != null) {
                     // Use vector string format for pgvector compatibility: "[0.1, 0.2, ...]"
-                    String embedding = embeddingService.generateEmbeddingAsVectorString(entity.get<%= field.sourceFieldNameCapitalized %>());
+                    float[] embedding = embeddingService.generateEmbedding(entity.get<%= field.sourceFieldNameCapitalized %>());
                     if (embedding != null) {
                         entity.set<%= field.fieldNameCapitalized %>(embedding);
                         wasUpdated = true;
