@@ -83,9 +83,10 @@ export default class extends BaseApplicationGenerator {
           // Mark field as vector type for exclusion from DTO
                     field.fieldTypeVectorSaathratri = true;
           field.vectorDimensionSaathratri = vectorDimension;
+          field.propertyDtoJavaType = 'float[]';
 
           // CRITICAL FIX: Change field type from byte[] to String for pgvector compatibility
-          field.javaFieldType = 'String';
+          field.javaFieldType = 'float[]';
           field.fieldTypeBytes = false;
           field.fieldWithContentType = false;
           field.fieldTypeBinary = false;
