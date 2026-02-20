@@ -353,6 +353,10 @@ if (field.fieldTypeString || field.blobContentTypeText) {
 
     private static final String <%= defaultValueName %> = "<%- sampleTextString %>";
     private static final String <%= updatedValueName %> = "<%- updatedTextString %>";
+  <%_ } else if (field.fieldTypeVectorSaathratri) { _%>
+
+    private static final float[] <%= defaultValueName %> = new float[] { 0.1f, 0.2f };
+    private static final float[] <%= updatedValueName %> = new float[] { 0.3f, 0.4f };
   <%_ } else if (field.fieldTypeInteger) { _%>
 
     private static final Integer <%= defaultValueName %> = <%= defaultValue %>;
@@ -992,7 +996,7 @@ _%>
   if (field.fieldTypeBigDecimal) { %>)<% } else
   if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
   if (field.fieldTypeZonedDateTime) { %>)<% } else
-  if (!field.fieldTypeString) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
+  if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
     }
 <% if (implementsEagerLoadApis && !databaseTypeNeo4j && !databaseTypeCouchbase) { %>
     @SuppressWarnings({"unchecked"})
@@ -1079,7 +1083,7 @@ _%>
   if (field.fieldTypeBigDecimal) { %>)<% } else
   if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
   if (field.fieldTypeZonedDateTime) { %>)<% } else
-  if (!field.fieldTypeString) { %>.toString()<% } %>))<%_ } _%>;
+  if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%_ } _%>;
     }
 <%_ if (jpaMetamodelFiltering) {  %>
 
@@ -1320,7 +1324,7 @@ _%>
       if (field.fieldTypeBigDecimal) { %>)<% } else
       if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
       if (field.fieldTypeZonedDateTime) { %>)<% } else
-      if (!field.fieldTypeString) { %>.toString()<% } %>))<%_ } _%>;
+      if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%_ } _%>;
 
         // Check, that the count call also returns 1
         webTestClient.get().uri(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&" + filter)
@@ -1363,7 +1367,7 @@ _%>
     if (field.fieldTypeBigDecimal) { %>)<% } else
     if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
     if (field.fieldTypeZonedDateTime) { %>)<% } else
-    if (!field.fieldTypeString) { %>.toString()<% } %>)))<% }); %>;
+    if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>)))<% }); %>;
 
         // Check, that the count call also returns 1
         rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&" + filter))
@@ -1884,7 +1888,7 @@ _%>
   if (field.fieldTypeBigDecimal) { %>)<% } else
   if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
   if (field.fieldTypeZonedDateTime) { %>)<% } else
-  if (!field.fieldTypeString) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
+  if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
     }
 <%_ } _%>
 

@@ -90,7 +90,7 @@ export default class extends BaseApplicationGenerator {
           field.fieldTypeBytes = false;
           field.fieldWithContentType = false;
           field.fieldTypeBinary = false;
-          field.blobContentTypeText = true;
+          field.blobContentTypeText = false;
           field.fieldDefaultValue = '"[0.1, 0.2]"';
           field.fieldUpdatedValue = '"[0.3, 0.4]"';
 
