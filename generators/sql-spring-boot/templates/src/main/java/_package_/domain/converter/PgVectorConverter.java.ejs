@@ -1,0 +1,49 @@
+package <%= packageName %>.domain.converter;
+
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+@Converter(autoApply = false)
+public class PgVectorConverter implements AttributeConverter<float[], String> {
+
+    @Override
+    public String convertToDatabaseColumn(float[] attribute) {
+        if (attribute == null || attribute.length == 0) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < attribute.length; i++) {
+            sb.append(String.format("%.8f", attribute[i]));
+            if (i < attribute.length - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    @Override
+    public float[] convertToEntityAttribute(String dbData) {
+        if (dbData == null || dbData.isBlank()) {
+            return null;
+        }
+        String cleaned = dbData.replace("[", "").replace("]", "").trim();
+        if (cleaned.isEmpty()) {
+            return new float[0];
+        }
+        String[] parts = cleaned.split(",");
+        float[] floats = new float[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            try {
+                floats[i] = Float.parseFloat(parts[i].trim());
+            } catch (NumberFormatException e) {
+                // Handle potential parsing errors
+                floats[i] = 0.0f;
+            }
+        }
+        return floats;
+    }
+}

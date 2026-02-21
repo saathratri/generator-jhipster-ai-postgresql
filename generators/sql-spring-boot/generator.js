@@ -240,7 +240,7 @@ export default class extends BaseApplicationGenerator {
               files: [
                 {
                   templates: [
-                    {
+                                        {
                       sourceFile: 'src/main/java/_package_/config/EmbeddingConfiguration.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/config/EmbeddingConfiguration.java`,
                     },
@@ -259,6 +259,10 @@ export default class extends BaseApplicationGenerator {
                     {
                       sourceFile: 'src/main/java/_package_/web/rest/EmbeddingMigrationResource.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/web/rest/EmbeddingMigrationResource.java`,
+                    },
+                    {
+                      sourceFile: 'src/main/java/_package_/domain/converter/PgVectorConverter.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/converter/PgVectorConverter.java`,
                     },
                   ]
                 },
@@ -345,7 +349,7 @@ export default class extends BaseApplicationGenerator {
               for (const field of vectorFields) {
                 // Find the @Column annotation for this field and replace it
                 const columnRegex = new RegExp(`@Column\\(name = "${field.fieldNameAsDatabaseColumn}"(.*?)\\)`, 'g');
-                const replacement = `@Column(name = "${field.fieldNameAsDatabaseColumn}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @Convert(converter = com.saathratri.maintenance.domain.converter.PgVectorConverter.class)\n    @ColumnTransformer(write = "?::vector")`;
+                const replacement = `@Column(name = "${field.fieldNameAsDatabaseColumn}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @Convert(converter = ${application.packageName}.domain.converter.PgVectorConverter.class)\n    @ColumnTransformer(write = "?::vector")`;
                 content = content.replace(columnRegex, replacement);
               }
               return content;
