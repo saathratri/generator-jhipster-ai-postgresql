@@ -107,6 +107,7 @@ public class EmbeddingStartupMigrationRunner implements ApplicationRunner {
 
         // Find all entities - we'll filter in memory for those needing embeddings
         List<<%= vectorEntity.entityClass %>> entities = <%= vectorEntity.entityInstance %>Repository.findAll();
+        LOG.info(": Found {} total records", entities.size());
 
         for (<%= vectorEntity.entityClass %> entity : entities) {
             boolean wasUpdated = false;

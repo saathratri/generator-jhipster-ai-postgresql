@@ -136,6 +136,9 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
       renMapAnotEnt = true; _%>
     @Mapping( target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
   <%_ } _%>
+  <%_ for (const field of fields.filter(f => f.fieldTypeVectorSaathratri)) { _%>
+    @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
+  <%_ } _%>
   <%_ if (renMapAnotEnt) { _%>
     <%= dtoClass %> toDto(<%= persistClass %> s);
   <%_ } _%>
@@ -150,7 +153,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
 
       // Get all basic fields (non-relationship fields), excluding vector fields
       // Vector fields are large embeddings (~6KB each) and should not be in DTOs
-      const basicFields = fields.filter(field => !field.relationship && !field.fieldTypeVectorSaathratri);
+      const basicFields = fields.filter(field => !field.relationship);
   _%>
 
     /**
@@ -198,9 +201,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%_ } _%>
   <%_ } _%>
   <%_ if (renMapAnotDto) { _%>
-<%_ for (const field of fields.filter(f => f.fieldTypeVectorSaathratri)) { _%>
-    @Mapping(target = "<%= field.propertyName %>", ignore = true)
-  <%_ } _%>
+
     <%= persistClass %> toEntity(<%= dtoClass %> <%= dtoInstance %>);
   <%_ } _%>
   <%_ for (const {otherEntity, relatedField, collection} of otherEntitiesFields) { _%>
@@ -246,7 +247,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%_ for (const entityGraphQuery of entityGraphDirectives) { _%>
       @Named("to<%= this._.upperFirst(entityGraphQuery.methodName) %>")
       @BeanMapping(ignoreByDefault = true)
-    <%_ for (const field of fields.filter(field => !field.relationship && !field.fieldTypeVectorSaathratri)) { _%>
+    <%_ for (const field of fields.filter(field => !field.relationship)) { _%>
       <%_ if (field.mapstructExpression) { _%>
       @Mapping(target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
       <%_ } else { _%>

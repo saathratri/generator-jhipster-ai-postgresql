@@ -107,6 +107,7 @@ public class EmbeddingMigrationService {
         AtomicInteger errors = new AtomicInteger(0);
 
         List<<%= vectorEntity.entityClass %>> entities = <%= vectorEntity.entityInstance %>Repository.findAll();
+        LOG.info(": Found {} total records", entities.size());
 
         for (<%= vectorEntity.entityClass %> entity : entities) {
             try {

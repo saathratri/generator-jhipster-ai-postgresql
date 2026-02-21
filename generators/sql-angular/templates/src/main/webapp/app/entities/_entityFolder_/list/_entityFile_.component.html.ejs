@@ -137,7 +137,7 @@ _%>
     <%_ } else if (field.fieldTypeDuration) { _%>
                     <td title="{{ <%= entityInstance %>.<%= fieldName %> }}">{{ <%= entityInstance %>.<%= fieldName %> | duration }}</td>
     <%_ } else { _%>
-                    <td<% if (field.id) { %>><a<%- routerLink %><% } %>><% if (field.fieldTypeVectorSaathratri) { %>{{ (<%= entityInstance %>.<%= fieldName %> && <%= entityInstance %>.<%= fieldName %>.length > 25) ? (<%= entityInstance %>.<%= fieldName %> | slice:0:25) + "..." : <%= entityInstance %>.<%= fieldName %> }}<% } else { %>{{ <%= entityInstance %>.<%= fieldName %> }}<% } %><% if (field.id) { %></a><% } %></td>
+                    <td<% if (field.id) { %>><a<%- routerLink %><% } %>><% if (field.fieldTypeVectorSaathratri) { %>{{ (<%= entityInstance %>.<%= fieldName %> && <%= entityInstance %>.<%= fieldName %>.length > 4) ? (<%= entityInstance %>.<%= fieldName %> | slice:0:4) + "..." : <%= entityInstance %>.<%= fieldName %> }}<% } else { %>{{ <%= entityInstance %>.<%= fieldName %> }}<% } %><% if (field.id) { %></a><% } %></td>
     <%_ } _%>
 <%_ } _%>
 <%_ for (const relationship of relationships.filter(rel => !rel.otherEntityIsEmbedded)) {

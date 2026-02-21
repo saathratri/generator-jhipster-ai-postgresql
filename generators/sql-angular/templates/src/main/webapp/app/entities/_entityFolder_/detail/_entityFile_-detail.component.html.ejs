@@ -60,8 +60,11 @@ _%>
           <span>{{ <%= entityInstance %>Ref.<%= fieldName %> | formatMediumDatetime }}</span>
     <%_ } else if (field.fieldTypeLocalDate) { _%>
           <span>{{ <%= entityInstance %>Ref.<%= fieldName %> | formatMediumDate }}</span>
+    <%_ } else if (field.fieldTypeVectorSaathratri) { _%>
+          <span>{{ (<%= entityInstance %>Ref.<%= fieldName %> && <%= entityInstance %>Ref.<%= fieldName %>.length > 4) ? (<%= entityInstance %>Ref.<%= fieldName %> | slice:0:4) + "..." : <%= entityInstance %>Ref.<%= fieldName %> }}</span>
     <%_ } else { _%>
           <span>{{ <%= entityInstance %>Ref.<%= fieldName %> }}</span>
+    <%_ } _%>
     <%_ } _%>
         </dd>
 <%_ } _%>
