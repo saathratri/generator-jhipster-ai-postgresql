@@ -345,7 +345,7 @@ export default class extends BaseApplicationGenerator {
               for (const field of vectorFields) {
                 // Find the @Column annotation for this field and replace it
                 const columnRegex = new RegExp(`@Column\\(name = "${field.fieldNameAsDatabaseColumn}"(.*?)\\)`, 'g');
-                const replacement = `@Column(name = "${field.fieldNameAsDatabaseColumn}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @ColumnTransformer(write = "?::vector")`;
+                const replacement = `@Column(name = "${field.fieldNameAsDatabaseColumn}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @Convert(converter = com.saathratri.maintenance.domain.converter.PgVectorConverter.class)\n    @ColumnTransformer(write = "?::vector")`;
                 content = content.replace(columnRegex, replacement);
               }
               return content;
