@@ -113,7 +113,7 @@ _%>
       <%_ } else { _%>
         @if (<%= entityInstance + '()!.' + relationshipFieldName %>) {
           <div>
- 	  		<%_ 
+                        <%_ 
                             // Saathratri: Use Option to Display in GUI Feature
                             if (isOptionToDisplayInGuiEnabled) { 
                         _%>
@@ -123,13 +123,14 @@ _%>
                             } else { 
                         _%>
             <a [routerLink]="['/<%= relationship.otherEntity.entityPage %>', <%= entityInstance + '()!.' + relationshipFieldName + '?.' + relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%= entityInstance %>Ref.<%= relationshipFieldName %>?.<%= otherEntityField %> }}</a>
-                      	<%_ 
-			    } 
-			    // Saathratri 
-			_%>
+                        <%_ 
+                            } 
+                            // Saathratri 
+                        _%>
           </div>
         }
       <%_ } _%>
+    <%_ } _%>
         </dd>
 <%_
     }
