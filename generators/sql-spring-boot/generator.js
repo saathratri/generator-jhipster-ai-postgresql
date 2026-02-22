@@ -356,6 +356,14 @@ export default class extends BaseApplicationGenerator {
             });
           }
         }
+        // Patch ExceptionTranslator to log stacktraces at ERROR level
+        const exceptionTranslatorFile = `src/main/java/${application.packageFolder}/web/rest/errors/ExceptionTranslator.java`;
+        this.editFile(exceptionTranslatorFile, content => {
+          return content.replace(
+            'LOG.debug("Converting Exception to Problem Details:", ex);',
+            'LOG.error("Unhandled exception caught by ExceptionTranslator:", ex);'
+          );
+        });
       },
     });
   }
