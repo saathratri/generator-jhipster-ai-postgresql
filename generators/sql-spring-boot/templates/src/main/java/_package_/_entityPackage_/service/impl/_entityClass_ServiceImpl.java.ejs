@@ -485,4 +485,22 @@ _%>
     }
   <%_ } _%>
 <%_ } _%>
+<%_ if (typeof hasSelfReferentialTreeSaathratri !== 'undefined' && hasSelfReferentialTreeSaathratri && !reactive) { _%>
+
+    // ==================== Tree Structure Methods ====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<<%= instanceType %>> findAllAsTreeNodes() {
+        log.debug("Request to get all <%= entityClassPlural %> as tree nodes");
+  <%_ if (dtoMapstruct) { _%>
+        return <%= entityInstance %>Repository.findAllWithParent()
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+  <%_ } else { _%>
+        return <%= entityInstance %>Repository.findAllWithParent();
+  <%_ } _%>
+    }
+<%_ } _%>
 }

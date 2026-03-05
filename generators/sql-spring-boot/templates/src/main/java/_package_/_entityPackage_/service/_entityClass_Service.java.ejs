@@ -308,4 +308,16 @@ _%>
     List<<%= instanceType %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(String embedding, double maxDistance, int limit);
   <%_ } _%>
 <%_ } _%>
+<%_ if (typeof hasSelfReferentialTreeSaathratri !== 'undefined' && hasSelfReferentialTreeSaathratri && !reactive) { _%>
+
+    // ==================== Tree Structure Methods ====================
+
+    /**
+     * Get all <%= entityInstancePlural %> as a flat list with parent relationships loaded.
+     * Useful for client-side tree construction.
+     *
+     * @return flat list of entities with parent relationship eagerly loaded
+     */
+    List<<%= instanceType %>> findAllAsTreeNodes();
+<%_ } _%>
 }

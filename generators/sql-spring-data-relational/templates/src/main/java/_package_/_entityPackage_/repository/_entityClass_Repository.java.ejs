@@ -203,4 +203,15 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     List<<%= persistClass %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(@Param("embedding") String embedding, @Param("maxDistance") double maxDistance, @Param("limit") int limit);
   <%_ } _%>
 <%_ } _%>
+<%_ if (typeof hasSelfReferentialTreeSaathratri !== 'undefined' && hasSelfReferentialTreeSaathratri && !reactive) { _%>
+
+    // ==================== Tree Structure Query ====================
+
+    /**
+     * Find all tree nodes as a flat list with parent relationship eagerly loaded.
+     * Root nodes have a null parent (<%= treeParentFieldNameSaathratri %>).
+     */
+    @Query("SELECT e FROM <%= persistClass %> e LEFT JOIN FETCH e.<%= treeParentFieldNameSaathratri %>")
+    List<<%= persistClass %>> findAllWithParent();
+<%_ } _%>
 }

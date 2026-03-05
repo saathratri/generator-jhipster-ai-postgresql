@@ -67,7 +67,27 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.PREPARING_EACH_ENTITY]() {
     return this.asPreparingEachEntityTaskGroup({
-      async preparingEachEntityTemplateTask() {},
+      async preparingEachEntityTemplateTask({ entity }) {
+        // Detect self-referential ManyToOne relationships (tree parent pointers)
+        const selfRefRelationship = entity.relationships.find(r =>
+          r.otherEntityName === entity.entityClass &&
+          (r.relationshipManyToOne || r.relationshipOneToMany === false)
+        );
+        if (selfRefRelationship) {
+          entity.hasSelfReferentialTreeSaathratri = true;
+          entity.treeParentFieldNameSaathratri = selfRefRelationship.relationshipFieldName; // e.g., "child"
+          entity.treeParentFieldNameCapitalizedSaathratri = selfRefRelationship.relationshipNameCapitalized; // e.g., "Child"
+          // Find the inverse collection (children)
+          const childrenRelationship = entity.relationships.find(r =>
+            r.otherEntityName === entity.entityClass &&
+            r.relationshipOneToMany
+          );
+          if (childrenRelationship) {
+            entity.treeChildrenFieldNameSaathratri = childrenRelationship.relationshipFieldNamePlural; // e.g., "parents"
+          }
+          this.log.info(`Entity '${entity.entityClass}' has self-referential tree via '${selfRefRelationship.relationshipFieldName}'`);
+        }
+      },
     });
   }
 

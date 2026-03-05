@@ -123,7 +123,13 @@ _%>
     <%_ } else if (field.fieldTypeBinary && field.blobContentTypeAny) { _%>
                     <td>
                     @if (<%= entityInstance %>.<%= fieldName %>) {
-                        <a (click)="openFile(<%= entityInstance %>.<%= fieldName %>, <%= entityInstance %>.<%= fieldName %>ContentType)">__jhiTranslateTag__('entity.action.open')</a>
+                        @if (<%= entityInstance %>.<%= fieldName %>ContentType === 'application/pdf') {
+                          <a (click)="openFile(<%= entityInstance %>.<%= fieldName %>, <%= entityInstance %>.<%= fieldName %>ContentType)" style="text-decoration:none;">
+                            <div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:38px;background-color:#e53935;color:white;font-size:0.55rem;font-weight:bold;border-radius:2px;cursor:pointer;">PDF</div>
+                          </a>
+                        } @else {
+                          <a (click)="openFile(<%= entityInstance %>.<%= fieldName %>, <%= entityInstance %>.<%= fieldName %>ContentType)">__jhiTranslateTag__('entity.action.open')</a>
+                        }
                         <span>{{ <%= entityInstance %>.<%= fieldName %>ContentType }}, {{ byteSize(<%= entityInstance %>.<%= fieldName %>) }}</span>
                     }
                     </td>

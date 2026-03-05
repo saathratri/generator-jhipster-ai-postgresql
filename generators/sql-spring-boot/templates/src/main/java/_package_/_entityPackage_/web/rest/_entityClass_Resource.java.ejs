@@ -703,4 +703,54 @@ _%>
     }
   <%_ } _%>
 <%_ } _%>
+<%_ if (jpaMetamodelFiltering && implementsEagerLoadApis && !reactive) { _%>
+
+    /**
+     * {@code GET  /<%= entityApiUrl %>/with-eager-relationships} : get all the <%= entityInstancePlural %> with eager relationships, filtered by criteria.
+     *
+     * @param criteria the criteria which the requested entities should match.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of <%= entityInstancePlural %> in body.
+     */
+    @GetMapping("/with-eager-relationships")
+  <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+  <%_ } _%>
+    public ResponseEntity<List<<%= instanceType %>>> getAll<%= entityClassPlural %>WithEagerRelationships(<%= entityClass %>Criteria criteria) {
+        log.debug("REST request to get <%= entityClassPlural %> with eager relationships by criteria: {}", criteria);
+        List<<%= instanceType %>> entityList = <%= entityInstance %>QueryService.findByCriteria(criteria);
+        return ResponseEntity.ok().body(entityList);
+    }
+<%_ } _%>
+<%_ if (typeof hasSelfReferentialTreeSaathratri !== 'undefined' && hasSelfReferentialTreeSaathratri && !reactive) { _%>
+
+    // ==================== Tree Structure Endpoint ====================
+
+    /**
+     * {@code GET  /<%= entityApiUrl %>/tree} : get all <%= entityInstancePlural %> as a flat list for tree construction.
+     * Each node includes its parent ID via the '<%= treeParentFieldNameSaathratri %>' relationship.
+     * Root nodes have a null parent.
+     *
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of tree nodes in body.
+     */
+    @GetMapping("/tree")
+  <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+  <%_ } _%>
+    public ResponseEntity<List<<%= instanceType %>>> get<%= entityClassPlural %>Tree() {
+        log.debug("REST request to get <%= entityClassPlural %> tree");
+  <%_ if (viaService) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Service.findAllAsTreeNodes();
+  <%_ } else { _%>
+    <%_ if (dtoMapstruct) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Repository.findAllWithParent()
+            .stream()
+            .map(<%= entityToDtoReference %>)
+            .collect(Collectors.toList());
+    <%_ } else { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Repository.findAllWithParent();
+    <%_ } _%>
+  <%_ } _%>
+        return ResponseEntity.ok().body(result);
+    }
+<%_ } _%>
 }
