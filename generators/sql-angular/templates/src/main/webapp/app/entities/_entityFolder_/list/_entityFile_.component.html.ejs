@@ -124,9 +124,11 @@ _%>
                     <td>
                     @if (<%= entityInstance %>.<%= fieldName %>) {
                         @if (<%= entityInstance %>.<%= fieldName %>ContentType === 'application/pdf') {
-                          <a (click)="openFile(<%= entityInstance %>.<%= fieldName %> ?? '', <%= entityInstance %>.<%= fieldName %>ContentType)" style="text-decoration:none;">
-                            <div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:38px;background-color:#e53935;color:white;font-size:0.55rem;font-weight:bold;border-radius:2px;cursor:pointer;">PDF</div>
+                          <a (click)="openFile(<%= entityInstance %>.<%= fieldName %> ?? '', <%= entityInstance %>.<%= fieldName %>ContentType)" style="text-decoration:none;display:inline-block;margin-bottom:6px;">
+                            <div style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:78px;background-color:#e53935;color:white;font-size:0.75rem;font-weight:bold;border-radius:4px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);">PDF</div>
                           </a>
+                          <br>
+                          <a (click)="openFile(<%= entityInstance %>.<%= fieldName %> ?? '', <%= entityInstance %>.<%= fieldName %>ContentType)">Download PDF</a>
                         } @else {
                           <a (click)="openFile(<%= entityInstance %>.<%= fieldName %> ?? '', <%= entityInstance %>.<%= fieldName %>ContentType)">__jhiTranslateTag__('entity.action.open')</a>
                         }
