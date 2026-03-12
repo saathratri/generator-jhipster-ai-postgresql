@@ -11,8 +11,8 @@ const navbarFiles = {
     {
       ...clientApplicationTemplatesBlock(),
       templates: [
-        'layouts/navbar/navbar.component.ts',
-        'layouts/navbar/navbar.component.html',
+        'layouts/navbar/navbar.ts',
+        'layouts/navbar/navbar.html',
       ]
     }
   ]

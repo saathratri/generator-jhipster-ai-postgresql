@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -42,9 +42,11 @@ _%>
   <%_ } _%>
 <%_ } _%>
 <%_ for (const relationship of relationships.filter(rel => rel.persistableRelationship || rel.relationshipEagerLoad)) {
-      const { propertyName, relationshipRequired, otherEntity, collection, otherEntityField } = relationship;
+      const { propertyName, otherEntity, collection, otherEntityField } = relationship;
 _%>
-  <%= propertyName %>?: <% if (!otherEntity.embedded && (dtoMapstruct || otherEntity.builtInUser)) { %>Pick<<% } %>I<%= otherEntity.entityAngularName %><% if (!otherEntity.embedded && (dtoMapstruct || otherEntity.builtInUser)) { %>, '<%= otherEntity.primaryKey.name %>'<% if (otherEntity.primaryKey.name !== otherEntityField) { %> | '<%= otherEntityField %>'<% } %><% /* Saathratri: Use Option to Display in GUI Feature */ if (isOptionToDisplayInGuiEnabled) { %> <%- getClientOptionToDisplayForModel(otherEntity, relationship.relationshipFieldName, otherEntityField) %> <% } /* Saathratri: Use Option to Display in GUI Feature */ %> ><% } %><% if (collection) { %>[]<% } %> | null;
+  <%# Saathratri modification - add human-readable foreign key fields to Pick type %>
+  <%= propertyName %>?: <% if (!otherEntity.embedded && (dtoMapstruct || otherEntity.builtInUser)) { %>Pick<<% } %>I<%= otherEntity.entityAngularName %><% if (!otherEntity.embedded && (dtoMapstruct || otherEntity.builtInUser)) { %>, '<%= otherEntity.primaryKey.name %>'<% if (otherEntity.primaryKey.name !== otherEntityField) { %> | '<%= otherEntityField %>'<% } %><% /* Saathratri modification */ if (isOptionToDisplayInGuiEnabled) { %> <%- getClientOptionToDisplayForModel(otherEntity, relationship.relationshipFieldName, otherEntityField) %> <% } /* End Saathratri modification */ %> ><% } %><% if (collection) { %>[]<% } %> | null;
+  <%# End Saathratri modification %>
 <%_ } _%>
 }
 <%_ if (!readOnly && primaryKey) { _%>

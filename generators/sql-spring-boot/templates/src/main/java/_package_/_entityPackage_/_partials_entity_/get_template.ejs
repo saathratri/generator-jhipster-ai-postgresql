@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2025 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -20,6 +20,7 @@
     const instanceType = `${optionalOrMono}<${restClass}>`;
     const instanceName = restInstance;
     const mapper = `${entityInstance}Mapper`;
+    /* Saathratri modification - entity graph directive parsing for default findOne optimization */
     const normalizeDirectives = value =>
       value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
     const parseDirective = directive => {
@@ -51,9 +52,11 @@
     const entityToDtoReference = (useDefaultEntityGraphDirective && entityGraphDirectiveMapperReference)
       ? entityGraphDirectiveMapperReference
       : `${mapper}::toDto`;
+    /* End Saathratri modification */
     const returnPrefix = returnDirectly ? 'return' : `${instanceType} ${instanceName} =`;
 %>
 <%_ if (!viaService) { _%>
+  <%_ /* Saathratri modification - use entity graph directive for default findOne when available */ _%>
   <%_ if (useDefaultEntityGraphDirective) { _%>
         <%- returnPrefix %> <%= entityInstance %>Repository.<%= defaultEntityGraphDirective.methodName %>(id)<% if (!dtoMapstruct) { %>;<% } else { %>
             .map(<%= entityToDtoReference %>);<% } %>
@@ -61,6 +64,7 @@
         <%- returnPrefix %> <%= entityInstance %>Repository.<% if (implementsEagerLoadApis) { %>findOneWithEagerRelationships(id)<% } else { %>findById(id)<% } %><% if (!dtoMapstruct) { %>;<% } else { %>
             .map(<%= entityToDtoReference %>);<% } %>
   <%_ } _%>
+  <%_ /* End Saathratri modification */ _%>
 <%_ } else { _%>
         <%- returnPrefix %> <%= entityInstance %>Service.findOne(id);
 <%_ } _%>

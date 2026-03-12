@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -23,18 +23,10 @@ import static <%= packageName %>.web.rest.TestUtil.createUpdateProxyForBean;
 <%_
 var filterTestableRelationships = (reactive ? reactiveEagerRelations : relationships).filter(rel => rel.persistableRelationship && !rel.otherEntity.hasCyclicRequiredRelationship);
 const fieldsToTest = fields.filter(field => !field.id && !field.autoGenerate && !field.transient);
-let mapsIdEntity;
-let mapsIdEntityInstance;
-let mapsIdRepoInstance;
-if (isUsingMapsId) {
-  mapsIdEntity = mapsIdAssoc.otherEntityNameCapitalized;
-  mapsIdEntityInstance =  mapsIdEntity.charAt(0).toLowerCase() + mapsIdEntity.slice(1);
-  mapsIdRepoInstance = `${mapsIdEntityInstance}Repository`;
-}
 const hasUserRepository =
   (requiresDeleteAllUsers && hasRelationshipWithBuiltInUser) ||
   filterTestableRelationships.some(rel => rel.otherEntity.builtInUser) ||
-  (isUsingMapsId && (!dtoMapstruct && serviceNo) && mapsIdEntity === 'User');
+  (isUsingMapsId && (!dtoMapstruct && serviceNo) && mapsIdAssoc?.otherEntity?.entityNameCapitalized === 'User');
 
 let callBlock = '';
 let callListBlock = '';
@@ -52,7 +44,7 @@ if (databaseTypeSql && reactive) {
   createEntityPrefix = 'em.insert(';
   createEntityPostfix = ').block()';
 }
-let idValue = `${persistInstance}.get${primaryKey.nameCapitalized}()`;
+let idValue = `${persistInstance}.${primaryKey.propertySupplierName}()`;
 if (primaryKey.typeLong || primaryKey.typeInteger) {
   idValue = idValue + '.intValue()';
 } else if (primaryKey.typeUUID) {
@@ -73,20 +65,19 @@ import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
 var imported = [];
 for (relationship of relationships) { // import entities in required relationships
   const relationshipValidate = relationship.relationshipValidate;
-  const otherEntityNameCapitalized = relationship.otherEntityNameCapitalized;
   const isUsingMapsIdL1 = relationship.id;
-  if (imported.indexOf(otherEntityNameCapitalized) === -1) {
+  if (!imported.includes(relationship.otherEntity.entityNameCapitalized)) {
     if ((relationshipValidate !== null && relationshipValidate === true) || jpaMetamodelFiltering || (isUsingMapsIdL1 === true)) { _%>
 import <%= entityAbsolutePackage %>.domain.<%= relationship.otherEntity.persistClass %>;
 <%_
-          imported.push(otherEntityNameCapitalized);
+          imported.push(relationship.otherEntity.entityNameCapitalized);
     }
   }
 } _%>
 <%_
 if(jpaMetamodelFiltering && reactive) {
   filterTestableRelationships.forEach(relationship => { _%>
-import <%= entityAbsolutePackage %>.repository.<%= relationship.otherEntityNameCapitalized %>Repository;
+import <%= entityAbsolutePackage %>.repository.<%= relationship.otherEntity.entityNameCapitalized %>Repository;
 <%_ });
  } _%>
 <%_ if (hasUserRepository) { _%>
@@ -97,7 +88,7 @@ import <%= entityAbsolutePackage %>.repository.<%= entityClass %>Repository;
 import <%= packageName %>.repository.EntityManager;
 <%_ } _%>
 <%_ if (isUsingMapsId && (!dtoMapstruct && serviceNo)) { _%>
-import <%= entityAbsolutePackage %>.repository.<%= mapsIdAssoc.otherEntityNameCapitalized %>Repository;
+import <%= entityAbsolutePackage %>.repository.<%= mapsIdAssoc?.otherEntity?.entityNameCapitalized %>Repository;
 <%_ } _%>
 <%_ if (searchEngineElasticsearch) { _%>
 import <%= entityAbsolutePackage %>.repository.search.<%= entityClass %>SearchRepository;
@@ -109,7 +100,7 @@ import <%= entityAbsolutePackage %>.service.<%= entityClass %>Service;
 import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>;
 import <%= entityAbsolutePackage %>.service.mapper.<%= entityClass %>Mapper;
 <%_ } _%>
-<%_ if (jpaMetamodelFiltering & !reactive) { _%>
+<%_ if (jpaMetamodelFiltering && !reactive) { _%>
 import <%= entityAbsolutePackage %>.service.criteria.<%= entityClass %>Criteria;
 <%_ } _%>
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -131,9 +122,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 <%_ } _%>
 import org.springframework.beans.factory.annotation.Autowired;
 <%_ if (reactive) { _%>
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 <%_ } else { _%>
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 <%_ } _%>
 <%_ if (searchEngineElasticsearch && !paginationNo || implementsEagerLoadApis) { _%>
 import org.springframework.data.domain.PageImpl;
@@ -191,6 +182,12 @@ import java.time.ZoneId;
 <%_ } _%>
 <%_ if (anyFieldIsInstant) { _%>
 import java.time.temporal.ChronoUnit;
+<%_ } _%>
+<%_ if (anyFieldIsLocalTime) { _%>
+import java.time.LocalTime;
+<%_ } _%>
+<%_ if (fieldsToTest.some(field => field.fieldTypeLocalTime)) { _%>
+import java.time.format.DateTimeFormatter;
 <%_ } _%>
 <%_ if (!reactive && implementsEagerLoadApis) { _%>
 import java.util.ArrayList;
@@ -267,96 +264,101 @@ import <%= entityAbsolutePackage %>.domain.enumeration.<%= field.fieldType %>;
 <%_ } _%>
 @WithMockUser<% if (entityAuthority) { %>(authorities = {"<%- entityAuthority %>"})<% } %>
 class <%= entityClass %>ResourceIT {
-<%_
-for (field of fieldsToTest) {
-const defaultValueName = 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase();
-const updatedValueName = 'UPDATED_' + field.fieldNameUnderscored.toUpperCase();
-const smallerValueName = 'SMALLER_' + field.fieldNameUnderscored.toUpperCase();
-const needsSmallerValueName = jpaMetamodelFiltering && field.filterableField
+<%_ if (fieldsToTest.some(field => field.fieldTypeLocalTime)) { _%>
+
+    private static final DateTimeFormatter LOCAL_DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
+<%_ } _%>
+<%_ for (field of fieldsToTest) {
+  const defaultValueName = 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase();
+  const updatedValueName = 'UPDATED_' + field.fieldNameUnderscored.toUpperCase();
+  const smallerValueName = 'SMALLER_' + field.fieldNameUnderscored.toUpperCase();
+  const needsSmallerValueName = jpaMetamodelFiltering && field.filterableField
         && (field.fieldTypeNumeric || field.fieldTypeDuration || field.fieldTypeLocalDate || field.fieldTypeZonedDateTime);
 
-let defaultValue = 1;
-let updatedValue = 2;
+  let defaultValue = 1;
+  let updatedValue = 2;
 
-if (field.fieldValidate === true) {
-  if (field.fieldValidationMax) {
-    defaultValue = field.fieldValidateRulesMax;
-    updatedValue = parseInt(field.fieldValidateRulesMax) - 1;
-  }
-  if (field.fieldValidationMin) {
-    defaultValue = field.fieldValidateRulesMin;
-    updatedValue = parseInt(field.fieldValidateRulesMin) + 1;
-  }
-  if (field.fieldValidationMinBytes) {
-    defaultValue = field.fieldValidateRulesMinbytes;
-    updatedValue = field.fieldValidateRulesMinbytes;
-  }
-  if (field.fieldValidationMaxBytes) {
-    updatedValue = field.fieldValidateRulesMaxbytes;
-  }
-}
-
-const fieldType = field.fieldType;
-const isEnum = field.fieldIsEnum;
-let enumValue1;
-let enumValue2;
-if (isEnum) {
-  const enumValues = field.enumValues;
-  enumValue1 = enumValues[0];
-  if (enumValues.length > 1) {
-    enumValue2 = enumValues[1];
-  } else {
-    enumValue2 = enumValue1;
-  }
-}
-
-if (field.fieldTypeString || field.blobContentTypeText) {
-  // Generate Strings, using the min and max string length if they are configured
-  let sampleTextString = "";
-  let updatedTextString = "";
-  let sampleTextLength = 10;
-  if (field.fieldValidateRulesMinlength > sampleTextLength) {
-    sampleTextLength = field.fieldValidateRulesMinlength;
-  }
-  if (field.fieldValidateRulesMaxlength < sampleTextLength) {
-    sampleTextLength = field.fieldValidateRulesMaxlength;
-  }
-  for (let i = 0; i < sampleTextLength; i++) {
-    sampleTextString += "A";
-    updatedTextString += "B";
-  }
-  if (field.fieldValidateRulesPattern !== undefined) {
-    // Generate Strings, using pattern
-    try {
-      const patternRegExp = new RegExp(field.fieldValidateRulesPattern);
-      // set infinite repetitions max range
-      if (!patternRegExp.test(sampleTextString.replace(/\\"/g, '"').replace(/\\\\/g, '\\'))) {
-        const value = field.generateFakeDataFromPattern();
-        sampleTextString = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      }
-      if (!patternRegExp.test(updatedTextString.replace(/\\"/g, '"').replace(/\\\\/g, '\\'))) {
-        const value = field.generateFakeDataFromPattern();
-        updatedTextString = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      }
-    } catch (error) {
-      this.log.warn('Error generating test value for entity "' + entityClass +
-        '" field "' + field.fieldName + '" with pattern "' + field.fieldValidateRulesPattern +
-        '", generating default values for this field. Detailed error message: "' + error.message + '".');
+  if (field.fieldValidate === true) {
+    if (field.fieldValidationMax) {
+      defaultValue = field.fieldValidateRulesMax;
+      updatedValue = parseInt(field.fieldValidateRulesMax) - 1;
     }
-    if (sampleTextString === updatedTextString) {
-      updatedTextString = updatedTextString + "B";
-      this.log.warn('Randomly generated first and second test values for entity "' + entityClass +
-        '" field "' + field.fieldName + '" with pattern "' + field.fieldValidateRulesPattern +
-        '" in file "' + entityClass + 'ResourceIT" where equal, added symbol "B" to second value.');
+    if (field.fieldValidationMin) {
+      defaultValue = field.fieldValidateRulesMin;
+      updatedValue = parseInt(field.fieldValidateRulesMin) + 1;
     }
-  } _%>
+    if (field.fieldValidationMinBytes) {
+      defaultValue = field.fieldValidateRulesMinbytes;
+      updatedValue = field.fieldValidateRulesMinbytes;
+    }
+    if (field.fieldValidationMaxBytes) {
+      updatedValue = field.fieldValidateRulesMaxbytes;
+    }
+  }
+
+  const fieldType = field.fieldType;
+  const isEnum = field.fieldIsEnum;
+  let enumValue1;
+  let enumValue2;
+  if (isEnum) {
+    const enumValues = field.enumValues;
+    enumValue1 = enumValues[0];
+    if (enumValues.length > 1) {
+      enumValue2 = enumValues[1];
+    } else {
+      enumValue2 = enumValue1;
+    }
+  }
+
+  if (field.fieldTypeString || field.blobContentTypeText) {
+    // Generate Strings, using the min and max string length if they are configured
+    let sampleTextString = "";
+    let updatedTextString = "";
+    let sampleTextLength = 10;
+    if (field.fieldValidateRulesMinlength > sampleTextLength) {
+      sampleTextLength = field.fieldValidateRulesMinlength;
+    }
+    if (field.fieldValidateRulesMaxlength < sampleTextLength) {
+      sampleTextLength = field.fieldValidateRulesMaxlength;
+    }
+    for (let i = 0; i < sampleTextLength; i++) {
+      sampleTextString += "A";
+      updatedTextString += "B";
+    }
+    if (field.fieldValidateRulesPattern !== undefined) {
+      // Generate Strings, using pattern
+      try {
+        const patternRegExp = new RegExp(field.fieldValidateRulesPattern);
+        // set infinite repetitions max range
+        if (!patternRegExp.test(sampleTextString.replace(/\\"/g, '"').replace(/\\\\/g, '\\'))) {
+          const value = field.generateFakeDataFromPattern();
+          sampleTextString = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        }
+        if (!patternRegExp.test(updatedTextString.replace(/\\"/g, '"').replace(/\\\\/g, '\\'))) {
+          const value = field.generateFakeDataFromPattern();
+          updatedTextString = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        }
+      } catch (error) {
+        this.log.warn('Error generating test value for entity "' + entityClass +
+          '" field "' + field.fieldName + '" with pattern "' + field.fieldValidateRulesPattern +
+          '", generating default values for this field. Detailed error message: "' + error.message + '".');
+      }
+      if (sampleTextString === updatedTextString) {
+        updatedTextString = updatedTextString + "B";
+        this.log.warn('Randomly generated first and second test values for entity "' + entityClass +
+          '" field "' + field.fieldName + '" with pattern "' + field.fieldValidateRulesPattern +
+          '" in file "' + entityClass + 'ResourceIT" where equal, added symbol "B" to second value.');
+      }
+    } _%>
 
     private static final String <%= defaultValueName %> = "<%- sampleTextString %>";
     private static final String <%= updatedValueName %> = "<%- updatedTextString %>";
+  <%_ /* Saathratri modification - vector field test constants */ _%>
   <%_ } else if (field.fieldTypeVectorSaathratri) { _%>
 
     private static final float[] <%= defaultValueName %> = new float[] { 0.1f, 0.2f };
     private static final float[] <%= updatedValueName %> = new float[] { 0.3f, 0.4f };
+  <%_ /* End Saathratri modification */ _%>
   <%_ } else if (field.fieldTypeInteger) { _%>
 
     private static final Integer <%= defaultValueName %> = <%= defaultValue %>;
@@ -417,6 +419,13 @@ if (field.fieldTypeString || field.blobContentTypeText) {
     <%_ if (needsSmallerValueName) { _%>
     private static final ZonedDateTime <%= smallerValueName %> = ZonedDateTime.ofInstant(Instant.ofEpochMilli(-1L), ZoneOffset.UTC);
     <%_ } _%>
+  <%_ } else if (field.fieldTypeLocalTime) { _%>
+
+    private static final LocalTime <%= defaultValueName %> = LocalTime.NOON;
+    private static final LocalTime <%= updatedValueName %> = LocalTime.MAX.withNano(0);
+    <%_ if (needsSmallerValueName) { _%>
+    private static final LocalTime <%= smallerValueName %> = LocalTime.MIN;
+    <%_ } _%>
   <%_ } else if (field.fieldTypeDuration) { _%>
 
     private static final Duration <%= defaultValueName %> = Duration.ofHours(6);
@@ -443,8 +452,8 @@ if (field.fieldTypeString || field.blobContentTypeText) {
 
     private static final <%= fieldType %> <%= defaultValueName %> = <%= fieldType %>.<%= enumValue1.name %>;
     private static final <%= fieldType %> <%= updatedValueName %> = <%= fieldType %>.<%= enumValue2.name %>;
-  <%_ }
-} _%>
+  <%_ } _%>
+<%_ } _%>
 
     private static final String ENTITY_API_URL = "/api/<%= entityApiUrl %>";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{<%= primaryKey.name %>}";
@@ -457,7 +466,7 @@ if (field.fieldTypeString || field.blobContentTypeText) {
     private static Random random = new Random();
   <%_ } _%>
   <%_ if (primaryKey.hasLong && !readOnly && updatableEntity) { _%>
-    private static AtomicLong longCount = new AtomicLong(random.nextInt() + ( 2 * Integer.MAX_VALUE ));
+    private static AtomicLong longCount = new AtomicLong(random.nextInt() + ( 2L * Integer.MAX_VALUE ));
   <%_ } else if (primaryKey.hasInteger) { _%>
     private static AtomicInteger intCount = new AtomicInteger(random.nextInt() + ( 2 * Short.MAX_VALUE ));
   <%_ } _%>
@@ -468,9 +477,9 @@ if (field.fieldTypeString || field.blobContentTypeText) {
 
     @Autowired
     private <%= entityClass %>Repository <%= entityInstance %>Repository;
-<%_ if (isUsingMapsId && (!dtoMapstruct && serviceNo) && mapsIdEntity !== 'User') { _%>
+<%_ if (isUsingMapsId && (!dtoMapstruct && serviceNo) && mapsIdAssoc?.otherEntity?.entityNameCapitalized !== 'User') { _%>
     @Autowired
-    private <%= mapsIdEntity %>Repository <%= mapsIdRepoInstance %>;
+    private <%= mapsIdAssoc?.otherEntity?.entityNameCapitalized %>Repository <%= mapsIdAssoc?.otherEntity?.entityInstance %>Repository;
 <%_ } _%>
 <%_ if (hasUserRepository) { _%>
 
@@ -521,7 +530,7 @@ filterTestableRelationships.filter(rel => !rel.otherEntity.builtInUser).forEach(
 <%_ });
 }_%>
 <%_ ['DEFAULT_', 'UPDATED_'].forEach((fieldStatus) => { _%>
-<%_   const createInstance = fieldStatus === 'UPDATED_' ? `updated${persistClass}` : persistInstance;  _%>
+<%_  const createInstance = fieldStatus === 'UPDATED_' ? `updated${persistClass}` : persistInstance; _%>
     /**
      * Create an <% if (fieldStatus === 'UPDATED_') { %>updated <% } %>entity for this test.
      *
@@ -545,20 +554,20 @@ filterTestableRelationships.filter(rel => !rel.otherEntity.builtInUser).forEach(
     <%_ } _%>;
     <%_ if (!anyRelationshipIsRequired) { _%>
     }
-    <%_   return; _%>
+    <%_  return; _%>
     <%_ } _%>
   <%_ } else { _%>
         <%= persistClass %> <%= createInstance %> = new <%= persistClass %>();
     <%_ if (reactive && databaseTypeSql && primaryKey.typeUUID && !isUsingMapsId) { _%>
-        <%= createInstance %>.set<%= primaryKey.fields[0].fieldInJavaBeanMethod %>(UUID.randomUUID());
+        <%= createInstance %>.<%= primaryKey.fields[0].propertySupplierName %>(UUID.randomUUID());
     <%_ } _%>
     <%_ if (primaryKey.typeString && !isUsingMapsId && !primaryKey.autoGenerate) { _%>
-        <%= createInstance %>.set<%= primaryKey.fields[0].fieldInJavaBeanMethod %>(UUID.randomUUID().toString());
+        <%= createInstance %>.<%= primaryKey.fields[0].propertySupplierName %>(UUID.randomUUID().toString());
     <%_ } _%>
     <%_ for (field of fieldsToTest) { _%>
-        <%= createInstance %>.set<%= field.fieldInJavaBeanMethod %>(<%= fieldStatus + field.fieldNameUnderscored.toUpperCase() %>);
+        <%= createInstance %>.<%- field.propertyConsumerName %>(<%= fieldStatus + field.fieldNameUnderscored.toUpperCase() %>);
       <%_ if (field.fieldTypeBinary && !field.blobContentTypeText) { _%>
-        <%= createInstance %>.set<%= field.fieldInJavaBeanMethod %>ContentType(<%= fieldStatus + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE);
+        <%= createInstance %>.<%- field.propertyConsumerName %>ContentType(<%= fieldStatus + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE);
       <%_ } _%>
     <%_ } _%>
   <%_ } _%>
@@ -568,21 +577,18 @@ filterTestableRelationships.filter(rel => !rel.otherEntity.builtInUser).forEach(
     const otherEntity = relationship.otherEntity;
     const relationshipValidate = relationship.relationshipValidate;
     const otherEntityName = relationship.otherEntityName;
-    const otherEntityNameCapitalized = relationship.otherEntityNameCapitalized;
-    const relationshipNameCapitalizedPlural = relationship.relationshipNameCapitalizedPlural;
-    const relationshipNameCapitalized = relationship.relationshipNameCapitalized;
     const mapsIdUse = relationship.id;
     if ((relationshipValidate !== null && relationshipValidate && !relationship.otherEntity.hasCyclicRequiredRelationship) || mapsIdUse) { _%>
         // Add required entity
       <%_ if (alreadyGeneratedEntities.indexOf(otherEntityName) == -1) { _%>
         <%_ if (relationship.otherEntityUser) { /* TODO or other entity has no unique fields */ _%>
-        <%= relationship.otherEntity.persistClass %> <%= otherEntityName %> = <%= createEntityPrefix %><%= otherEntityNameCapitalized %>ResourceIT.createEntity(<% if (databaseTypeSql && otherEntity.anyRelationshipIsRequired) { %>em<% } %>)<%= createEntityPostfix %>;
+        <%= relationship.otherEntity.persistClass %> <%= otherEntityName %> = <%= createEntityPrefix %><%= relationship.otherEntity.entityNameCapitalized %>ResourceIT.createEntity(<% if (databaseTypeSql && otherEntity.anyRelationshipIsRequired) { %>em<% } %>)<%= createEntityPostfix %>;
           <%_ if (databaseTypeSql && !reactive) { _%>
         em.persist(<%= otherEntityName %>);
         em.flush();
           <%_ } _%>
           <%_ if (databaseTypeMongodb) { _%>
-        <%= otherEntityName %>.set<%= primaryKey.nameCapitalized %>("fixed-id-for-tests");
+        <%= otherEntityName %>.<%- primaryKey.propertyConsumerName %>("fixed-id-for-tests");
           <%_ } _%>
         <%_ } else { _%>
         <%= relationship.otherEntity.persistClass %> <%= otherEntityName %>;
@@ -590,7 +596,7 @@ filterTestableRelationships.filter(rel => !rel.otherEntity.builtInUser).forEach(
             <%_ if (!isUsingMapsId || fieldStatus !== "UPDATED_") { _%>
         if (TestUtil.findAll(em, <%= relationship.otherEntity.persistClass %>.class).isEmpty()) {
             <%_ } _%>
-            <%= otherEntityName %> = <%= createEntityPrefix %><%= otherEntityNameCapitalized %>ResourceIT.create<% if (fieldStatus === 'UPDATED_') { %>Updated<% } %>Entity(<% if (relationship.otherEntity.anyRelationshipIsRequired) { %>em<% } %>)<%= createEntityPostfix %>;
+            <%= otherEntityName %> = <%= createEntityPrefix %><%= relationship.otherEntity.entityNameCapitalized %>ResourceIT.create<% if (fieldStatus === 'UPDATED_') { %>Updated<% } %>Entity(<% if (relationship.otherEntity.anyRelationshipIsRequired) { %>em<% } %>)<%= createEntityPostfix %>;
             em.persist(<%= otherEntityName %>);
             em.flush();
             <%_ if (!isUsingMapsId || fieldStatus !== "UPDATED_") { _%>
@@ -599,17 +605,17 @@ filterTestableRelationships.filter(rel => !rel.otherEntity.builtInUser).forEach(
         }
             <%_ } _%>
           <%_ } else { _%>
-        <%= otherEntityName %> = <%= createEntityPrefix %><%= otherEntityNameCapitalized %>ResourceIT.create<% if (fieldStatus === 'UPDATED_') { %>Updated<% } %>Entity(<% if (databaseType === 'sql' && otherEntity.anyRelationshipIsRequired) { %>em<% } %>)<%= createEntityPostfix %>;
+        <%= otherEntityName %> = <%= createEntityPrefix %><%= relationship.otherEntity.entityNameCapitalized %>ResourceIT.create<% if (fieldStatus === 'UPDATED_') { %>Updated<% } %>Entity(<% if (databaseType === 'sql' && otherEntity.anyRelationshipIsRequired) { %>em<% } %>)<%= createEntityPostfix %>;
           <%_ } _%>
           <%_ if (databaseTypeMongodb) { _%>
-        <%= otherEntityName %>.set<%= primaryKey.nameCapitalized %>("fixed-id-for-tests");
+        <%= otherEntityName %>.<%- primaryKey.propertyConsumerName %>("fixed-id-for-tests");
           <%_ } _%>
         <%_ } _%>
       <%_ } _%>
       <%_ if (relationship.relationshipManyToMany || relationship.relationshipOneToMany) { _%>
-        <%= createInstance %>.get<%= relationshipNameCapitalizedPlural %>().add(<%= otherEntityName %>);
+        <%= createInstance %>.<%- relationship.propertySupplierName %>().add(<%= otherEntityName %>);
       <%_ } else { _%>
-        <%= createInstance %>.set<%= relationshipNameCapitalized %>(<%= otherEntityName %>);
+        <%= createInstance %>.<%- relationship.propertyConsumerName %>(<%= otherEntityName %>);
       <%_ } _%>
         <%_ alreadyGeneratedEntities.push(otherEntityName) _%>
     <%_ } _%>
@@ -634,7 +640,7 @@ _%>
         }
   <%_ relationships.forEach(function(rel) {
     if ((rel.relationshipValidate || rel.id) && !alreadyGeneratedDeletionCalls.includes(rel.otherEntityName)) { _%>
-        <%= rel.otherEntityNameCapitalized %>ResourceIT.deleteEntities(em);
+        <%= rel.otherEntity.entityNameCapitalized %>ResourceIT.deleteEntities(em);
     <%_ alreadyGeneratedDeletionCalls.push(rel.otherEntityName);
     }
   }); _%>
@@ -643,18 +649,18 @@ _%>
 <%_ } _%>
 <%_ if (reactive && authenticationUsesCsrf) { _%>
     @BeforeEach
-    public void setupCsrf() {
+    void setupCsrf() {
         webTestClient = webTestClient.mutateWith(csrf());
     }
 
 <%_ } _%>
     @BeforeEach
-    public void initTest() {
+    void initTest() {
         <%= persistInstance %> = createEntity(<% if (databaseTypeSql && anyRelationshipIsRequired) { %>em<% } %>);
     }
 
     @AfterEach
-    public void cleanup() {
+    void cleanup() {
         if (inserted<%= persistClass %> != null) {
             <%= entityInstance %>Repository.delete(inserted<%= persistClass %>)<%= reactorBlock %>;
 <%_ if (searchEngineElasticsearch) { _%>
@@ -662,7 +668,7 @@ _%>
 <%_ } _%>
             inserted<%= persistClass %> = null;
         }
-<%_ if (databaseTypeSql && reactive) {  _%>
+<%_ if (databaseTypeSql && reactive) { _%>
         deleteEntities(em);
 <%_ } _%>
 <%_ if (requiresDeleteAllUsers && hasUserRepository) { _%>
@@ -685,7 +691,7 @@ _%>
       // the create method here is supposed to be used for other tests as well,
       // which may expect an id to be set (at least in the reactive stack)
       if (reactive && databaseTypeSql && primaryKey.typeUUID && !isUsingMapsId) { _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(null);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(null);
   <%_ } _%>
         // Create the <%= entityClass %>
   <%_ if (dtoMapstruct) { _%>
@@ -750,7 +756,7 @@ _%>
   <%_ if ((primaryKey.typeUUID && databaseTypeSql) || !primaryKey.autoGenerate) { _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
   <%_ } else { _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<% if (primaryKey.typeUUID) { %>UUID.randomUUID()<% } else if (primaryKey.typeLong) { %>1L<% } else if (primaryKey.typeInteger) { %>1<% } else { %>"existing_id"<% } %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<% if (primaryKey.typeUUID) { %>UUID.randomUUID()<% } else if (primaryKey.typeLong) { %>1L<% } else if (primaryKey.typeInteger) { %>1<% } else { %>"existing_id"<% } %>);
   <%_ } _%>
   <%_ if (dtoMapstruct) { _%>
         <%= dtoClass %> <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>);
@@ -805,12 +811,11 @@ _%>
     <%_ for (relationship of relationships) {
       const otherEntity = relationship.otherEntity;
       const otherEntityName = relationship.otherEntityName;
-      const otherEntityNameCapitalized = relationship.otherEntityNameCapitalized;
       const mapsIdUse = relationship.id;
       if (mapsIdUse) { _%>
         // Add a new parent entity
         <%_ if (alreadyGeneratedEntities.indexOf(otherEntityName) == -1) { _%>
-        <%= relationship.otherEntity.persistClass %> <%= otherEntityName %> = <%= otherEntityNameCapitalized %>ResourceIT.create<% if (!relationship.otherEntityUser) { _%>Updated<%_ } %>Entity(<% if (databaseTypeSql && otherEntity.anyRelationshipIsRequired) { %>em<% } %>);
+        <%= relationship.otherEntity.persistClass %> <%= otherEntityName %> = <%= relationship.otherEntity.entityNameCapitalized %>ResourceIT.create<% if (!relationship.otherEntityUser) { _%>Updated<%_ } %>Entity(<% if (databaseTypeSql && otherEntity.anyRelationshipIsRequired) { %>em<% } %>);
           <%_ if (databaseTypeSql && !reactive) { _%>
         em.persist(<%= otherEntityName %>);
         em.flush();
@@ -821,15 +826,15 @@ _%>
     <%_ break; } _%>
 
         // Load the <%= entityInstance %>
-        <%= persistClass %> updated<%= persistClass %> = <%= entityInstance %>Repository.findById(<%= persistInstance %>.get<%= primaryKey.nameCapitalized %>())<%= reactive ? '.block()' : '.orElseThrow()' %>;
+        <%= persistClass %> updated<%= persistClass %> = <%= entityInstance %>Repository.findById(<%= persistInstance %>.<%- primaryKey.propertySupplierName %>())<%= reactive ? '.block()' : '.orElseThrow()' %>;
         assertThat(updated<%= persistClass %>).isNotNull();
     <%_ if (databaseTypeSql && !reactive) { _%>
         // Disconnect from session so that the updates on updated<%= persistClass %> are not directly saved in db
         em.detach(updated<%= persistClass %>);
     <%_ } _%>
 
-        // Update the <%= mapsIdEntity %> with new association value
-        updated<%= persistClass %>.set<%= mapsIdEntity %>(<%= alreadyGeneratedEntities.pop() %>);
+        // Update the <%= mapsIdAssoc?.otherEntity?.entityNameCapitalized %> with new association value
+        updated<%= persistClass %>.<%= mapsIdAssoc?.propertyConsumerName %>(<%= alreadyGeneratedEntities.pop() %>);
     <%_ if (dtoMapstruct) { _%>
         <%= dtoClass %> updated<%= dtoClass %> = <%= entityInstance %>Mapper.toDto(updated<%= persistClass %>);
         assertThat(updated<%= dtoClass %>).isNotNull();
@@ -837,13 +842,13 @@ _%>
 
         // Update the entity
     <%_ if (reactive) { _%>
-        webTestClient.put().uri(ENTITY_API_URL_ID, <%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.put().uri(ENTITY_API_URL_ID, <%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>.<%- primaryKey.propertySupplierName %>())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(om.writeValueAsBytes(<%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>))
             .exchange()
             .expectStatus().isOk();
     <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>.get<%= primaryKey.nameCapitalized %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
+        rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>.<%- primaryKey.propertySupplierName %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
             .contentType(MediaType.APPLICATION_JSON)
             .content(om.writeValueAsBytes(<%_ if (dtoMapstruct) { _%>updated<%= dtoClass %> <%_ } else { _%> updated<%= persistClass %> <%_ } _%>)))
             .andExpect(status().isOk());
@@ -859,7 +864,7 @@ _%>
          * Validate the id for MapsId, the ids must be same
          * Uncomment the following line for assertion. However, please note that there is a known issue and uncommenting will fail the test.
          * Please look at https://github.com/jhipster/generator-jhipster/issues/9100. You can modify this test as necessary.
-         * assertThat(test<%= entityClass %>.get<%= primaryKey.nameCapitalized %>()).isEqualTo(test<%= entityClass %>.get<%= mapsIdEntity %>().get<%= primaryKey.nameCapitalized %>());
+         * assertThat(test<%= entityClass %>.<%- primaryKey.propertySupplierName %>()).isEqualTo(test<%= entityClass %>.<%= mapsIdAssoc?.propertySupplierName %>().<%- primaryKey.propertySupplierName %>());
          */
     <%_ if (searchEngineElasticsearch) { _%>
         int searchDatabaseSizeAfter = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
@@ -882,11 +887,10 @@ _%>
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
         <%_ } _%>
         // set the field null
-        <%= persistInstance %>.set<%= field.fieldInJavaBeanMethod %>(null);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(null);
 
         // Create the <%= entityClass %>, which fails.<% if (dtoMapstruct) { %>
         <%= dtoClass %> <%= dtoInstance %> = <%= entityInstance %>Mapper.toDto(<%= persistInstance %>);<% } %>
-
 
         <%_ if (reactive) { _%>
         webTestClient.post().uri(ENTITY_API_URL)
@@ -923,7 +927,7 @@ _%>
         // Initialize the database
   <%_ if (!primaryKey.derived) { _%>
     <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
     <%_ } _%>
   <%_ } _%>
         <%= entityInstance %>Repository.save(<%= persistInstance %>)<%= callBlock %>;
@@ -961,7 +965,7 @@ _%>
         // Initialize the database
 <%_ if (!primaryKey.derived) { _%>
   <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
   <%_ } _%>
 <%_ } _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
@@ -990,13 +994,19 @@ _%>
   if (field.fieldTypeBigDecimal) { %>sameNumber(<% } %><%= 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase() %><%
   if (field.fieldTypeBinary && !field.blobContentTypeText) { %><%
     if (databaseTypeCassandra) { %>.array()<% } %>)<% } else
-  if (field.fieldTypeInteger) { %><% } else
   if (field.fieldTypeLong) { %>.intValue()<% } else
-  if (field.fieldTypeFloat || field.fieldTypeDouble) { %>.doubleValue()<% } else
+  if (field.fieldTypeFloat) { %>.doubleValue()<% } else
   if (field.fieldTypeBigDecimal) { %>)<% } else
-  if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
   if (field.fieldTypeZonedDateTime) { %>)<% } else
-  if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
+  if (field.fieldTypeLocalTime) { %>.format(LOCAL_DATE_TIME_FORMAT)<% } else
+  if (
+    !field.fieldTypeString &&
+    !field.javaFieldTypeString &&
+    !field.fieldTypeBoolean &&
+    !field.fieldTypeInteger &&
+    !field.fieldTypeDouble &&
+    !field.fieldTypeVectorSaathratri /* Saathratri modification - exclude vector fields from .toString() */
+  ) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
     }
 <% if (implementsEagerLoadApis && !databaseTypeNeo4j && !databaseTypeCouchbase) { %>
     @SuppressWarnings({"unchecked"})
@@ -1048,21 +1058,21 @@ _%>
         // Initialize the database
 <%_ if (!primaryKey.derived) { _%>
   <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
   <%_ } _%>
 <%_ } _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
 
         // Get the <%= entityInstance %>
 <%_ if (reactive) { _%>
-        webTestClient.get().uri(ENTITY_API_URL_ID, <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.get().uri(ENTITY_API_URL_ID, <%= persistInstance %>.<%- primaryKey.propertySupplierName %>())
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk()
             .expectHeader().contentType(MediaType.APPLICATION_JSON)
             .expectBody()
 <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL_ID, <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>()))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL_ID, <%= persistInstance %>.<%- primaryKey.propertySupplierName %>()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
 <%_ } _%>
@@ -1077,22 +1087,28 @@ _%>
   if (field.fieldTypeBigDecimal) { %>sameNumber(<% } %><%= 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase() %><%
   if (field.fieldTypeBinary && !field.blobContentTypeText) { %><%
     if (databaseTypeCassandra) { %>.array()<% } %>)<% } else
-  if (field.fieldTypeInteger) { %><% } else
   if (field.fieldTypeLong) { %>.intValue()<% } else
-  if (field.fieldTypeFloat || field.fieldTypeDouble) { %>.doubleValue()<% } else
+  if (field.fieldTypeFloat) { %>.doubleValue()<% } else
   if (field.fieldTypeBigDecimal) { %>)<% } else
-  if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
   if (field.fieldTypeZonedDateTime) { %>)<% } else
-  if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%_ } _%>;
+  if (field.fieldTypeLocalTime) { %>.format(LOCAL_DATE_TIME_FORMAT)<% } else
+  if (
+    !field.fieldTypeString &&
+    !field.javaFieldTypeString &&
+    !field.fieldTypeBoolean &&
+    !field.fieldTypeInteger &&
+    !field.fieldTypeDouble &&
+    !field.fieldTypeVectorSaathratri /* Saathratri modification - exclude vector fields from .toString() */
+  ) { %>.toString()<% } %>))<%_ } _%>;
     }
-<%_ if (jpaMetamodelFiltering) {  %>
+<%_ if (jpaMetamodelFiltering) { %>
 
     @Test<%= transactionalAnnotation %>
     void get<%= entityClassPlural %>ByIdFiltering() <% if (!reactive) { %>throws Exception <% } %>{
         // Initialize the database
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
 
-        <%= primaryKey.type %> id = <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>();
+        <%= primaryKey.type %> id = <%= persistInstance %>.<%- primaryKey.propertySupplierName %>();
 
         default<%= entityClass %>Filtering("<%= primaryKey.name %>.equals=" + id, "<%= primaryKey.name %>.notEquals=" + id);
 
@@ -1241,19 +1257,19 @@ _%>
     void getAll<%= entityClassPlural %>By<%= relationship.relationshipNameCapitalized %>IsEqualToSomething() <% if (!reactive) { %>throws Exception <% } %>{
     <%_ if ((relationship.relationshipValidate && relationship.relationshipOneToOne) || relationship.id) { _%>
         // Get already existing entity
-        <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = <%= persistInstance %>.get<%= relationship.relationshipNameCapitalized %>();
+        <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = <%= persistInstance %>.<%= relationship.propertySupplierName %>();
     <%_ } else { _%>
       <%_ if (databaseTypeSql && !reactive) { _%>
         // Saathratri commented out - modification.
         <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = null; // Initialize the variable;
         if (TestUtil.findAll(em, <%= relationship.otherEntity.persistClass %>.class).isEmpty()) {
             <%= entityInstance %>Repository.saveAndFlush(<%= persistInstance %>);
-            <%= relationship.relationshipFieldName %> = <%= createEntityPrefix %><%= relationship.otherEntityNameCapitalized %>ResourceIT.createEntity(<% if (relationship.otherEntity.anyRelationshipIsRequired) { %>em<% } %>);
+            <%= relationship.relationshipFieldName %> = <%= createEntityPrefix %><%= relationship.otherEntity.entityNameCapitalized %>ResourceIT.createEntity(<% if (relationship.otherEntity.anyRelationshipIsRequired) { %>em<% } %>);
         } else {
             <%= relationship.relationshipFieldName %> = TestUtil.findAll(em, <%= relationship.otherEntity.persistClass %>.class).get(0);
         }
       <%_ } else { _%>
-        <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = <%= relationship.otherEntityNameCapitalized %>ResourceIT.createEntity(<% if (relationship.otherEntity.anyRelationshipIsRequired) { %>em<% } %>);
+        <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = <%= relationship.otherEntity.entityNameCapitalized %>ResourceIT.createEntity(<% if (relationship.otherEntity.anyRelationshipIsRequired) { %>em<% } %>);
       <%_ } _%>
       <%_ if(reactive) { _%>
         <%= relationship.otherEntity.persistInstance %>Repository.<%= saveMethod %>(<%= relationship.relationshipFieldName %>)<%= callBlock %>;
@@ -1264,19 +1280,19 @@ _%>
       <%_ if (!reactive && (relationship.relationshipManyToMany || relationship.relationshipOneToMany)) { _%>
         <%= persistInstance %>.add<%= relationship.relationshipNameCapitalized %>(<%= relationship.relationshipFieldName %>);
       <%_ } else if (!reactive) { _%>
-        <%= persistInstance %>.set<%= relationship.relationshipNameCapitalized %>(<%= relationship.relationshipFieldName %>);
+        <%= persistInstance %>.<%= relationship.propertyConsumerName %>(<%= relationship.relationshipFieldName %>);
         <%_ if (!relationship.ownerSide) { _%>
-        <%= relationship.relationshipFieldName %>.set<%= relationship.otherRelationship.propertyJavaBeanName %>(<%= persistInstance %>);
+        <%= relationship.relationshipFieldName %>.<%= relationship.otherRelationship.propertyConsumerName %>(<%= persistInstance %>);
         <%_ } _%>
       <%_ } else { _%>
-        <%= relationship.otherEntity.primaryKey.type %> <%= relationship.relationshipFieldName %>Id = <%= relationship.relationshipFieldName %>.get<%= relationship.otherEntity.primaryKey.nameCapitalized %>();
-        <%= persistInstance %>.set<%= relationship.relationshipNameCapitalized %>Id(<%= relationship.relationshipFieldName %>Id);
+        <%= relationship.otherEntity.primaryKey.type %> <%= relationship.relationshipFieldName %>Id = <%= relationship.relationshipFieldName %>.<%- relationship.otherEntity.primaryKey.propertySupplierName %>();
+        <%= persistInstance %>.<%- relationship.propertyConsumerName %>Id(<%= relationship.relationshipFieldName %>Id);
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
       <%_ } _%>
     <%_ } _%>
     <%_ if(!reactive) { _%>
         <%= entityInstance %>Repository.saveAndFlush(<%= persistInstance %>);
-        <%= relationship.otherEntity.primaryKey.type %> <%= relationship.relationshipFieldName %>Id = <%= relationship.relationshipFieldName %>.get<%= relationship.otherEntity.primaryKey.nameCapitalized %>();
+        <%= relationship.otherEntity.primaryKey.type %> <%= relationship.relationshipFieldName %>Id = <%= relationship.relationshipFieldName %>.<%- relationship.otherEntity.primaryKey.propertySupplierName %>();
     <%_ } _%>
         // Get all the <%= entityInstance %>List where <%= relationship.relationshipFieldName %> equals to <%= relationship.relationshipFieldName %>Id
         default<%= entityClass %>ShouldBeFound("<%= relationship.relationshipFieldName %>Id.equals=" + <%= relationship.relationshipFieldName %>Id);
@@ -1318,13 +1334,19 @@ _%>
       if (field.fieldTypeZonedDateTime) { %>sameInstant(<% } else
       if (field.fieldTypeBigDecimal) { %>sameNumber(<% } %><%= 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase() %><%
       if (field.fieldTypeBinary && !field.blobContentTypeText) { %><% if (databaseTypeCassandra) { %>.array()<% } %>)<% } else
-      if (field.fieldTypeInteger) { %><% } else
       if (field.fieldTypeLong) { %>.intValue()<% } else
-      if (field.fieldTypeFloat || field.fieldTypeDouble) { %>.doubleValue()<% } else
+      if (field.fieldTypeFloat) { %>.doubleValue()<% } else
       if (field.fieldTypeBigDecimal) { %>)<% } else
-      if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
       if (field.fieldTypeZonedDateTime) { %>)<% } else
-      if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%_ } _%>;
+      if (field.fieldTypeLocalTime) { %>.format(LOCAL_DATE_TIME_FORMAT)<% } else
+      if (
+        !field.fieldTypeString &&
+        !field.javaFieldTypeString &&
+        !field.fieldTypeBoolean &&
+        !field.fieldTypeInteger &&
+        !field.fieldTypeDouble &&
+        !field.fieldTypeVectorSaathratri /* Saathratri modification - exclude vector fields from .toString() */
+      ) { %>.toString()<% } %>))<%_ } _%>;
 
         // Check, that the count call also returns 1
         webTestClient.get().uri(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&" + filter)
@@ -1351,7 +1373,7 @@ _%>
                 'UUID' : '.toString()'
             }[primaryKey.type] || '';
             _%>
-            .andExpect(jsonPath("$.[*].<%= primaryKey.name %>").value(hasItem(<%= persistInstance %>.get<%= primaryKey.nameCapitalized %>()<%= primaryKeyConversion %>)))<% fieldsToTest.forEach((field) => { %>
+            .andExpect(jsonPath("$.[*].<%= primaryKey.name %>").value(hasItem(<%= persistInstance %>.<%- primaryKey.propertySupplierName %>()<%= primaryKeyConversion %>)))<% fieldsToTest.forEach((field) => { %>
     <%_ if (field.fieldTypeBinary && !field.blobContentTypeText) { _%>
             .andExpect(jsonPath("$.[*].<%= field.fieldName %>ContentType").value(hasItem(<%= 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE)))
     <%_ } _%>
@@ -1361,13 +1383,19 @@ _%>
     if (field.fieldTypeBigDecimal) { %>sameNumber(<% } %><%= 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase() %><%
     if (field.fieldTypeBinary && !field.blobContentTypeText) { %><%
       if (databaseTypeCassandra) { %>.array()<% } %>)<% } else
-    if (field.fieldTypeInteger) { %><% } else
     if (field.fieldTypeLong) { %>.intValue()<% } else
-    if (field.fieldTypeFloat || field.fieldTypeDouble) { %>.doubleValue()<% } else
+    if (field.fieldTypeFloat) { %>.doubleValue()<% } else
     if (field.fieldTypeBigDecimal) { %>)<% } else
-    if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
     if (field.fieldTypeZonedDateTime) { %>)<% } else
-    if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>)))<% }); %>;
+    if (field.fieldTypeLocalTime) { %>.format(LOCAL_DATE_TIME_FORMAT)<% } else
+    if (
+      !field.fieldTypeString &&
+      !field.javaFieldTypeString &&
+      !field.fieldTypeBoolean &&
+      !field.fieldTypeInteger &&
+      !field.fieldTypeDouble &&
+      !field.fieldTypeVectorSaathratri /* Saathratri modification - exclude vector fields from .toString() */
+    ) { %>.toString()<% } %>)))<% }); %>;
 
         // Check, that the count call also returns 1
         rest<%= entityClass %>MockMvc.perform(get(ENTITY_API_URL + "/count?sort=<%= primaryKey.name %>,desc&" + filter))
@@ -1421,7 +1449,7 @@ _%>
     }
   <%_ } _%>
 
-<%_  } _%>
+<%_ } _%>
     @Test<%= transactionalAnnotation %>
     void getNonExisting<%= entityClass %>() <% if (!reactive) { %>throws Exception <% } %>{
         // Get the <%= entityInstance %>
@@ -1442,7 +1470,7 @@ _%>
         // Initialize the database
   <%_ if (!primaryKey.derived) { _%>
     <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
     <%_ } _%>
   <%_ } _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
@@ -1454,7 +1482,7 @@ _%>
   <%_ } _%>
 
         // Update the <%= entityInstance %>
-        <%= persistClass %> updated<%= persistClass %> = <%= entityInstance %>Repository.findById(<%= persistInstance %>.get<%= primaryKey.nameCapitalized %>())<%= reactive ? '.block()' : '.orElseThrow()' %>;
+        <%= persistClass %> updated<%= persistClass %> = <%= entityInstance %>Repository.findById(<%= persistInstance %>.<%- primaryKey.propertySupplierName %>())<%= reactive ? '.block()' : '.orElseThrow()' %>;
   <%_ if (databaseTypeSql && !reactive) { _%>
         // Disconnect from session so that the updates on updated<%= persistClass %> are not directly saved in db
         em.detach(updated<%= persistClass %>);
@@ -1465,9 +1493,9 @@ _%>
             .<%= field.fieldName %>ContentType(<%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE)<% } %><% } %>;
   <%_ } else { _%>
     <%_ for (field of fieldsToTest) { _%>
-        updated<%= persistClass %>.set<%= field.fieldInJavaBeanMethod %>(<%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>);
+        updated<%= persistClass %>.<%- field.propertyConsumerName %>(<%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>);
       <%_ if (field.fieldTypeBinary && !field.blobContentTypeText) { _%>
-        updated<%= persistClass %>.set<%= field.fieldInJavaBeanMethod %>ContentType(<%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE);
+        updated<%= persistClass %>.<%- field.propertyConsumerName %>ContentType(<%= 'UPDATED_' + field.fieldNameUnderscored.toUpperCase() %>_CONTENT_TYPE);
       <%_ } _%>
     <%_ } _%>
   <%_ } _%>
@@ -1476,13 +1504,13 @@ _%>
   <%_ } _%>
 
   <%_ if (reactive) { _%>
-        webTestClient.put().uri(ENTITY_API_URL_ID, <%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.put().uri(ENTITY_API_URL_ID, <%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>.<%- primaryKey.propertySupplierName %>())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(om.writeValueAsBytes(<%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>))
             .exchange()
             .expectStatus().isOk();
   <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>.get<%= primaryKey.nameCapitalized %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% } %>
+        rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>.<%- primaryKey.propertySupplierName %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% } %>
             .contentType(MediaType.APPLICATION_JSON)
             .content(om.writeValueAsBytes(<%= (dtoMapstruct ? dtoInstance : 'updated' + persistClass) %>)))
             .andExpect(status().isOk());
@@ -1519,7 +1547,7 @@ _%>
   <%_ if (searchEngineElasticsearch) { _%>
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
   <%_ } _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- primaryKey.javaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- primaryKey.javaValueGenerator %>);
 
   <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
@@ -1528,13 +1556,13 @@ _%>
   <%_ } _%>
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
   <%_ if (reactive) { _%>
-        webTestClient.put().uri(ENTITY_API_URL_ID, <%= restInstance %>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.put().uri(ENTITY_API_URL_ID, <%= restInstance %>.<%- primaryKey.propertySupplierName %>())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(om.writeValueAsBytes(<%= restInstance %>))
             .exchange()
             .expectStatus().isBadRequest();
   <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%= restInstance %>.get<%= primaryKey.nameCapitalized %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
+        rest<%= entityClass %>MockMvc.perform(put(ENTITY_API_URL_ID, <%= restInstance %>.<%- primaryKey.propertySupplierName %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
             .contentType(MediaType.APPLICATION_JSON)
             .content(om.writeValueAsBytes(<%= restInstance %>)))
             .andExpect(status().isBadRequest());
@@ -1558,7 +1586,7 @@ _%>
   <%_ if (searchEngineElasticsearch) { _%>
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
   <%_ } _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- primaryKey.javaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- primaryKey.javaValueGenerator %>);
 
   <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
@@ -1596,7 +1624,7 @@ _%>
   <%_ if (searchEngineElasticsearch) { _%>
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
   <%_ } _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- primaryKey.javaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- primaryKey.javaValueGenerator %>);
 
   <%_ if (dtoMapstruct) { _%>
         // Create the <%= entityClass %>
@@ -1642,7 +1670,7 @@ _%>
         // Initialize the database
   <%_ if (!primaryKey.derived) { _%>
     <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
     <%_ } _%>
   <%_ } _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
@@ -1662,7 +1690,7 @@ _%>
         // Initialize the database
   <%_ if (!primaryKey.derived) { _%>
     <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
     <%_ } _%>
   <%_ } _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
@@ -1683,7 +1711,7 @@ _%>
   <%_ if (searchEngineElasticsearch) { _%>
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
   <%_ } _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- primaryKey.javaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- primaryKey.javaValueGenerator %>);
 
   <%_ if (dtoMapstruct) { _%>
             // Create the <%= entityClass %>
@@ -1692,13 +1720,13 @@ _%>
   <%_ } _%>
         // If the entity doesn't have an ID, it will throw BadRequestAlertException
   <%_ if (reactive) { _%>
-        webTestClient.patch().uri(ENTITY_API_URL_ID, <%= restInstance %>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.patch().uri(ENTITY_API_URL_ID, <%= restInstance %>.<%- primaryKey.propertySupplierName %>())
             .contentType(MediaType.valueOf("application/merge-patch+json"))
             .bodyValue(om.writeValueAsBytes(<%= restInstance %>))
             .exchange()
             .expectStatus().isBadRequest();
   <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, <%= restInstance %>.get<%= primaryKey.nameCapitalized %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
+        rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, <%= restInstance %>.<%- primaryKey.propertySupplierName %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
             .contentType("application/merge-patch+json")
             .content(om.writeValueAsBytes(<%= restInstance %>)))
             .andExpect(status().isBadRequest());
@@ -1721,7 +1749,7 @@ _%>
   <%_ if (searchEngineElasticsearch) { _%>
         int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
   <%_ } _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- primaryKey.javaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- primaryKey.javaValueGenerator %>);
 
   <%_ if (dtoMapstruct) { _%>
             // Create the <%= entityClass %>
@@ -1759,7 +1787,7 @@ _%>
   <%_ if (searchEngineElasticsearch) { _%>
       int searchDatabaseSizeBefore = IterableUtil.sizeOf(<%= entityInstance %>SearchRepository.findAll()<%= callListBlock %>);
   <%_ } _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- primaryKey.javaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- primaryKey.javaValueGenerator %>);
 
   <%_ if (dtoMapstruct) { _%>
             // Create the <%= entityClass %>
@@ -1799,10 +1827,10 @@ _%>
         // Initialize the database
   <%_ if (!primaryKey.derived) { _%>
     <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= primaryKey.nameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- primaryKey.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
     <%_ } _%>
   <%_ } _%>
-        inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
+              <%_ if (!databaseTypeCouchbase) { _%>  inserted<%= persistClass %> = <%_ } _%><%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
   <%_ if (searchEngineElasticsearch) { _%>
         <%= entityInstance %>Repository.save(<%= persistInstance %>)<%= callBlock %>;
         <%= entityInstance %>SearchRepository.save(<%= persistInstance %>)<%= callBlock %>;
@@ -1816,12 +1844,12 @@ _%>
 
         // Delete the <%= entityInstance %>
   <%_ if (reactive) { _%>
-        webTestClient.delete().uri(ENTITY_API_URL_ID, <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.delete().uri(ENTITY_API_URL_ID, <%= persistInstance %>.<%- primaryKey.propertySupplierName %>())
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent();
   <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(delete(ENTITY_API_URL_ID, <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>()<% if (primaryKey.typeUUID && databaseTypeSql) { %>.toString()<% } %>)<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
+        rest<%= entityClass %>MockMvc.perform(delete(ENTITY_API_URL_ID, <%= persistInstance %>.<%- primaryKey.propertySupplierName %>()<% if (primaryKey.typeUUID && databaseTypeSql) { %>.toString()<% } %>)<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
   <%_ } _%>
@@ -1848,7 +1876,7 @@ _%>
         // Initialize the database
   <%_ if (!primaryKey.derived) { _%>
     <%_ for (field of primaryKey.fields.filter(f => !f.autoGenerateByRepository)) { _%>
-        <%= persistInstance %>.set<%= field.fieldNameCapitalized %>(<%- field.fieldJavaValueGenerator %>);
+        <%= persistInstance %>.<%- field.propertyConsumerName %>(<%- field.fieldJavaValueGenerator %>);
     <%_ } _%>
   <%_ } _%>
         inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>)<%= callBlock %>;
@@ -1856,18 +1884,18 @@ _%>
         <%= entityInstance %>SearchRepository.save(<%= persistInstance %>)<%= callBlock %>;
   <%_ } else if (searchEngineCouchbase) { _%>
         // Wait for the <%= entityInstance %> to be indexed
-        TestUtil.retryUntilNotEmpty(() -> <%= entityInstance %>Repository.search("id:" + <%= entityInstance %>.get<%= primaryKey.nameCapitalized %>())<% if (reactive) { %>.collectList().block()<% } %>);
+        TestUtil.retryUntilNotEmpty(() -> <%= entityInstance %>Repository.search("id:" + <%= entityInstance %>.<%- primaryKey.propertySupplierName %>())<% if (reactive) { %>.collectList().block()<% } %>);
   <%_ } _%>
 
         // Search the <%= entityInstance %>
   <%_ if (reactive) { _%>
-        webTestClient.get().uri(ENTITY_SEARCH_API_URL + "?query=id:" + <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>())
+        webTestClient.get().uri(ENTITY_SEARCH_API_URL + "?query=id:" + <%= persistInstance %>.<%- primaryKey.propertySupplierName %>())
             .exchange()
             .expectStatus().isOk()
             .expectHeader().contentType(MediaType.APPLICATION_JSON)
             .expectBody()
   <%_ } else { _%>
-        rest<%= entityClass %>MockMvc.perform(get(ENTITY_SEARCH_API_URL + "?query=id:" + <%= persistInstance %>.get<%= primaryKey.nameCapitalized %>()))
+        rest<%= entityClass %>MockMvc.perform(get(ENTITY_SEARCH_API_URL + "?query=id:" + <%= persistInstance %>.<%- primaryKey.propertySupplierName %>()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
   <%_ } _%>
@@ -1882,13 +1910,18 @@ _%>
   if (field.fieldTypeBigDecimal) { %>sameNumber(<% } %><%= 'DEFAULT_' + field.fieldNameUnderscored.toUpperCase() %><%
   if (field.fieldTypeBinary && !field.blobContentTypeText) { %><%
     if (databaseTypeCassandra) { %>.array()<% } %>)<% } else
-  if (field.fieldTypeInteger) { %><% } else
   if (field.fieldTypeLong) { %>.intValue()<% } else
-  if (field.fieldTypeFloat || field.fieldTypeDouble) { %>.doubleValue()<% } else
+  if (field.fieldTypeFloat) { %>.doubleValue()<% } else
   if (field.fieldTypeBigDecimal) { %>)<% } else
-  if (field.fieldTypeBoolean) { %>.booleanValue()<% } else
   if (field.fieldTypeZonedDateTime) { %>)<% } else
-  if (!field.fieldTypeString && !field.fieldTypeVectorSaathratri) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
+  if (field.fieldTypeLocalTime) { %>.format(LOCAL_DATE_TIME_FORMAT)<% } else
+  if (
+    !field.fieldTypeString &&
+    !field.fieldTypeBoolean &&
+    !field.fieldTypeInteger &&
+    !field.fieldTypeDouble &&
+    !field.fieldTypeVectorSaathratri /* Saathratri modification - exclude vector fields from .toString() */
+  ) { %>.toString()<% } %>))<%= !reactive ? ')' : '' %><%_ } _%>;
     }
 <%_ } _%>
 
@@ -1909,7 +1942,7 @@ _%>
     }
 
     protected <%- persistClass %> getPersisted<%- persistClass %>(<%- persistClass %> <%- entityInstance %>) {
-        return <%= entityInstance %>Repository.findById(<%- entityInstance %>.get<%- primaryKey.nameCapitalized %>()).<%- reactive ? 'block()' : 'orElseThrow()' %>;
+        return <%= entityInstance %>Repository.findById(<%- entityInstance %>.<%- primaryKey.propertySupplierName %>()).<%- reactive ? 'block()' : 'orElseThrow()' %>;
     }
 
     protected void assertPersisted<%- persistClass %>ToMatchAllProperties(<%- persistClass %> expected<%- persistClass %>) {

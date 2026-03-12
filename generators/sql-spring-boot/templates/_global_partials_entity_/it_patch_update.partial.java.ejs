@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -20,7 +20,7 @@ long databaseSizeBeforeUpdate = getRepositoryCount();
 
 // Update the <%= entityInstance %> using partial update
 <%= persistClass %> partialUpdated<%= persistClass %> = new <%= persistClass %>();
-partialUpdated<%= persistClass %>.set<%= primaryKey.nameCapitalized %>(<%= persistInstance %>.get<%= primaryKey.nameCapitalized %>());
+partialUpdated<%= persistClass %>.<%- primaryKey.propertyConsumerName %>(<%= persistInstance %>.<%- primaryKey.propertySupplierName %>());
 <%_ fieldsToUpdate = fields.filter(field => field.includeField) %>
 <%_ if (fluentMethods && fieldsToUpdate.length > 0) { _%>
     partialUpdated<%= persistClass %><% for (field of fieldsToUpdate) { %>
@@ -29,9 +29,9 @@ partialUpdated<%= persistClass %>.set<%= primaryKey.nameCapitalized %>(<%= persi
 <%_ } else { _%>
   <%_ for (field of fieldsToUpdate) { _%>
     <%_ if (field.includeField) { %>
-    partialUpdated<%= persistClass %>.set<%= field.fieldInJavaBeanMethod %>(<%= field.updateWithValue %>);
+    partialUpdated<%= persistClass %>.<%- field.propertyConsumerName %>(<%= field.updateWithValue %>);
       <%_ if (field.fieldWithContentType) { _%>
-        partialUpdated<%= persistClass %>.set<%= field.fieldInJavaBeanMethod %>ContentType(<%= field.updateWithValue %>_CONTENT_TYPE);
+        partialUpdated<%= persistClass %>.<%- field.propertyConsumerName %>ContentType(<%= field.updateWithValue %>_CONTENT_TYPE);
       <%_ } _%>
     <%_ } _%>
   <%_ } _%>
@@ -40,14 +40,14 @@ partialUpdated<%= persistClass %>.set<%= primaryKey.nameCapitalized %>(<%= persi
 <%_ if (reactive) { _%>
 webTestClient
 .patch()
-.uri(ENTITY_API_URL_ID, partialUpdated<%= persistClass %>.get<%= primaryKey.nameCapitalized %>())
+.uri(ENTITY_API_URL_ID, partialUpdated<%= persistClass %>.<%- primaryKey.propertySupplierName %>())
 .contentType(MediaType.valueOf("application/merge-patch+json"))
 .bodyValue(om.writeValueAsBytes(<%= 'partialUpdated' + persistClass %>))
 .exchange()
 .expectStatus()
 .isOk();
 <%_ } else { _%>
-rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, partialUpdated<%= persistClass %>.get<%= primaryKey.nameCapitalized %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
+rest<%= entityClass %>MockMvc.perform(patch(ENTITY_API_URL_ID, partialUpdated<%= persistClass %>.<%- primaryKey.propertySupplierName %>())<% if (authenticationUsesCsrf) { %>.with(csrf())<% }%>
 .contentType("application/merge-patch+json")
 .content(om.writeValueAsBytes(<%= 'partialUpdated' + persistClass %>)))
 .andExpect(status().isOk());

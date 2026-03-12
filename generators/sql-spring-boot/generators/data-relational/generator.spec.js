@@ -2,10 +2,10 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 
-const SUB_GENERATOR = 'spring-cache';
+const SUB_GENERATOR = 'sql-spring-boot:data-relational';
 const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
 
-describe('SubGenerator spring-cache of temp JHipster blueprint', () => {
+describe('SubGenerator sql-spring-boot:data-relational of multiple-human-readable-foreign-key-fields JHipster blueprint', () => {
   describe('run', () => {
     beforeAll(async function () {
       await helpers
@@ -13,7 +13,7 @@ describe('SubGenerator spring-cache of temp JHipster blueprint', () => {
         .withJHipsterConfig()
         .withOptions({
           ignoreNeedlesError: true,
-          blueprint: 'temp',
+          blueprint: 'multiple-human-readable-foreign-key-fields',
         })
         .withJHipsterLookup()
         .withParentBlueprintLookup();

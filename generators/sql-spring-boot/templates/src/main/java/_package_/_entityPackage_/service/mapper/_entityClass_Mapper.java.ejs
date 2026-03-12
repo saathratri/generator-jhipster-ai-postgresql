@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -21,14 +21,12 @@ package <%= entityAbsolutePackage %>.service.mapper;
 <%_
   const getOriginalField = field => field.originalField || field;
   const uuidMapMethod = restProperties.some(property => property.relatedField?.fieldTypeUUID);
-  // Include byte map method if:
-  // 1. Any related field is a byte type, OR
-  // 2. Application has any vector fields (which have byte[] in entity but String in DTO)
-  // This ensures MapStruct can handle byte[] -> String conversions in nested relationships
-  // Note: hasVectorFieldsSaathratri is spread directly into context from application object
+  /* Saathratri modification - include byte map method for vector fields (byte[] in entity, float[] in DTO) */
   const hasVectorFieldsInApp = typeof hasVectorFieldsSaathratri !== 'undefined' && hasVectorFieldsSaathratri;
   const byteMapMethod = restProperties.some(property => property.relatedField?.fieldTypeBytes) || hasVectorFieldsInApp;
+  /* End Saathratri modification */
   const dtoRelationships = restProperties.filter(property => property.relationshipName && !property.otherEntity.embedded);
+  /* Saathratri modification - entity graph directive parsing */
   const normalizeDirectives = value =>
     value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
   const parseDirective = directive => {
@@ -46,14 +44,14 @@ package <%= entityAbsolutePackage %>.service.mapper;
     return undefined;
   };
   const entityGraphAnnotationValue = typeof entityGraph !== 'undefined' ? entityGraph : undefined;
-const entityGraphIncludeDirectives =
-  typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
-const entityGraphExcludeDirectives =
-  typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
-const entityGraphEntries = [
-  ...normalizeDirectives(entityGraphAnnotationValue),
-  ...entityGraphIncludeDirectives,
-];
+  const entityGraphIncludeDirectives =
+    typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
+  const entityGraphExcludeDirectives =
+    typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
+  const entityGraphEntries = [
+    ...normalizeDirectives(entityGraphAnnotationValue),
+    ...entityGraphIncludeDirectives,
+  ];
   const entityGraphDirectives = [];
   for (const directive of entityGraphEntries) {
     const parsedDirective = parseDirective(directive);
@@ -77,6 +75,7 @@ const entityGraphEntries = [
     }
   }
   const hasEntityGraphDirectives = entityGraphDirectives.length > 0;
+  /* End Saathratri modification */
   let otherEntitiesFields = otherEntities
     .filter(otherEntity => dtoRelationships.some(relationship => relationship.otherEntity === otherEntity))
     .map(otherEntity =>
@@ -105,7 +104,7 @@ import <%= otherEntity.entityAbsolutePackage %>.service.dto.<%= otherEntity.dtoC
 <%_ } _%>
 
 import org.mapstruct.*;
-import org.mapstruct.control.NoComplexMapping;
+import org.mapstruct.control.NoComplexMapping; <%_ /* Saathratri modification - prevent infinite recursion with bidirectional relationships */ _%>
 <%_ if (uuidMapMethod) { _%>
 
 import java.util.Objects;
@@ -120,6 +119,7 @@ import java.util.UUID;
  * This limits MapStruct to direct field mappings only, requiring explicit @Mapping
  * annotations for any relationship mappings.
  */
+<%_ /* Saathratri modification - NoComplexMapping to prevent infinite recursion */ _%>
 @Mapper(componentModel = "spring", mappingControl = NoComplexMapping.class)
 public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, <%= persistClass %>> {
 <%_ if (!embedded) { _%>
@@ -132,6 +132,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     _%>
     @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName="<%= qualifiedByName %>")
   <%_ } _%>
+  <%_ /* Saathratri modification - exclude vector fields from mapstructExpression, add explicit vector @Mapping */ _%>
   <%_ for (const field of fields.filter(field => field.mapstructExpression && !field.fieldTypeVectorSaathratri)) {
       renMapAnotEnt = true; _%>
     @Mapping( target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
@@ -139,20 +140,17 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
   <%_ for (const field of fields.filter(f => f.fieldTypeVectorSaathratri)) { _%>
     @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
   <%_ } _%>
+  <%_ /* End Saathratri modification */ _%>
   <%_ if (renMapAnotEnt) { _%>
     <%= dtoClass %> toDto(<%= persistClass %> s);
   <%_ } _%>
 
+  <%_ /* Saathratri modification - toDtoBasic lightweight mapper for list views */ _%>
   <%_
-    // Saathratri: Check if entity has any ManyToMany relationships
     const hasManyToManyRelationships = dtoRelationships.some(r => r.collection);
     if (hasManyToManyRelationships) {
-      // Build list of ManyToOne relationships only for toDtoBasic
       const manyToOneRelationships = dtoRelationships.filter(r => !r.collection);
       const manyToManyRelationships = dtoRelationships.filter(r => r.collection);
-
-      // Get all basic fields (non-relationship fields), excluding vector fields
-      // Vector fields are large embeddings (~6KB each) and should not be in DTOs
       const basicFields = fields.filter(field => !field.relationship);
   _%>
 
@@ -162,26 +160,24 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
      */
     @Named("toDtoBasic")
     @BeanMapping(ignoreByDefault = true)
-  <%_ // Map all basic (non-relationship) fields
-    for (const field of basicFields) {
+  <%_ for (const field of basicFields) {
       if (field.mapstructExpression) { _%>
     @Mapping(target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
       <%_ } else { _%>
     @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
       <%_ } _%>
   <%_ } _%>
-  <%_ // Map ManyToOne relationships with qualifiedByName
-    for (relationship of manyToOneRelationships) {
+  <%_ for (relationship of manyToOneRelationships) {
       let qualifiedByName = relationship.otherEntity.entityInstance + this._.upperFirst(relationship.otherEntityField);
   _%>
     @Mapping(target = "<%= relationship.propertyName %>", source = "<%= relationship.propertyName %>", qualifiedByName = "<%= qualifiedByName %>")
   <%_ } _%>
-  <%_ // Ignore all ManyToMany relationships
-    for (const manyToManyRel of manyToManyRelationships) { _%>
+  <%_ for (const manyToManyRel of manyToManyRelationships) { _%>
     @Mapping(target = "<%= manyToManyRel.propertyName %>", ignore = true)
   <%_ } _%>
     <%= dtoClass %> toDtoBasic(<%= persistClass %> <%= persistInstance %>);
   <%_ } _%>
+  <%_ /* End Saathratri modification */ _%>
 
   <%_ var renMapAnotDto = false;  /*Render Mapping Annotation during DTO to Entity conversion?*/ _%>
   <%_ if(primaryKey.ids.length > 1) { _%>
@@ -201,7 +197,6 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%_ } _%>
   <%_ } _%>
   <%_ if (renMapAnotDto) { _%>
-
     <%= persistClass %> toEntity(<%= dtoClass %> <%= dtoInstance %>);
   <%_ } _%>
   <%_ for (const {otherEntity, relatedField, collection} of otherEntitiesFields) { _%>
@@ -212,15 +207,13 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     <%_ for (const field of otherEntity.primaryKey.fields) { _%>
     @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
     <%_ } _%>
-    <%_ 
-      // Saathratri: Use Option to Display in GUI Feature
-      if (isOptionToDisplayInGuiEnabled) { 
+    <%_ /* Saathratri modification - foreign key field mappers for GUI display */
+      if (isOptionToDisplayInGuiEnabled) {
     _%>
         <%- getMappingsToDisplayInMapper(otherEntity.fields) %>
     <%_
-      // Saathratri: Use Foreign Key Field Mappers in GUI 
       }
-    _%>
+    /* End Saathratri modification */ _%>
     <%_ if (!relatedField.id) { _%>
       <%_ if (relatedField.mapstructExpression) { _%>
     @Mapping(target = "<%= relatedField.propertyName %>", expression = "<%- relatedField.mapstructExpression %>")
@@ -242,6 +235,7 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     }
     <%_ } _%>
   <%_ } _%>
+  <%_ /* Saathratri modification - entity graph query mapper methods */ _%>
   <%_ if (hasEntityGraphDirectives) { _%>
 
     <%_ for (const entityGraphQuery of entityGraphDirectives) { _%>
@@ -265,12 +259,14 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
       <%= dtoClass %> to<%= this._.upperFirst(entityGraphQuery.methodName) %>(<%= persistClass %> <%= persistInstance %>);
     <%_ } _%>
   <%_ } _%>
+  <%_ /* End Saathratri modification */ _%>
   <%_ if (uuidMapMethod) { _%>
 
     default String map(UUID value) {
         return Objects.toString(value, null);
     }
   <%_ } _%>
+  <%_ /* Saathratri modification - null-safe byte mapping with reverse String->byte[] */ _%>
   <%_ if (byteMapMethod) { _%>
 
     default String map(byte[] value) {
@@ -281,5 +277,6 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
         return value == null ? null : value.getBytes();
     }
   <%_ } _%>
+  <%_ /* End Saathratri modification */ _%>
 <%_ } _%>
 }

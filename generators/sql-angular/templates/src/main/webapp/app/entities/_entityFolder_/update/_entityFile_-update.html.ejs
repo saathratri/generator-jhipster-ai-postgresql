@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -19,10 +19,10 @@
 <div class="d-flex justify-content-center">
     <div class="col-8">
         <form name="editForm" novalidate (ngSubmit)="save()" [formGroup]="editForm">
-            <h2 id="<%= jhiPrefixDashed %>-<%= entityFileName %>-heading" data-cy="<%= entityClass %>CreateUpdateHeading">__jhiTranslateTag__('<%- i18nKeyPrefix %>.home.createOrEditLabel')</h2>
+            <h2 id="<%= jhiPrefixDashed %>-<%= entityFileName %>-heading" data-cy="<%- entityNameCapitalized %>CreateUpdateHeading">__jhiTranslateTag__('<%- i18nKeyPrefix %>.home.createOrEditLabel')</h2>
 
             <div>
-                <<%= jhiPrefixDashed %>-alert-error></<%= jhiPrefixDashed %>-alert-error>
+                <<%= jhiPrefixDashed %>-alert-error />
 <%_ for (const field of fields.filter(field => !field.hidden)) {
   const fieldName = field.fieldName;
   const fieldNameHumanized = field.fieldNameHumanized;
@@ -30,7 +30,6 @@
   const fieldTypeBlobContent = field.fieldTypeBlobContent;
   const readonly = field.readonly;
   let fieldInputType = 'text';
-  const translationKey = field.fieldTranslationKey;
   if (field.fieldTypeNumeric) {
     fieldInputType = 'number';
   } else if (field.fieldTypeLocalDate) {
@@ -47,7 +46,7 @@ _%>
             <% if (field.autoGenerate) { %>@if (editForm.controls.<%= field.fieldName %>.value !== null) {<% } %>
                 <% if (field.fieldTypeBinary && !field.blobContentTypeText || field.fieldValidate) { %>@let <%= fieldName %>Ref = editForm.get('<%= fieldName %>')!;<% } %>
                 <div class="mb-3">
-                    <label class="form-label" for="field_<%= fieldName %>"<% if (field.documentation) { if (enableTranslation) { %> [ngbTooltip]="'<%= i18nKeyPrefix %>.help.<%= fieldName %>' | translate"<% } else { %> ngbTooltip="<%= field.documentation %>"<% } } %>>__jhiTranslateTag__('<%= i18nKeyPrefix %>.<%= fieldName %>')</label>
+                    <label class="form-label" for="field_<%= fieldName %>"<% if (field.documentation) { if (enableTranslation) { %> [ngbTooltip]="'<%= i18nKeyPrefix %>.help.<%= fieldName %>' | translate"<% } else { %> ngbTooltip="<%= field.documentation %>"<% } } %>>__jhiTranslateTag__('<%= field.propertyTranslationKey %>')</label>
   <%_ if (field.fieldIsEnum) { _%>
                     <select class="form-control" name="<%= fieldName %>" formControlName="<%= fieldName %>" id="field_<%= fieldName %>" data-cy="<%= fieldName %>">
     <%_ const enumPrefix = frontendAppName + '.'+ fieldType; _%>
@@ -67,6 +66,7 @@ _%>
                     @if (<%= fieldName %>Ref.value) {
                         <div class="form-text text-danger clearfix">
       <%_ if (field.blobContentTypeAny) { _%>
+                            <%_ /* Saathratri modification - PDF preview with styled badge */ _%>
                             @if (editForm.get('<%= fieldName %>ContentType')!.value === 'application/pdf') {
                               <a class="pull-start" style="text-decoration:none;" (click)="openFile(<%= fieldName %>Ref.value!, editForm.get('<%= fieldName %>ContentType')!.value!)">
                                 <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:52px;background-color:#e53935;color:white;font-size:0.6rem;font-weight:bold;border-radius:3px;cursor:pointer;">PDF</div>
@@ -75,6 +75,7 @@ _%>
                             } @else {
                               <a class="pull-start" (click)="openFile(<%= fieldName %>Ref.value!, editForm.get('<%= fieldName %>ContentType')!.value!)">__jhiTranslateTag__('entity.action.open')</a>
                             }
+                            <%_ /* End Saathratri modification */ _%>
                             <br>
                             <span class="pull-start">{{ editForm.get('<%= fieldName %>ContentType')!.value }}, {{ byteSize(<%= fieldName %>Ref.value!) }}</span>
       <%_ } else { _%>
@@ -86,7 +87,7 @@ _%>
                             <button type="button" (click)="editForm.patchValue({ <%= fieldName %>: undefined, <%= fieldName %>ContentType: undefined });"
                                     class="btn btn-secondary btn-xs pull-end">
       <%_ } _%>
-                                  <fa-icon icon="times"></fa-icon>
+                                  <fa-icon icon="times" />
                             </button>
                         </div>
                     }
@@ -96,7 +97,7 @@ _%>
     <%_ if (field.fieldTypeLocalDate) { _%>
                     <div class="input-group">
                         <input id="field_<%= fieldName %>" data-cy="<%= fieldName %>" type="text" class="form-control" name="<%= fieldName %>" ngbDatepicker #<%= fieldName %>Dp="ngbDatepicker" formControlName="<%= fieldName %>"<% if (readonly) { %> [readonly]="true"<% } %>/>
-                        <button type="button" class="btn btn-secondary" (click)="<%= fieldName %>Dp.toggle()"><fa-icon icon="calendar-alt"></fa-icon></button>
+                        <button type="button" class="btn btn-secondary" (click)="<%= fieldName %>Dp.toggle()"><fa-icon icon="calendar-alt" /></button>
                     </div>
     <%_ } else if (field.fieldTypeTimed) { _%>
                     <div class="d-flex">
@@ -108,6 +109,9 @@ _%>
     <%_ } else if (field.fieldTypeBoolean) { _%>
                     <input type="<%= fieldInputType %>" class="form-check" name="<%= fieldName %>" id="field_<%= fieldName %>"
                            data-cy="<%= fieldName %>" formControlName="<%= fieldName %>" <% if (readonly) { %> [readonly]="true"<% } %>/>
+    <%_ } else if (field.fieldTypeLocalTime) { _%>
+                    <input type="time" class="form-control" name="<%= fieldName %>" id="field_<%= fieldName %>" data-cy="<%= fieldName %>"
+                           formControlName="<%= fieldName %>"<% if (readonly) { %> [readonly]="true"<% } %>/>
     <%_ } else { _%>
                     <input type="<%= fieldInputType %>" class="form-control" name="<%= fieldName %>" id="field_<%= fieldName %>" data-cy="<%= fieldName %>"
                            formControlName="<%= fieldName %>"<% if (field.id && !field.autoGenerate) { %> [readonly]="editForm.get('<%= primaryKey.name %>')!.disabled"<% } else if (readonly) { %> [readonly]="true"<% } %>/>
@@ -164,18 +168,16 @@ _%>
                 </div>
             <% if (field.autoGenerate) { %>}<% } %>
 <%_ } _%>
-<%_
-for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey)) {
+<%_ for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey)) {
   const { otherEntity, relationshipName, propertyName, otherEntityField, relationshipRequired } = relationship;
   const otherEntityName = relationship.otherEntityName;
   const relationshipFieldName = relationship.relationshipFieldName;
   const relationshipFieldNamePlural = relationship.relationshipFieldNamePlural;
-  const translationKey = `${i18nKeyPrefix}.${relationshipName}`;
 _%>
   <%_ if (relationship.persistableRelationship && !relationship.collection) { _%>
 
                 <div class="mb-3">
-                    <label class="form-label" for="field_<%= relationshipName %>">__jhiTranslateTag__('<%- translationKey %>')</label>
+                    <label class="form-label" for="field_<%= relationshipName %>">__jhiTranslateTag__('<%- relationship.propertyTranslationKey %>')</label>
                     <select class="form-control" id="field_<%= relationshipName %>" data-cy="<%= propertyName %>" name="<%= relationshipName %>" formControlName="<%= propertyName %>" [compareWith]="compare<%= otherEntity.entityAngularName %>">
     <%_ if (!relationshipRequired) { _%>
                         <option [ngValue]="null"></option>
@@ -184,60 +186,58 @@ _%>
                         <option [ngValue]="null" selected></option>
                     }
     <%_ } else { _%>
-                    @if (editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.value == null) {
+                    @if (editForm.get(['<%- relationship.propertyName %>'])!.value === null) {
                         <option [ngValue]="null" selected></option>
                     }
     <%_ } _%>
-                <%_ 
-                    // Saathratri: Use Option to Display in GUI Feature
-                    if (isOptionToDisplayInGuiEnabled) { 
+                <%_
+                    /* Saathratri modification - human-readable foreign key display */
+                    if (isOptionToDisplayInGuiEnabled) {
                 _%>
                     @for (<%= otherEntityName %>Option of <% if (!relationship.otherRelationship || relationship.relationshipManyToOne) { %><%= otherEntity.entityInstancePlural %>Shared<% } else { %><%= relationshipFieldNamePlural %><% } %>Collection; track $index) {
 	                        <option [ngValue]="<%= otherEntityName %>Option">{{ <%- getClientOptionToDisplayForUpdate(otherEntity, otherEntityName, otherEntityField) %>  }}</option>
-	                    }                            
+	                    }
                 <%_
-                    // Saathratri: Use Standard Field Display in GUI 
-                    } else { 
+                    } else {
                 _%>
-                    @for (<%= otherEntityName %>Option of <% if (!relationship.otherRelationship || relationship.relationshipManyToOne) { %><%= otherEntity.entityInstancePlural %>Shared<% } else { %><%= relationshipFieldNamePlural %><% } %>Collection; track $index) {
+                    @for (<%= otherEntityName %>Option of <% if (!relationship.otherRelationship || relationship.relationshipManyToOne) { %><%= otherEntity.entityInstancePlural %>Shared<% } else { %><%= relationshipFieldNamePlural %><% } %>Collection(); track $index) {
                         <option [ngValue]="<%= otherEntityName %>Option">{{ <%= otherEntityName %>Option.<%= otherEntityField %> }}</option>
                     }
-                <%_ 
-                    } 
-                    // Saathratri
+                <%_
+                    }
+                    /* End Saathratri modification */
                 _%>
                     </select>
                 </div>
   <%_ } else if (relationship.persistableRelationship) { _%>
                 <div class="mb-3">
-                    <label for="field_<%= relationshipFieldNamePlural %>">__jhiTranslateTag__('<%- translationKey %>')</label>
+                    <label for="field_<%= relationshipFieldNamePlural %>">__jhiTranslateTag__('<%- relationship.propertyTranslationKey %>')</label>
                     <select class="form-control" id="field_<%= relationshipFieldNamePlural %>" data-cy="<%= relationshipFieldName %>" multiple name="<%= propertyName %>" formControlName="<%= propertyName %>" [compareWith]="compare<%= otherEntity.entityAngularName %>">
-                    <%_ 
-                    	// Saathratri: Use Option to Display in GUI Feature
-                    	if (isOptionToDisplayInGuiEnabled) { 
+                    <%_
+                    	/* Saathratri modification - human-readable foreign key display */
+                    	if (isOptionToDisplayInGuiEnabled) {
                     _%>
                     @for (<%= otherEntityName %>Option of <%= otherEntity.entityInstancePlural %>SharedCollection; track $index) {
 	                        	<option [ngValue]="<%= otherEntityName %>Option">{{ <%- getClientOptionToDisplayForUpdate(otherEntity, otherEntityName, otherEntityField) %>  }}</option>
-	                    	}                    
-		    <%_
-                    	// Saathratri: Use Standard Field Display in GUI 
-                    	} else { 
+	                    	}
+                    <%_
+                    	} else {
                     _%>
-	                    	@for (<%= otherEntityName %>Option of <%= otherEntity.entityInstancePlural %>SharedCollection; track $index) {
+	                    	@for (<%= otherEntityName %>Option of <%= otherEntity.entityInstancePlural %>SharedCollection(); track $index) {
                         <option [ngValue]="<%= otherEntityName %>Option">{{ <%= otherEntityName %>Option.<%= otherEntityField %> }}</option>
                     }
-                    <%_ 
-                    	} 
-                    	// Saathratri
+                    <%_
+                    	}
+                    	/* End Saathratri modification */
                     _%>
                     </select>
                 </div>
   <%_ } _%>
   <%_ if (relationship.relationshipValidate && relationship.persistableRelationship) { _%>
-            @if (editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.invalid && (editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.dirty || editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])!.touched)) {
+            @if (editForm.get(['<%- relationship.propertyName %>'])!.invalid && (editForm.get(['<%- relationship.propertyName %>'])!.dirty || editForm.get(['<%- relationship.propertyName %>'])!.touched)) {
                 <div>
     <%_ if (relationshipRequired) { _%>
-                @if (editForm.get([<%- this.buildAngularFormPath(relationship.reference) %>])?.errors?.required) {
+                @if (editForm.get(['<%- relationship.propertyName %>'])?.errors?.required) {
                     <small class="form-text text-danger">__jhiTranslateTag__('entity.validation.required')</small>
                 }
     <%_ } _%>
@@ -249,11 +249,11 @@ _%>
 
             <div>
                 <button type="button" id="cancel-save" data-cy="entityCreateCancelButton" class="btn btn-secondary" (click)="previousState()">
-                    <fa-icon icon="ban"></fa-icon>&nbsp;<span>__jhiTranslateTag__('entity.action.cancel')</span>
+                    <fa-icon icon="ban" />&nbsp;<span>__jhiTranslateTag__('entity.action.cancel')</span>
                 </button>
 
-                <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" [disabled]="editForm.invalid || isSaving" class="btn btn-primary">
-                    <fa-icon icon="save"></fa-icon>&nbsp;<span>__jhiTranslateTag__('entity.action.save')</span>
+                <button type="submit" id="save-entity" data-cy="entityCreateSaveButton" [disabled]="editForm.invalid || isSaving()" class="btn btn-primary">
+                    <fa-icon icon="save" />&nbsp;<span>__jhiTranslateTag__('entity.action.save')</span>
                 </button>
             </div>
         </form>

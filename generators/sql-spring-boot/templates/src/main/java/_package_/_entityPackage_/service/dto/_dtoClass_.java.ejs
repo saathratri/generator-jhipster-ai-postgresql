@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -28,6 +28,9 @@ import java.time.Instant;
 <%_ if (anyFieldIsLocalDate) { _%>
 import java.time.LocalDate;
 <%_ } _%>
+<%_ if (anyFieldIsLocalTime) { _%>
+import java.time.LocalTime;
+<%_ } _%>
 <%_ if (anyFieldIsZonedDateTime) { _%>
 import java.time.ZonedDateTime;
 <%_ } _%>
@@ -54,9 +57,9 @@ import java.util.UUID;
 <%_ if (anyFieldIsBlobDerived && databaseTypeSql) { _%>
 import jakarta.persistence.Lob;
 <%_ } _%>
-<%_ Object.keys(uniqueEnums).forEach(function(element) { _%>
-import <%- entityAbsolutePackage %>.domain.enumeration.<%- element %>;
-<%_ }); _%>
+<%_ for (const enumField of uniqueEnums) { _%>
+import <%- entityAbsolutePackage %>.domain.enumeration.<%- enumField.fieldType %>;
+<%_ } _%>
 
 <%_ for (const otherEntity of otherEntities.filter(otherEntity => otherEntity.entityPackage !== entityPackage)) { _%>
 import <%- `${otherEntity.entityAbsolutePackage}.service.dto.${otherEntity.dtoClass}` %>;
@@ -71,9 +74,8 @@ import <%- `${otherEntity.entityAbsolutePackage}.service.dto.${otherEntity.dtoCl
 @SuppressWarnings("common-java:DuplicatedBlocks")
 public class <%- dtoClass %> implements Serializable {
 
+<%_ /* Saathratri modification - exclude vector fields from DTO (large embeddings, only used for DB-level similarity search) */ _%>
 <%_
-// Filter out vector fields from DTO - they are large embeddings (1536 floats = ~6KB each)
-// and only used for database-level similarity search, not API responses
 const dtoProperties = restProperties.filter(property => {
   const field = property.fieldName ? property : undefined;
   if (field && field.fieldTypeVectorSaathratri) {
@@ -82,6 +84,8 @@ const dtoProperties = restProperties.filter(property => {
   return true;
 });
 _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - use dtoProperties (vector-filtered) instead of restProperties */ _%>
 <%_ for (property of dtoProperties) { _%>
   <%_ if (typeof property.propertyJavadoc) { _%>
 <%- property.propertyJavadoc %>
@@ -91,8 +95,8 @@ _%>
   const required = field && field.fieldValidate && field.fieldValidationRequired;
   _%>
   <%_ if (field) { _%>
-    <%_ if (property.fieldValidate ) { _%>
-    <%- include('/_global_partials_entity_/field_validators', {field, reactive}); -%>
+    <%_ if (property.fieldValidate) { _%>
+    <%- field.javaFieldValidatorsPartial %>
     <%_ } _%>
   <%_ } _%>
   <%_ if (relationship && relationship.relationshipRequired) { _%>
@@ -113,24 +117,25 @@ _%>
 _%>
 
 <%_ for (property of dtoProperties) { _%>
-    public <%- property.propertyDtoJavaType %> get<%- property.propertyJavaBeanName %>() {
+    public <%- property.propertyDtoJavaType %> <%- property.propertySupplierName %>() {
         return <%- property.propertyName %>;
     }
 
-    public void set<%- property.propertyJavaBeanName %>(<%- property.propertyDtoJavaType %> <%- property.propertyName %>) {
+    public void <%- property.propertyConsumerName %>(<%- property.propertyDtoJavaType %> <%- property.propertyName %>) {
         this.<%- property.propertyName %> = <%- property.propertyName %>;
     }
   <%_ if (property.fieldWithContentType) { _%>
 
-    public String get<%- property.propertyJavaBeanName %>ContentType() {
+    public String <%- property.propertySupplierName %>ContentType() {
         return <%- property.propertyName %>ContentType;
     }
 
-    public void set<%- property.propertyJavaBeanName %>ContentType(String <%- property.propertyName %>ContentType) {
+    public void <%- property.propertyConsumerName %>ContentType(String <%- property.propertyName %>ContentType) {
         this.<%- property.propertyName %>ContentType = <%- property.propertyName %>ContentType;
     }
   <%_ } _%>
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 
 <%_ const idNames = primaryKey ? [...primaryKey.fields.map(f => f.propertyName)] : [] _%>
     @Override
@@ -166,10 +171,12 @@ _%>
     @Override
     public String toString() {
         return "<%- dtoClass %>{" +
+<%_ /* Saathratri modification - use dtoProperties (vector-filtered) in toString */ _%>
 <%_ for ([idx, property] of dtoProperties.entries()) {
   const isQuoted = property.fieldName && !property.fieldTypeNumeric _%>
-            "<%- idx === 0 ? '' : ', ' %><%- property.propertyName %>=<% if (isQuoted) { %>'<% } %>" + get<%- property.propertyJavaBeanName %>() <% if (isQuoted) { %>+ "'" <% } %>+
+            "<%- idx === 0 ? '' : ', ' %><%- property.propertyName %>=<% if (isQuoted) { %>'<% } %>" + <%- property.propertySupplierName %>() <% if (isQuoted) { %>+ "'" <% } %>+
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
             "}";
     }
 }

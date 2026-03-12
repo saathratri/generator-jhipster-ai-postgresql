@@ -87,8 +87,9 @@ generator-jhipster-multiple-human-readable-foreign-key-fields/
 │   │   └── generator.js
 │   ├── spring-boot/                     # Spring Boot generator
 │   │   └── generator.js
-│   ├── spring-cache/                    # Spring Cache configuration
-│   │   └── generator.js
+│   │   └── generators/
+│   │       └── data-relational/         # Spring Data Relational subgenerator
+│   │           └── generator.js
 │   ├── sql-angular/                     # SQL with Angular frontend
 │   │   ├── generator.js
 │   │   ├── sql-angular-utils.js         # Angular UI utilities

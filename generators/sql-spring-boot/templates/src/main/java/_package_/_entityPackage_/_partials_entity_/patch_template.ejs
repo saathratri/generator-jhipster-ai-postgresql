@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2025 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -31,20 +31,16 @@ _%>
     Optional<<%= instanceType %>> result = <%= entityInstance %>Service.partialUpdate(<%= instanceName %>);
   <%_ } _%>
 <%_ } else { %>
-<%- returnPrefix %> <%= entityInstance %>Repository.findById(<%= instanceName %>.get<%= primaryKey.nameCapitalized %>())
+<%- returnPrefix %> <%= entityInstance %>Repository.findById(<%= instanceName %>.<%- primaryKey.propertySupplierName %>())
   <%_ if (dtoMapstruct || fields.filter(field => !field.id && !field.transient).length > 0) { _%>
     .map(existing<%= entityClass %> -> {
   <%_ if (dtoMapstruct) { _%>
        <%= mapper %>.partialUpdate(existing<%= entityClass %>, <%= instanceName %>);
   <%_ } else { _%>
     <%_ for (const field of fields.filter(field => !field.id && !field.transient)) { _%>
-    if (<%= instanceName %>.get<%= field.fieldInJavaBeanMethod %>() != null) {
-        existing<%= entityClass %>.set<%= field.fieldInJavaBeanMethod %>(<%= instanceName %>.get<%= field.fieldInJavaBeanMethod %>());
-    }
+        updateIfPresent(existing<%= entityClass %>::<%- field.propertyConsumerName %>, <%= instanceName %>.<%- field.propertySupplierName %>());
       <%_ if (field.fieldWithContentType) { _%>
-    if (<%= instanceName %>.get<%= field.fieldInJavaBeanMethod %>ContentType() != null) {
-        existing<%= entityClass %>.set<%= field.fieldInJavaBeanMethod %>ContentType(<%= instanceName %>.get<%= field.fieldInJavaBeanMethod %>ContentType());
-    }
+        updateIfPresent(existing<%= entityClass %>::<%- field.propertyConsumerName %>ContentType, <%= instanceName %>.<%- field.propertySupplierName %>ContentType());
       <%_ } _%>
     <%_ } %>
   <% } %>

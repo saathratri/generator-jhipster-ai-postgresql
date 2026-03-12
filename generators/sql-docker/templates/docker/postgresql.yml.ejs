@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2024 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -20,17 +20,19 @@
 name: <%= baseName.toLowerCase() %>
 services:
   postgresql:
+<%# Saathratri modification - use custom Dockerfile (for pgvector extension) instead of upstream image %>
     build:
       context: .
       dockerfile: postgresql/Dockerfile
     # volumes:
     #   - ~/volumes/jhipster/<%= baseName %>/postgresql/:/var/lib/postgresql/data/
+<%# Saathratri modification - mount init scripts for database initialization %>
     volumes:
       - ./postgresql-init-scripts:/docker-entrypoint-initdb.d/
     environment:
       - POSTGRES_USER=<%= baseName %>
-<%_ if (prodDatabasePassword) { _%>
-      - POSTGRES_PASSWORD=<%- prodDatabasePassword %>
+<%_ if (locals.prodDatabasePassword) { _%>
+      - POSTGRES_PASSWORD=<%- locals.prodDatabasePassword %>
 <%_ } _%>
       - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
@@ -41,4 +43,5 @@ services:
     # If you want to expose these ports outside your dev PC,
     # remove the "127.0.0.1:" prefix
     ports:
+<%# Saathratri modification - custom port per service instead of hardcoded 5432 %>
       - 127.0.0.1:<%= serverPortSaathratri %>:5432

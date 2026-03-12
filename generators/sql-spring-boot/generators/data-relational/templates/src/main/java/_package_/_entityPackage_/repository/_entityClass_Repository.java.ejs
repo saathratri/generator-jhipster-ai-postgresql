@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2025 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -20,6 +20,7 @@ package <%= entityAbsolutePackage %>.repository;
 
 import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
 
+<%_ /* Saathratri modification - entity graph directive parsing for custom repository methods */ _%>
 <%_
 const normalizeDirectives = value =>
   value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
@@ -71,16 +72,19 @@ for (const directive of entityGraphExcludeDirectives) {
 }
 const hasEntityGraphQueries = entityGraphParsedDirectives.length > 0;
 
+/* Saathratri modification - broaden eager load check to include ManyToMany relationships */
 const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
   relationship.relationshipEagerLoad || relationship.relationshipManyToMany
 );
-// Check if entity has vector fields for similarity search (needs @Param import)
+/* Saathratri modification - check for vector fields for pgvector similarity search (needs @Param import) */
 const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
 const hasVectorFields = vectorFields.length > 0;
 const needsOptionalImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
 const needsPageAndPageableImport = hasEagerLoadableRelationships && relationships.some(r => r.relationshipManyToMany);
 const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries || hasVectorFields;
 _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - conditional imports based on entity graph, vector, and eager load needs */ _%>
 <%_ if (needsPageAndPageableImport) { _%>
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -94,6 +98,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+<%_ /* End Saathratri modification */ _%>
 <%_ if (primaryKey.typeUUID) { _%>
 
 import java.util.UUID;
@@ -115,12 +120,14 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
 <%_ for (const relationship of relationships) { _%>
   <%_ if (relationship.relationshipManyToOne && relationship.otherEntityUser) { _%>
 
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= relationship.relationshipFieldName %>.login = ?#{authentication.name}")
+    @Query("select <%= entityJpqlInstance %> from <%= persistClass %> <%= entityJpqlInstance %> where <%= entityJpqlInstance %>.<%= relationship.relationshipFieldName %>.login = ?#{authentication.name}")
     List<<%= persistClass %>> findBy<%= relationship.relationshipNameCapitalized %>IsCurrentUser();
   <%_ } _%>
 <%_ } _%>
+<%_ /* Saathratri modification - use hasEagerLoadableRelationships (includes ManyToMany) instead of implementsEagerLoadApis */ _%>
 <%_ if (hasEagerLoadableRelationships) { _%>
 
+  <%_ /* Saathratri modification - broaden containsToOneEagerRelationship to include ManyToMany */ _%>
   <%_ const containsToOneEagerRelationship = relationships.some(relationship => (relationship.relationshipEagerLoad && !relationship.bagRelationship) || relationship.relationshipManyToMany); _%>
     default Optional<<%= persistClass %>> findOneWithEagerRelationships(<%= primaryKey.type %> <%= primaryKey.name %>) {
         return <% if (containsBagRelationships) { %>this.fetchBagRelationships(<% } %>
@@ -141,30 +148,32 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     }
   <%_ if (containsToOneEagerRelationship) { _%>
 
-    @Query(value = "select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %><%
+    @Query(value = "select <%= entityJpqlInstance %> from <%= persistClass %> <%= entityJpqlInstance %><%
       for (const relationship of relationships) {
-        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityInstanceDbSafe %>.<%= relationship.reference.name %><% }
+        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityJpqlInstance %>.<%= relationship.propertyName %><% }
       } %>",
-        countQuery = "select count(<%= entityInstanceDbSafe %>) from <%= persistClass %> <%= entityInstanceDbSafe %>")
+        countQuery = "select count(<%= entityJpqlInstance %>) from <%= persistClass %> <%= entityJpqlInstance %>")
     Page<<%= persistClass %>> findAllWithToOneRelationships(Pageable pageable);
 
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %><%
+    @Query("select <%= entityJpqlInstance %> from <%= persistClass %> <%= entityJpqlInstance %><%
       for (const relationship of relationships) {
-        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityInstanceDbSafe %>.<%= relationship.reference.name %><% }
+        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityJpqlInstance %>.<%= relationship.propertyName %><% }
       } %>")
     List<<%= persistClass %>> findAllWithToOneRelationships();
 
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %><%
+    @Query("select <%= entityJpqlInstance %> from <%= persistClass %> <%= entityJpqlInstance %><%
       for (const relationship of relationships) {
-        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityInstanceDbSafe %>.<%= relationship.reference.name %><% }
-      } %> where <%= entityInstanceDbSafe %>.id =:id")
+        if (relationship.relationshipEagerLoad && !relationship.bagRelationship) { %> left join fetch <%= entityJpqlInstance %>.<%= relationship.propertyName %><% }
+      } %> where <%= entityJpqlInstance %>.id =:id")
     Optional<<%= persistClass %>> findOneWithToOneRelationships(@Param("id") <%= primaryKey.type %> id);
   <%_ } _%>
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - entity graph query methods for selective relationship loading */ _%>
 <%_ if (hasEntityGraphQueries) { _%>
 
   <%_ for (const entityGraphQuery of entityGraphParsedDirectives) { _%>
-    @Query("select <%= entityInstanceDbSafe %> from <%= persistClass %> <%= entityInstanceDbSafe %> where <%= entityInstanceDbSafe %>.<%= primaryKey.name %> = :<%= primaryKey.name %>")
+    @Query("select <%= entityJpqlInstance %> from <%= persistClass %> <%= entityJpqlInstance %> where <%= entityJpqlInstance %>.<%= primaryKey.name %> = :<%= primaryKey.name %>")
     @EntityGraph(attributePaths = {
 <%_ entityGraphQuery.attributePaths.forEach((attributePath, index) => { _%>
       "<%= attributePath %>"<% if (index !== entityGraphQuery.attributePaths.length - 1) { %>,<% } %>
@@ -173,6 +182,8 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     Optional<<%= persistClass %>> <%= entityGraphQuery.methodName %>(@Param("<%= primaryKey.name %>") <%= primaryKey.type %> <%= primaryKey.name %>);
   <%_ } _%>
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - pgvector similarity search methods */ _%>
 <%_ if (hasVectorFields) { _%>
 
     // ==================== Vector Similarity Search Methods ====================
@@ -203,6 +214,8 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     List<<%= persistClass %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(@Param("embedding") String embedding, @Param("maxDistance") double maxDistance, @Param("limit") int limit);
   <%_ } _%>
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - tree structure query for self-referential entities */ _%>
 <%_ if (typeof hasSelfReferentialTreeSaathratri !== 'undefined' && hasSelfReferentialTreeSaathratri && !reactive) { _%>
 
     // ==================== Tree Structure Query ====================
@@ -214,4 +227,5 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
     @Query("SELECT e FROM <%= persistClass %> e LEFT JOIN FETCH e.<%= treeParentFieldNameSaathratri %>")
     List<<%= persistClass %>> findAllWithParent();
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 }

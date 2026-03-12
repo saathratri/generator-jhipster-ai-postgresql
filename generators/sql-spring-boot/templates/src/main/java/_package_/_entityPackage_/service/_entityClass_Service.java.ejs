@@ -1,5 +1,5 @@
 <%#
- Copyright 2013-2025 the original author or authors from the JHipster project.
+ Copyright 2013-2026 the original author or authors from the JHipster project.
 
  This file is part of the JHipster project, see https://www.jhipster.tech/
  for more information.
@@ -24,6 +24,7 @@ const instanceName = restInstance;
 const optionalOrMono = (reactive) ? 'Mono' : 'Optional';
 const listOrFlux = (reactive) ? 'Flux' : 'List';
 const pageOrFlux = (reactive) ? 'Flux' : 'Page';
+/* Saathratri modification - entity graph directive parsing */
 const normalizeDirectives = value =>
   value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
 const parseDirective = directive => {
@@ -77,15 +78,17 @@ const hasEntityGraphQueries = entityGraphDirectives.length > 0 && !reactive;
 const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
   relationship.relationshipEagerLoad || relationship.relationshipManyToMany
 );
+/* End Saathratri modification */
 _%>
 <%_ if (dtoMapstruct) { _%>
 import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>;
 <%_ } else { _%>
 import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
 <%_ } _%>
-<%_ if (jpaMetamodelFiltering && reactive) {  _%>
+<%_ if (jpaMetamodelFiltering && reactive) { _%>
 import <%= entityAbsolutePackage %>.domain.criteria.<%= entityClass %>Criteria;
-<%_ }  _%>
+<%_ } _%>
+<%_ /* Saathratri modification - use hasEagerLoadableRelationships instead of implementsEagerLoadApis */ _%>
 <%_ if (!paginationNo || hasEagerLoadableRelationships) { _%>
 
   <%_ if (!reactive) { _%>
@@ -93,14 +96,17 @@ import org.springframework.data.domain.Page;
   <%_ } _%>
 import org.springframework.data.domain.Pageable;
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 <%_ if (reactive) { _%>
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 <%_ } _%>
 
+<%_ /* Saathratri modification - broadened List import condition for Saathratri methods */ _%>
 <%_ if (!reactive || paginationNo || fieldsContainNoOwnerOneToOne || relationshipsContainEagerLoad) { _%>
 import java.util.List;
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 <%_ if (!reactive) { _%>
 import java.util.Optional;
 <%_ } _%>
@@ -108,13 +114,15 @@ import java.util.Optional;
 import java.util.UUID;
 <%_ } _%>
 
-<%_ 
+<%_ /* Saathratri modification - import List for ManyToMany relationship handling */ _%>
+<%_
   if (relationships.some(relationship => relationship.relationshipManyToMany)) {
 _%>
 import java.util.List;
 <%_
-    }
+  }
 _%>
+<%_ /* End Saathratri modification */ _%>
 
 /**
  * Service Interface for managing {@link <%= entityAbsoluteClass %>}.
@@ -145,6 +153,7 @@ public interface <%= entityClass %>Service {
      */
     <% if (reactive) { %>Mono<% } else { %>Optional<% } %><<%= instanceType %>> partialUpdate(<%= instanceType %> <%= instanceName %>);
 
+<%_ /* Saathratri modification - findAllForSaathratriOrchestrator endpoint */ _%>
     /**
      * Get all the <%= entityInstancePlural %> for saathratri orchestrator.
      *
@@ -167,8 +176,9 @@ public interface <%= entityClass %>Service {
      */
     List<<%= instanceType %>> findAllWithEagerRelationships();
     <%_ } _%>
-_%>
+<%_ /* End Saathratri modification */ _%>
 
+<%_ /* Saathratri modification - entity graph query method declarations */ _%>
 <%_ if (hasEntityGraphQueries) { _%>
 
   <%_ for (const entityGraphQuery of entityGraphDirectives) { _%>
@@ -181,7 +191,8 @@ _%>
     <%= optionalOrMono %><<%= instanceType %>> <%= entityGraphQuery.methodName %>(<%= primaryKey.type %> <%= primaryKey.name %>);
   <%_ } _%>
 <%_ } _%>
-<%_ if (!jpaMetamodelFiltering) {  _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ if (!jpaMetamodelFiltering) { _%>
 
     /**
      * Get all the <%= entityInstancePlural %>.
@@ -190,8 +201,9 @@ _%>
      * @return the list of entities.
      */
     <% if (paginationNo) { %><%= listOrFlux %><% } else { %><%= pageOrFlux %><% } %><<%= instanceType %>> findAll(<% if (!paginationNo) { %>Pageable pageable<% } %>);
+
 <%_ } _%>
-<%_ if (jpaMetamodelFiltering && reactive) {  _%>
+<%_ if (jpaMetamodelFiltering && reactive) { _%>
       /**
       * Find <%= entityInstancePlural %> by criteria.
       *<% if (!paginationNo) { %>
@@ -243,9 +255,9 @@ _%>
     *
     */
     Mono<Long> searchCount();
-  <%_  } _%>
+  <%_ } _%>
 
-<%_  } _%>
+<%_ } _%>
 
     /**
      * Get the "id" <%= entityInstance %>.
@@ -278,6 +290,7 @@ _%>
      */
     <% if (!paginationNo) { %><%= pageOrFlux %><<%= instanceType %><% } else { %><%= listOrFlux %><<%= instanceType %><% } %>> search(String query<% if (!paginationNo) { %>, Pageable pageable<% } %>);
 <%_ } _%>
+<%_ /* Saathratri modification - vector similarity search method declarations */ _%>
 <%_
 // Check if entity has vector fields for similarity search
 const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
@@ -308,6 +321,8 @@ _%>
     List<<%= instanceType %>> findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(String embedding, double maxDistance, int limit);
   <%_ } _%>
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - tree structure method declaration */ _%>
 <%_ if (typeof hasSelfReferentialTreeSaathratri !== 'undefined' && hasSelfReferentialTreeSaathratri && !reactive) { _%>
 
     // ==================== Tree Structure Methods ====================
@@ -320,4 +335,5 @@ _%>
      */
     List<<%= instanceType %>> findAllAsTreeNodes();
 <%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 }
