@@ -1,5 +1,4 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
-import command from './command.js';
 import { javaMainPackageTemplatesBlock, javaTestPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
 import { sqlSpringBootUtils } from './sql-spring-boot-utils.js';
 
@@ -8,12 +7,13 @@ export default class extends BaseApplicationGenerator {
     super(args, opts, { ...features, sbsBlueprint: true });
   }
 
+  async beforeQueue() {
+    await this.dependsOnBootstrapApplication();
+  }
+
   get [BaseApplicationGenerator.INITIALIZING]() {
     return this.asInitializingTaskGroup({
-      async initializingTemplateTask() {
-        this.parseJHipsterArguments(command.arguments);
-        this.parseJHipsterOptions(command.options);
-      },
+      async initializingTemplateTask() {},
     });
   }
 
@@ -71,6 +71,9 @@ export default class extends BaseApplicationGenerator {
     return this.asPreparingEachEntityTaskGroup({
       async preparingEachEntityTemplateTask({ entity }) {
         // Detect self-referential ManyToOne relationships (tree parent pointers)
+        if (!entity.relationships || entity.relationships.length === 0) {
+          return;
+        }
         const selfRefRelationship = entity.relationships.find(r =>
           r.otherEntityName === entity.entityClass &&
           (r.relationshipManyToOne || r.relationshipOneToMany === false)
@@ -294,18 +297,8 @@ export default class extends BaseApplicationGenerator {
           });
         }
 
-        // Write pom.xml with enhanced maven-compiler-plugin configuration
-        // (fork mode with increased memory for MapStruct annotation processing)
-        await this.writeFiles({
-          sections: {
-            files: [
-              {
-                templates: ['pom.xml'],
-              },
-            ],
-          },
-          context: application,
-        });
+        // pom.xml modifications are done in POST_WRITING via editFile
+        // to avoid needing springBootDependencies from upstream generator
       },
     });
   }
@@ -313,7 +306,6 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING_ENTITIES]() {
     return this.asWritingEntitiesTaskGroup({
       async writingEntitiesTemplateTask({ application, entities }) {
-
         for (const entity of entities.filter(e => !e.builtIn)) {
 
           entity.serviceImpl = true;
@@ -351,17 +343,164 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.POST_WRITING]() {
     return this.asPostWritingTaskGroup({
-      async postWritingTemplateTask() {},
+      async postWritingTemplateTask({ application }) {
+        const pomFile = 'pom.xml';
+
+        // Patch maven-compiler-plugin with fork mode and increased memory for MapStruct
+        this.editFile(pomFile, content => {
+          if (!content.includes('<fork>true</fork>')) {
+            content = content.replace(
+              '                        <parameters>true</parameters>\n                        <annotationProcessorPaths>',
+              '                        <parameters>true</parameters>\n' +
+              '                        <!-- Fork the compiler in a separate process with more memory -->\n' +
+              '                        <!-- This helps prevent OutOfMemoryError during MapStruct annotation processing -->\n' +
+              '                        <!-- especially with complex entity relationships -->\n' +
+              '                        <fork>true</fork>\n' +
+              '                        <meminitial>2048m</meminitial>\n' +
+              '                        <maxmem>8192m</maxmem>\n' +
+              '                        <annotationProcessorPaths>'
+            );
+          }
+          return content;
+        });
+
+        // Add Spring AI dependencies if any entity has vector fields
+        if (application.hasVectorFieldsSaathratri) {
+          this.editFile(pomFile, content => {
+            // Add Spring AI version property
+            if (!content.includes('spring-ai.version')) {
+              content = content.replace(
+                '    </properties>',
+                '        <spring-ai.version>1.0.0-M5</spring-ai.version>\n    </properties>'
+              );
+            }
+
+            // Add Spring AI BOM to dependencyManagement
+            if (!content.includes('spring-ai-bom')) {
+              if (content.includes('</dependencyManagement>')) {
+                // Insert into existing dependencyManagement
+                content = content.replace(
+                  '        </dependencies>\n    </dependencyManagement>',
+                  '            <dependency>\n' +
+                  '                <groupId>org.springframework.ai</groupId>\n' +
+                  '                <artifactId>spring-ai-bom</artifactId>\n' +
+                  '                <version>${spring-ai.version}</version>\n' +
+                  '                <type>pom</type>\n' +
+                  '                <scope>import</scope>\n' +
+                  '            </dependency>\n' +
+                  '        </dependencies>\n    </dependencyManagement>'
+                );
+              } else {
+                // Create dependencyManagement section before <dependencies>
+                content = content.replace(
+                  '\n    <dependencies>',
+                  '\n    <dependencyManagement>\n' +
+                  '        <dependencies>\n' +
+                  '            <dependency>\n' +
+                  '                <groupId>org.springframework.ai</groupId>\n' +
+                  '                <artifactId>spring-ai-bom</artifactId>\n' +
+                  '                <version>${spring-ai.version}</version>\n' +
+                  '                <type>pom</type>\n' +
+                  '                <scope>import</scope>\n' +
+                  '            </dependency>\n' +
+                  '        </dependencies>\n' +
+                  '    </dependencyManagement>\n\n    <dependencies>'
+                );
+              }
+            }
+
+            // Add Spring AI OpenAI dependency (must run BEFORE repository insertion
+            // so the </dependencyManagement>\n\n    <dependencies> anchor still matches)
+            if (!content.includes('spring-ai-openai')) {
+              // Try to match after </dependencyManagement> first
+              const depMgmtPattern = '</dependencyManagement>\n\n    <dependencies>\n';
+              if (content.includes(depMgmtPattern)) {
+                content = content.replace(
+                  depMgmtPattern,
+                  '</dependencyManagement>\n\n    <dependencies>\n' +
+                  '        <dependency>\n' +
+                  '            <groupId>org.springframework.ai</groupId>\n' +
+                  '            <artifactId>spring-ai-openai</artifactId>\n' +
+                  '        </dependency>\n'
+                );
+              } else {
+                // No dependencyManagement section, first <dependencies> is the main one
+                content = content.replace(
+                  '    <dependencies>\n',
+                  '    <dependencies>\n' +
+                  '        <dependency>\n' +
+                  '            <groupId>org.springframework.ai</groupId>\n' +
+                  '            <artifactId>spring-ai-openai</artifactId>\n' +
+                  '        </dependency>\n'
+                );
+              }
+            }
+
+            // Add Spring milestones repository (runs AFTER OpenAI dep insertion)
+            if (!content.includes('spring-milestones')) {
+              if (content.includes('<repositories>')) {
+                content = content.replace(
+                  '<repositories>',
+                  '<repositories>\n' +
+                  '        <repository>\n' +
+                  '            <id>spring-milestones</id>\n' +
+                  '            <name>Spring Milestones</name>\n' +
+                  '            <url>https://repo.spring.io/milestone</url>\n' +
+                  '            <snapshots>\n' +
+                  '                <enabled>false</enabled>\n' +
+                  '            </snapshots>\n' +
+                  '        </repository>'
+                );
+              } else {
+                // Insert before the main <dependencies> (after </dependencyManagement> if present)
+                const repoAnchor = content.includes('</dependencyManagement>')
+                  ? '</dependencyManagement>\n\n    <dependencies>'
+                  : '\n    <dependencies>';
+                const repoReplacement = content.includes('</dependencyManagement>')
+                  ? '</dependencyManagement>\n\n    <repositories>\n' +
+                    '        <repository>\n' +
+                    '            <id>spring-milestones</id>\n' +
+                    '            <name>Spring Milestones</name>\n' +
+                    '            <url>https://repo.spring.io/milestone</url>\n' +
+                    '            <snapshots>\n' +
+                    '                <enabled>false</enabled>\n' +
+                    '            </snapshots>\n' +
+                    '        </repository>\n' +
+                    '    </repositories>\n\n    <dependencies>'
+                  : '\n    <repositories>\n' +
+                    '        <repository>\n' +
+                    '            <id>spring-milestones</id>\n' +
+                    '            <name>Spring Milestones</name>\n' +
+                    '            <url>https://repo.spring.io/milestone</url>\n' +
+                    '            <snapshots>\n' +
+                    '                <enabled>false</enabled>\n' +
+                    '            </snapshots>\n' +
+                    '        </repository>\n' +
+                    '    </repositories>\n\n    <dependencies>';
+                content = content.replace(repoAnchor, repoReplacement);
+              }
+            }
+
+            return content;
+          });
+        }
+      },
     });
   }
 
     get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
     return this.asPostWritingEntitiesTaskGroup({
       async postWritingEntitiesTemplateTask({ entities, application }) {
+        const packageFolder = application.packageFolder ?? (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined);
+        if (!packageFolder) {
+          this.log.warn('[sql-spring-boot] POST_WRITING_ENTITIES: packageFolder and packageName are both unavailable, skipping file patches');
+          return;
+        }
+
         for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
-          const vectorFields = entity.fields.filter(f => f.fieldTypeVectorSaathratri);
+          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
           if (vectorFields.length > 0) {
-            const entityFile = `src/main/java/${application.packageFolder}/domain/${entity.persistClass}.java`;
+            const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
             this.editFile(entityFile, content => {
               // Add import if missing
               if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
@@ -379,7 +518,7 @@ export default class extends BaseApplicationGenerator {
           }
         }
         // Patch ExceptionTranslator to log stacktraces at ERROR level
-        const exceptionTranslatorFile = `src/main/java/${application.packageFolder}/web/rest/errors/ExceptionTranslator.java`;
+        const exceptionTranslatorFile = `src/main/java/${packageFolder}/web/rest/errors/ExceptionTranslator.java`;
         this.editFile(exceptionTranslatorFile, content => {
           return content.replace(
             'LOG.debug("Converting Exception to Problem Details:", ex);',

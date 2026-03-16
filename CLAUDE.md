@@ -4,10 +4,10 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.12
+**Version:** 2.0.13
 **Author:** Amar Premsaran Patel
 **License:** MIT
-**JHipster Base Version:** 8.10.0
+**JHipster Base Version:** 9.0.0
 
 ## What Problem Does This Solve?
 
@@ -260,7 +260,7 @@ Each generator follows JHipster's standardized lifecycle phases:
 ## Technology Stack
 
 **Frontend:**
-- Angular (latest supported by JHipster 8.10.0)
+- Angular (latest supported by JHipster 9.0.0)
 - TypeScript
 - Angular Router
 - RxJS
@@ -287,7 +287,7 @@ Each generator follows JHipster's standardized lifecycle phases:
 ### Prerequisites
 
 - Node.js: ^18.13.0 || >= 20.6.1
-- JHipster: 8.10.0
+- JHipster: 9.0.0
 - Java: 17 or 21
 
 ### Setup
@@ -538,8 +538,8 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.12** (Current)
-- Support for JHipster 8.10.0
+**2.0.13** (Current)
+- Support for JHipster 9.0.0
 - PostgreSQL vector extension support
 - Improved port management for microservices
 - Enhanced integration tests

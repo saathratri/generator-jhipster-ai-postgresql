@@ -55,7 +55,7 @@ for (const directive of entityGraphRequestedDirectives) {
     entityGraphParsedDirectives.push(parsedDirective);
   }
 }
-const relationshipNames = relationships.map(relationship => relationship.reference.name);
+const relationshipNames = relationships.map(relationship => relationship.propertyName ?? relationship.relationshipName);
 for (const directive of entityGraphExcludeDirectives) {
   if (typeof directive !== 'string') continue;
   const [rawMethod, rawAttributes] = directive.split(':');
