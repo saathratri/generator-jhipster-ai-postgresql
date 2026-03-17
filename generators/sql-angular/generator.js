@@ -174,51 +174,58 @@ export default class extends BaseApplicationGenerator {
         const navbarHtmlFile = `${clientSrcDir}app/layouts/navbar/navbar.html`;
 
         // === Patch navbar.ts ===
+        const isMicrofrontendGateway = application.microfrontend && application.applicationTypeGateway;
         this.editFile(navbarTsFile, content => {
-          // 1. Add EntityNavbarItems import
-          if (!content.includes('EntityNavbarItems')) {
-            content = content.replace(
-              "import NavbarItem from './navbar-item.model';",
-              "import { EntityNavbarItems } from 'app/entities/entity-navbar-items';\nimport NavbarItem from './navbar-item.model';"
-            );
+          if (!isMicrofrontendGateway) {
+            // For non-gateway apps: add EntityNavbarItems import, property, and sorting
+            // 1. Add EntityNavbarItems import
+            if (!content.includes('EntityNavbarItems')) {
+              content = content.replace(
+                "import NavbarItem from './navbar-item.model';",
+                "import { EntityNavbarItems } from 'app/entities/entity-navbar-items';\nimport NavbarItem from './navbar-item.model';"
+              );
+            }
+
+            // 2. Add entitiesNavbarItems property
+            if (!content.includes('entitiesNavbarItems')) {
+              content = content.replace(
+                'readonly account = inject(AccountService).account;',
+                'readonly account = inject(AccountService).account;\n  entitiesNavbarItems: NavbarItem[] = [];'
+              );
+            }
+
+            // 3. Add sorting in ngOnInit (insert before profileService.getProfileInfo)
+            if (!content.includes('EntityNavbarItems].sort')) {
+              content = content.replace(
+                '    this.profileService.getProfileInfo().subscribe(profileInfo => {',
+                '    // Saathratri modification - sort entity navbar items alphabetically\n' +
+                '    this.entitiesNavbarItems = [...EntityNavbarItems].sort((a, b) => a.name.localeCompare(b.name));\n' +
+                '    this.profileService.getProfileInfo().subscribe(profileInfo => {'
+              );
+            }
           }
 
-          // 2. Add entitiesNavbarItems property
-          if (!content.includes('entitiesNavbarItems')) {
-            content = content.replace(
-              'readonly account = inject(AccountService).account;',
-              'readonly account = inject(AccountService).account;\n  entitiesNavbarItems: NavbarItem[] = [];'
-            );
-          }
+          // For gateways with microfrontends: add sorting helper and wrap .set() calls
+          if (isMicrofrontendGateway) {
+            // 4. Add sortNavbarItemsAlphabetically helper method (before loadMicrofrontendsEntities if it exists)
+            if (!content.includes('sortNavbarItemsAlphabetically') && content.includes('loadMicrofrontendsEntities')) {
+              content = content.replace(
+                '  loadMicrofrontendsEntities(): void {',
+                '  // Saathratri modification - alphabetical sorting helper\n' +
+                '  private sortNavbarItemsAlphabetically(items: NavbarItem[]): NavbarItem[] {\n' +
+                '    return [...items].sort((a, b) => a.name.localeCompare(b.name));\n' +
+                '  }\n\n' +
+                '  loadMicrofrontendsEntities(): void {'
+              );
+            }
 
-          // 3. Add sorting in ngOnInit (insert before profileService.getProfileInfo)
-          if (!content.includes('EntityNavbarItems].sort')) {
-            content = content.replace(
-              '    this.profileService.getProfileInfo().subscribe(profileInfo => {',
-              '    // Saathratri modification - sort entity navbar items alphabetically\n' +
-              '    this.entitiesNavbarItems = [...EntityNavbarItems].sort((a, b) => a.name.localeCompare(b.name));\n' +
-              '    this.profileService.getProfileInfo().subscribe(profileInfo => {'
-            );
-          }
-
-          // 4. Add sortNavbarItemsAlphabetically helper method (before loadMicrofrontendsEntities if it exists)
-          if (!content.includes('sortNavbarItemsAlphabetically') && content.includes('loadMicrofrontendsEntities')) {
-            content = content.replace(
-              '  loadMicrofrontendsEntities(): void {',
-              '  // Saathratri modification - alphabetical sorting helper\n' +
-              '  private sortNavbarItemsAlphabetically(items: NavbarItem[]): NavbarItem[] {\n' +
-              '    return [...items].sort((a, b) => a.name.localeCompare(b.name));\n' +
-              '  }\n\n' +
-              '  loadMicrofrontendsEntities(): void {'
-            );
-          }
-
-          // 5. Wrap microfrontend item .set(items) with sorting helper
-          if (content.includes('sortNavbarItemsAlphabetically')) {
-            content = content.replace(
-              /EntityNavbarItems\.set\(items\)/g,
-              'EntityNavbarItems.set(this.sortNavbarItemsAlphabetically(items))'
-            );
+            // 5. Wrap microfrontend item .set(items) with sorting helper
+            if (content.includes('sortNavbarItemsAlphabetically')) {
+              content = content.replace(
+                /\.set\(items\)/g,
+                '.set(this.sortNavbarItemsAlphabetically(items))'
+              );
+            }
           }
 
           return content;

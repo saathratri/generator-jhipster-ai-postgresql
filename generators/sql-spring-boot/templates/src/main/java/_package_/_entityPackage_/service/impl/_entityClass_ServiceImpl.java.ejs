@@ -277,7 +277,7 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
 <%_ } _%>
 
 <%_ /* Saathratri modification - findOneWithEagerRelationships and findAllWithEagerRelationships */ _%>
-<%_ if (serviceImpl && hasEagerLoadableRelationships && relationships.some(relationship => relationship.relationshipManyToMany)) { _%>
+<%_ if (serviceImpl && hasEagerLoadableRelationships) { _%>
       @Override
       @Transactional(readOnly = true)
       public <%= optionalOrMono %><<%= instanceType %>> findOneWithEagerRelationships(<%= primaryKey.type %> id) {

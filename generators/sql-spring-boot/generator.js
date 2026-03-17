@@ -243,19 +243,23 @@ export default class extends BaseApplicationGenerator {
           const portData = sqlSpringBootUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
           this.log(`The server port is: ${portData[this.appname].port}`);
           application.devJdbcUrlSaathratri = `jdbc:postgresql://localhost:${portData[this.appname].port}/${application.devDatabaseName}`;
-          await this.writeFiles({
-            sections: {
-              files: [
-                {
-                  templates: [
-                    'src/main/resources/config/application-dev.yml',
-                  ]
-                },
-              ],
-            },
-            context: application,
-          });
+        } else {
+          // For gateways and monoliths, use the standard JHipster JDBC URL
+          application.devJdbcUrlSaathratri = application.devJdbcUrl;
         }
+
+        await this.writeFiles({
+          sections: {
+            files: [
+              {
+                templates: [
+                  'src/main/resources/config/application-dev.yml',
+                ]
+              },
+            ],
+          },
+          context: application,
+        });
 
         // Write embedding service files if any entity has vector fields
         if (application.hasVectorFieldsSaathratri && application.vectorEntitiesSaathratri?.length > 0) {
@@ -310,20 +314,24 @@ export default class extends BaseApplicationGenerator {
 
           entity.serviceImpl = true;
 
+          const mainTemplates = [
+                    'web/rest/_entityClass_Resource.java',
+                    'service/_entityClass_Service.java',
+                    'service/impl/_entityClass_ServiceImpl.java',
+                    /* saathratri-needle-sql-copy-dto-class */
+                    'service/mapper/_entityClass_Mapper.java',
+          ];
+          if (entity.jpaMetamodelFiltering) {
+            mainTemplates.push('service/_entityClass_QueryService.java');
+          }
+
           await this.writeFiles({
             sections: {
               files: [
                 {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer,
                   ...javaMainPackageTemplatesBlock('_entityPackage_/'),
-                  templates: [
-                    'web/rest/_entityClass_Resource.java',
-                    'service/_entityClass_QueryService.java',
-                    'service/_entityClass_Service.java',
-                    'service/impl/_entityClass_ServiceImpl.java',
-                    /* saathratri-needle-sql-copy-dto-class */
-                    'service/mapper/_entityClass_Mapper.java',
-                  ]
+                  templates: mainTemplates,
                 },
                 {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer,

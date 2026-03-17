@@ -80,7 +80,7 @@ const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.s
 const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
 const hasVectorFields = vectorFields.length > 0;
 const needsOptionalImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
-const needsPageAndPageableImport = hasEagerLoadableRelationships && relationships.some(r => r.relationshipManyToMany);
+const needsPageAndPageableImport = hasEagerLoadableRelationships;
 const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries || hasVectorFields;
 _%>
 <%_ /* End Saathratri modification */ _%>

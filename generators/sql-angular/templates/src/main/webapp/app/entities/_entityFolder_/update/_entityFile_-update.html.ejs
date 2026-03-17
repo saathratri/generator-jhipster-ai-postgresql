@@ -230,7 +230,7 @@ _%>
                     /* Saathratri modification - human-readable foreign key display */
                     if (isOptionToDisplayInGuiEnabled) {
                 _%>
-                    @for (<%= otherEntityName %>Option of <% if (!relationship.otherRelationship || relationship.relationshipManyToOne) { %><%= otherEntity.entityInstancePlural %>Shared<% } else { %><%= relationshipFieldNamePlural %><% } %>Collection; track $index) {
+                    @for (<%= otherEntityName %>Option of <% if (!relationship.otherRelationship || relationship.relationshipManyToOne) { %><%= otherEntity.entityInstancePlural %>Shared<% } else { %><%= relationshipFieldNamePlural %><% } %>Collection(); track $index) {
 	                        <option [ngValue]="<%= otherEntityName %>Option">{{ <%- getClientOptionToDisplayForUpdate(otherEntity, otherEntityName, otherEntityField) %>  }}</option>
 	                    }
                 <%_
@@ -253,7 +253,7 @@ _%>
                     	/* Saathratri modification - human-readable foreign key display */
                     	if (isOptionToDisplayInGuiEnabled) {
                     _%>
-                    @for (<%= otherEntityName %>Option of <%= otherEntity.entityInstancePlural %>SharedCollection; track $index) {
+                    @for (<%= otherEntityName %>Option of <%= otherEntity.entityInstancePlural %>SharedCollection(); track $index) {
 	                        	<option [ngValue]="<%= otherEntityName %>Option">{{ <%- getClientOptionToDisplayForUpdate(otherEntity, otherEntityName, otherEntityField) %>  }}</option>
 	                    	}
                     <%_

@@ -93,6 +93,10 @@ spring:
       enabled: <%- authenticationTypeOauth2 || messageBrokerAny || serviceDiscoveryAny || cacheProviderRedis %>
       profiles:
         active: dev
+<%_ } else { _%>
+  docker:
+    compose:
+      enabled: false
 <%_ } _%>
   jackson<%= springBoot4 ? '2' : '' %>:
     serialization:
@@ -178,10 +182,7 @@ spring:
 <%_ } _%>
 <%_ if (databaseMigrationLiquibase) { _%>
   liquibase:
-  <%_ if (!skipFakeData) { _%>
-    # Remove 'faker' if you do not want the sample data to be loaded automatically
-  <%_ } _%>
-    contexts: dev<% if (!skipFakeData) { %>, faker<% } %>
+    contexts: dev
   <%_ if (databaseTypeSql && reactive) { _%>
     url: <%- devJdbcUrl %>
   <%_ } _%>
@@ -338,7 +339,7 @@ jhipster:
   #   exposed-headers: "Authorization,Link,X-Total-Count"
   #   allow-credentials: true
   #   max-age: 1800
-  # saathratri-needle-add-cors-policy # <%_ /* Saathratri modification - needle for CORS policy injection */ _%>
+  # saathratri-needle-add-cors-policy
 <%_ } _%>
 <%_ if (authenticationTypeJwt) { _%>
   security:
