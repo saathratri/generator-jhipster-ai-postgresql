@@ -499,16 +499,19 @@ export default class extends BaseApplicationGenerator {
     get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
     return this.asPostWritingEntitiesTaskGroup({
       async postWritingEntitiesTemplateTask({ entities, application }) {
-        const packageFolder = application.packageFolder ?? (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined);
+        const packageFolder = (application.packageFolder ?? (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined) ?? '').replace(/\/+$/, '');
         if (!packageFolder) {
           this.log.warn('[sql-spring-boot] POST_WRITING_ENTITIES: packageFolder and packageName are both unavailable, skipping file patches');
           return;
         }
 
+        this.log.info(`[sql-spring-boot] POST_WRITING_ENTITIES: packageFolder = ${packageFolder}`);
+
         for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
           const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
           if (vectorFields.length > 0) {
             const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
+            this.log.info(`[sql-spring-boot] Patching entity domain file: ${entityFile} (${vectorFields.length} vector fields)`);
             this.editFile(entityFile, content => {
               // Add import if missing
               if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
@@ -516,10 +519,16 @@ export default class extends BaseApplicationGenerator {
               }
 
               for (const field of vectorFields) {
+                const columnName = field.fieldNameAsDatabaseColumn;
+                this.log.info(`[sql-spring-boot] Patching vector field: ${field.fieldName} (column: ${columnName}, dimension: ${field.vectorDimensionSaathratri})`);
                 // Find the @Column annotation for this field and replace it
-                const columnRegex = new RegExp(`@Column\\(name = "${field.fieldNameAsDatabaseColumn}"(.*?)\\)`, 'g');
-                const replacement = `@Column(name = "${field.fieldNameAsDatabaseColumn}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @Convert(converter = ${application.packageName}.domain.converter.PgVectorConverter.class)\n    @ColumnTransformer(write = "?::vector")`;
+                const columnRegex = new RegExp(`@Column\\(name = "${columnName}"(.*?)\\)`, 'g');
+                const replacement = `@Column(name = "${columnName}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @Convert(converter = ${application.packageName}.domain.converter.PgVectorConverter.class)\n    @ColumnTransformer(write = "?::vector")`;
+                const before = content;
                 content = content.replace(columnRegex, replacement);
+                if (content === before) {
+                  this.log.warn(`[sql-spring-boot] WARNING: regex did not match for field ${field.fieldName}. Looking for @Column(name = "${columnName}"...)`);
+                }
               }
               return content;
             });
