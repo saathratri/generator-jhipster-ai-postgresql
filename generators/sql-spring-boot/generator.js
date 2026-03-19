@@ -379,7 +379,7 @@ export default class extends BaseApplicationGenerator {
             if (!content.includes('spring-ai.version')) {
               content = content.replace(
                 '    </properties>',
-                '        <spring-ai.version>1.1.3</spring-ai.version>\n    </properties>'
+                '        <spring-ai.version>2.0.0-M3</spring-ai.version>\n    </properties>'
               );
             }
 
