@@ -192,10 +192,25 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
 <%_ if (serviceImpl) { _%>
     @Override
 <%_ } _%>
+<%_ if (hasVectorFieldsForImport && !reactive) { _%>
+    public <%= instanceType %> save(<%= instanceType %> <%= instanceName %>) {
+        LOG.debug("Request to save <%= entityClass %> : {}", <%= instanceName %>);
+  <%_ if (dtoMapstruct) { _%>
+        <%= persistClass %> <%= entityInstance %> = <%= mapper %>.toEntity(<%= instanceName %>);
+        generateEmbeddings(<%= entityInstance %>);
+        <%= entityInstance %> = <%= repository %>.save(<%= entityInstance %>);
+        return <%= mapper %>.toDto(<%= entityInstance %>);
+  <%_ } else { _%>
+        generateEmbeddings(<%= instanceName %>);
+        return <%= repository %>.save(<%= instanceName %>);
+  <%_ } _%>
+    }
+<%_ } else { _%>
     public <% if (reactive) { %>Mono<<% } %><%= instanceType %><% if (reactive) { %>><% } %> save(<%= instanceType %> <%= instanceName %>) {
         LOG.debug("Request to save <%= entityClass %> : {}", <%= instanceName %>);
 <%- include(`/_global_partials_entity_/save_template_${reactive ? 'reactive' : 'imperative'}`, {saveNewEntityOperation: true, returnDirectly: true}); -%>
     }
+<%_ } _%>
 <%_ if (updatableEntity) { _%>
 
   <%_ if (!serviceImpl) { _%>
@@ -209,10 +224,25 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
   <%_ if (serviceImpl) { _%>
     @Override
   <%_ } _%>
+  <%_ if (hasVectorFieldsForImport && !reactive) { _%>
+    public <%= instanceType %> update(<%= instanceType %> <%= instanceName %>) {
+        LOG.debug("Request to update <%= entityClass %> : {}", <%= instanceName %>);
+    <%_ if (dtoMapstruct) { _%>
+        <%= persistClass %> <%= entityInstance %> = <%= mapper %>.toEntity(<%= instanceName %>);
+        generateEmbeddings(<%= entityInstance %>);
+        <%= entityInstance %> = <%= repository %>.save(<%= entityInstance %>);
+        return <%= mapper %>.toDto(<%= entityInstance %>);
+    <%_ } else { _%>
+        generateEmbeddings(<%= instanceName %>);
+        return <%= repository %>.save(<%= instanceName %>);
+    <%_ } _%>
+    }
+  <%_ } else { _%>
     public <% if (reactive) { %>Mono<<% } %><%= instanceType %><% if (reactive) { %>><% } %> update(<%= instanceType %> <%= instanceName %>) {
         LOG.debug("Request to update <%= entityClass %> : {}", <%= instanceName %>);
 <%- include(`/_global_partials_entity_/save_template_${reactive ? 'reactive' : 'imperative'}`, {saveNewEntityOperation: false, returnDirectly: true}); -%>
     }
+  <%_ } _%>
 
   <%_ if (!serviceImpl) { _%>
     /**
@@ -584,4 +614,31 @@ _%>
         }
     }
 <%_ } _%>
+<%_ /* Saathratri modification - generate embeddings on save/update */ _%>
+<%_ if (hasVectorFieldsForImport && !reactive) { _%>
+
+    // ==================== Embedding Generation ====================
+
+    /**
+     * Generate embeddings for all vector fields from their source text fields.
+     * Called automatically on save and update operations.
+     */
+    private void generateEmbeddings(<%= persistClass %> <%= entityInstance %>) {
+        if (!embeddingService.isAvailable()) {
+            LOG.debug("Embedding service not available, skipping embedding generation for <%= entityClass %>");
+            return;
+        }
+  <%_ for (const vectorField of vectorFields) { _%>
+        {
+            String sourceText = <%= entityInstance %>.get<%= vectorField.sourceFieldNameCapitalizedSaathratri %>();
+            float[] embedding = embeddingService.generateEmbedding(sourceText);
+            if (embedding != null) {
+                <%= entityInstance %>.set<%= vectorField.fieldNameCapitalized %>(embedding);
+                LOG.debug("Generated embedding for <%= vectorField.sourceFieldNameSaathratri %> ({} dimensions)", embedding.length);
+            }
+        }
+  <%_ } _%>
+    }
+<%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 }
