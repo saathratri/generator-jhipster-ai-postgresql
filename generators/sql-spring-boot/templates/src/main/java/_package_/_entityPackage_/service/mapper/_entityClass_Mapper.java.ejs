@@ -208,13 +208,19 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
     <%_ } _%>
     <%_ /* Saathratri modification - foreign key field mappers for GUI display */
+      const guiDisplayFieldNames = [];
       if (isOptionToDisplayInGuiEnabled) {
+        for (const f of (otherEntity.fields || []).filter(f => !f.hidden)) {
+          if (f.options?.customAnnotation?.[0] === 'DISPLAY_IN_GUI_RELATIONSHIP_LINK') {
+            guiDisplayFieldNames.push(f.fieldName);
+          }
+        }
     _%>
         <%- getMappingsToDisplayInMapper(otherEntity.fields) %>
     <%_
       }
     /* End Saathratri modification */ _%>
-    <%_ if (!relatedField.id) { _%>
+    <%_ if (!relatedField.id && !guiDisplayFieldNames.includes(relatedField.propertyName)) { _%>
       <%_ if (relatedField.mapstructExpression) { _%>
     @Mapping(target = "<%= relatedField.propertyName %>", expression = "<%- relatedField.mapstructExpression %>")
       <%_ } else { _%>
