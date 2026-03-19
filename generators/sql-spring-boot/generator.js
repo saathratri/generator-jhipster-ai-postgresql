@@ -505,35 +505,9 @@ export default class extends BaseApplicationGenerator {
           return;
         }
 
-        this.log.info(`[sql-spring-boot] POST_WRITING_ENTITIES: packageFolder = ${packageFolder}`);
+        // Entity domain vector field annotations are now handled by the
+        // spring-boot/generators/data-relational SBS fragment template.
 
-        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
-          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
-          if (vectorFields.length > 0) {
-            const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
-            this.log.info(`[sql-spring-boot] Patching entity domain file: ${entityFile} (${vectorFields.length} vector fields)`);
-            this.editFile(entityFile, content => {
-              // Add import if missing
-              if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
-                content = content.replace('import jakarta.persistence.*;', 'import jakarta.persistence.*;\nimport org.hibernate.annotations.ColumnTransformer;');
-              }
-
-              for (const field of vectorFields) {
-                const columnName = field.fieldNameAsDatabaseColumn;
-                this.log.info(`[sql-spring-boot] Patching vector field: ${field.fieldName} (column: ${columnName}, dimension: ${field.vectorDimensionSaathratri})`);
-                // Find the @Column annotation for this field and replace it
-                const columnRegex = new RegExp(`@Column\\(name = "${columnName}"(.*?)\\)`, 'g');
-                const replacement = `@Column(name = "${columnName}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n    @Convert(converter = ${application.packageName}.domain.converter.PgVectorConverter.class)\n    @ColumnTransformer(write = "?::vector")`;
-                const before = content;
-                content = content.replace(columnRegex, replacement);
-                if (content === before) {
-                  this.log.warn(`[sql-spring-boot] WARNING: regex did not match for field ${field.fieldName}. Looking for @Column(name = "${columnName}"...)`);
-                }
-              }
-              return content;
-            });
-          }
-        }
         // Patch ExceptionTranslator to log stacktraces at ERROR level
         const exceptionTranslatorFile = `src/main/java/${packageFolder}/web/rest/errors/ExceptionTranslator.java`;
         this.editFile(exceptionTranslatorFile, content => {
