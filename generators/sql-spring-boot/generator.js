@@ -497,6 +497,22 @@ export default class extends BaseApplicationGenerator {
 
             return content;
           });
+
+          // Add stringtype=unspecified to JDBC URL for pgvector compatibility
+          // This allows PostgreSQL to auto-cast varchar to vector type
+          const appDevYml = 'src/main/resources/config/application-dev.yml';
+          this.editFile(appDevYml, content => {
+            if (content.includes('stringtype=unspecified')) return content;
+            // Add stringtype=unspecified to the datasource URL
+            content = content.replace(
+              /url: (jdbc:postgresql:\/\/[^\s]+)/,
+              (match, url) => {
+                const separator = url.includes('?') ? '&' : '?';
+                return `url: ${url}${separator}stringtype=unspecified`;
+              }
+            );
+            return content;
+          });
         }
       },
     });
