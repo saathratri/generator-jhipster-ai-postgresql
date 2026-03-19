@@ -2,11 +2,11 @@ package <%= packageName %>.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.openai.api.common.OpenAiApiConstants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,13 +45,14 @@ public class EmbeddingConfiguration {
             return null;
         }
         LOG.info("Initializing OpenAI embedding model: {} with {} dimensions", embeddingModel, dimensions);
-        OpenAiApi openAiApi = new OpenAiApi(openAiApiKey);
+        OpenAiApi openAiApi = OpenAiApi.builder()
+            .apiKey(openAiApiKey)
+            .build();
         return new OpenAiEmbeddingModel(
             openAiApi,
-            MetadataMode.EMBED,
             OpenAiEmbeddingOptions.builder()
-                .withModel(embeddingModel)
-                .withDimensions(dimensions)
+                .model(embeddingModel)
+                .dimensions(dimensions)
                 .build()
         );
     }
