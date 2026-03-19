@@ -505,8 +505,39 @@ export default class extends BaseApplicationGenerator {
           return;
         }
 
-        // Entity domain vector field annotations are now handled by the
-        // spring-boot/generators/data-relational SBS fragment template.
+        // Patch entity domain files to add vector field annotations
+        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
+          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
+          if (vectorFields.length === 0) continue;
+
+          const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
+          this.editFile(entityFile, content => {
+            // Skip if already patched
+            if (content.includes('PgVectorConverter')) return content;
+
+            // Add imports
+            if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
+              content = content.replace(
+                /import jakarta\.persistence\.\*;/,
+                'import jakarta.persistence.*;\nimport org.hibernate.annotations.ColumnTransformer;'
+              );
+            }
+
+            for (const field of vectorFields) {
+              const columnName = field.fieldNameAsDatabaseColumn;
+              // Replace the simple @Column annotation with vector-specific one
+              // Match @Column(name = "name_embedding") or @Column(name = "name_embedding", ...)
+              const simpleColumnRegex = new RegExp(
+                `(\\s*)@Column\\(name\\s*=\\s*"${columnName}"[^)]*\\)`,
+                'g'
+              );
+              content = content.replace(simpleColumnRegex, (match, indent) => {
+                return `${indent}@Column(name = "${columnName}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n${indent}@Convert(converter = ${application.packageName}.domain.converter.PgVectorConverter.class)\n${indent}@ColumnTransformer(write = "?::vector")`;
+              });
+            }
+            return content;
+          });
+        }
 
         // Patch ExceptionTranslator to log stacktraces at ERROR level
         const exceptionTranslatorFile = `src/main/java/${packageFolder}/web/rest/errors/ExceptionTranslator.java`;
