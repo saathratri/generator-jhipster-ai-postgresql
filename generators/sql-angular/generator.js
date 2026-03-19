@@ -327,19 +327,7 @@ export default class extends BaseApplicationGenerator {
             // Skip if already patched
             if (content.includes('performAiSearch')) return content;
 
-            // 1. Add HttpClient import
-            if (!content.includes('HttpClient')) {
-              content = content.replace(/import \{ (.*?) \} from '@angular\/common\/http';/, (match, imports) => {
-                if (imports.includes('HttpClient')) return match;
-                return `import { ${imports}, HttpClient } from '@angular/common/http';`;
-              });
-              // If no @angular/common/http import exists, add it
-              if (!content.includes('HttpClient')) {
-                content = content.replace('import { Component', "import { HttpClient } from '@angular/common/http';\nimport { Component");
-              }
-            }
-
-            // 2. Add signal import if not present
+            // 1. Add signal import if not present
             if (!content.includes('signal')) {
               content = content.replace(
                 /import \{ (.*?) \} from '@angular\/core';/,
@@ -374,10 +362,10 @@ export default class extends BaseApplicationGenerator {
             if (classMatch) {
               const insertPos = classMatch.index + classMatch[0].length;
 
+              const entityServiceInstance = entity.entityInstance + 'Service';
               const aiSearchCode = `
 
   // Saathratri modification - AI search properties
-  private http = inject(HttpClient);
   aiSearchQuery = '';
   aiSearchLoading = signal(false);
   isAiSearchActive = signal(false);
@@ -388,9 +376,7 @@ export default class extends BaseApplicationGenerator {
       return;
     }
     this.aiSearchLoading.set(true);
-    this.http.get<I${entityAngularName}[]>(\`api/${entityApiUrl}/ai-search\`, {
-      params: { query: query.trim(), limit: '20' },
-    }).subscribe({
+    this.${entityServiceInstance}.aiSearch(query.trim(), 20).subscribe({
       next: results => {
         this.${entityInstancePlural}.set(results);
         this.isAiSearchActive.set(true);
@@ -424,6 +410,36 @@ export default class extends BaseApplicationGenerator {
           });
 
           this.log.info(`[sql-angular] Patched ${listTsFile} with AI search and SlicePipe`);
+
+          // --- Patch entity service to add aiSearch method ---
+          const serviceTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/service/${entity.entityFileName}.service.ts`;
+          this.editFile(serviceTsFile, content => {
+            if (content.includes('aiSearch')) return content;
+
+            // Add aiSearch method before the closing brace
+            const lastBrace = content.lastIndexOf('}');
+            if (lastBrace !== -1) {
+              const aiSearchMethod = `
+  aiSearch(query: string, limit: number): Observable<I${entityAngularName}[]> {
+    return this.http.get<I${entityAngularName}[]>(\`\${this.resourceUrl}/ai-search\`, {
+      params: { query, limit: String(limit) },
+    });
+  }
+`;
+              content = content.slice(0, lastBrace) + aiSearchMethod + content.slice(lastBrace);
+
+              // Add Observable import if not present
+              if (!content.includes("import { Observable }") && !content.match(/import\s*\{[^}]*Observable[^}]*\}/)) {
+                content = content.replace(
+                  /import \{ HttpClient/,
+                  "import { Observable } from 'rxjs';\nimport { HttpClient"
+                );
+              }
+            }
+            return content;
+          });
+
+          this.log.info(`[sql-angular] Patched ${serviceTsFile} with aiSearch method`);
 
           // --- Patch detail component for SlicePipe ---
           this.editFile(detailTsFile, content => {
