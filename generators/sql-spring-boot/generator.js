@@ -517,13 +517,15 @@ export default class extends BaseApplicationGenerator {
           if (vectorFields.length === 0) continue;
 
           // Find and patch the Liquibase changelog for this entity
-          const changelogPattern = `src/main/resources/config/liquibase/changelog/*_added_entity_${entity.entityClass}.xml`;
-          const changelogFiles = this.env?.sharedFs ? [] : []; // Will search via glob below
-
-          // Search for the changelog file
-          const glob = await import('glob');
+          const fs = await import('fs');
           const changelogDir = this.destinationPath('src/main/resources/config/liquibase/changelog');
-          const files = glob.globSync(`*_added_entity_${entity.entityClass}.xml`, { cwd: changelogDir });
+          let files = [];
+          try {
+            const suffix = `_added_entity_${entity.entityClass}.xml`;
+            files = fs.readdirSync(changelogDir).filter(f => f.endsWith(suffix));
+          } catch (e) {
+            // Directory may not exist yet
+          }
 
           for (const file of files) {
             const changelogPath = this.destinationPath(`src/main/resources/config/liquibase/changelog/${file}`);
