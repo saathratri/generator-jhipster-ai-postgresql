@@ -110,12 +110,18 @@ export default class extends BaseApplicationGenerator {
           field.vectorDimensionSaathratri = vectorDimension;
           field.propertyDtoJavaType = 'float[]';
 
-          // CRITICAL FIX: Change field type from byte[] to String for pgvector compatibility
+          // Override blob field type to float[] for pgvector compatibility
           field.javaFieldType = 'float[]';
           field.fieldTypeBytes = false;
           field.fieldWithContentType = false;
           field.fieldTypeBinary = false;
           field.blobContentTypeText = false;
+          field.blobContentTypeAny = false;
+          field.blobContentTypeImage = false;
+          field.fieldTypeBlobContent = undefined;
+          field.fieldTypeBlob = false;
+          field.columnType = `vector(${vectorDimension})`;
+          field.loadColumnType = `vector(${vectorDimension})`;
           field.fieldDefaultValue = '"[0.1, 0.2]"';
           field.fieldUpdatedValue = '"[0.3, 0.4]"';
 
@@ -505,52 +511,51 @@ export default class extends BaseApplicationGenerator {
           return;
         }
 
-        // Patch entity domain files to add vector field annotations
-        const eligibleEntities = entities.filter(e => !e.builtIn && !e.skipServer);
-        this.log.info(`[sql-spring-boot] POST_WRITING_ENTITIES: ${eligibleEntities.length} eligible entities out of ${entities.length} total`);
-        for (const entity of eligibleEntities) {
-          const allFields = entity.fields ?? [];
-          const vectorFields = allFields.filter(f => f.fieldTypeVectorSaathratri);
-          this.log.info(`[sql-spring-boot] Entity ${entity.name}: ${allFields.length} fields, ${vectorFields.length} vector fields`);
-          if (vectorFields.length === 0) {
-            // Log field names to understand why none matched
-            if (allFields.length > 0) {
-              this.log.info(`[sql-spring-boot] Field names: ${allFields.map(f => f.fieldName).join(', ')}`);
-              for (const f of allFields) {
-                if (f.fieldName && f.fieldName.toLowerCase().includes('embedding')) {
-                  this.log.info(`[sql-spring-boot] Embedding field "${f.fieldName}": fieldTypeVectorSaathratri=${f.fieldTypeVectorSaathratri}, options=${JSON.stringify(f.options)}`);
-                }
+        // Patch Liquibase changelogs for vector fields
+        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
+          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
+          if (vectorFields.length === 0) continue;
+
+          // Find and patch the Liquibase changelog for this entity
+          const changelogPattern = `src/main/resources/config/liquibase/changelog/*_added_entity_${entity.entityClass}.xml`;
+          const changelogFiles = this.env?.sharedFs ? [] : []; // Will search via glob below
+
+          // Search for the changelog file
+          const glob = await import('glob');
+          const changelogDir = this.destinationPath('src/main/resources/config/liquibase/changelog');
+          const files = glob.globSync(`*_added_entity_${entity.entityClass}.xml`, { cwd: changelogDir });
+
+          for (const file of files) {
+            const changelogPath = this.destinationPath(`src/main/resources/config/liquibase/changelog/${file}`);
+            try {
+              let content = this.fs.read(changelogPath);
+              if (!content) continue;
+
+              for (const field of vectorFields) {
+                const columnName = field.fieldNameAsDatabaseColumn;
+                // Replace blob type with vector type
+                const blobRegex = new RegExp(`<column name="${columnName}" type="\\$\\{blobType\\}">`, 'g');
+                content = content.replace(blobRegex, `<column name="${columnName}" type="vector(${field.vectorDimensionSaathratri})">`);
+
+                // Also fix loadData column type
+                const loadBlobRegex = new RegExp(`<column name="${columnName}" type="blob"/>`, 'g');
+                content = content.replace(loadBlobRegex, `<column name="${columnName}" type="skip"/>`);
+
+                // Remove content_type columns
+                const contentTypeRegex = new RegExp(`\\s*<column name="${columnName}_content_type"[^/]*/?>\\s*(<constraints [^/]*/?>\\s*)?</column>\\s*`, 'g');
+                content = content.replace(contentTypeRegex, '\n');
+
+                // Remove simple content_type column entries
+                const simpleContentTypeRegex = new RegExp(`\\s*<column name="${columnName}_content_type"[^>]*/>\\s*`, 'g');
+                content = content.replace(simpleContentTypeRegex, '\n');
               }
+
+              this.fs.write(changelogPath, content);
+              this.log.info(`[sql-spring-boot] Patched Liquibase changelog: ${file}`);
+            } catch (e) {
+              this.log.warn(`[sql-spring-boot] Failed to patch changelog ${file}: ${e.message}`);
             }
-            continue;
           }
-
-          const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
-          const fullPath = this.destinationPath(entityFile);
-          this.log.info(`[sql-spring-boot] Patching vector annotations in ${fullPath}`);
-
-          // Try multiple approaches to patch the entity file
-
-          // Approach 1: Use this.fs (mem-fs-editor) directly
-          try {
-            let content = this.fs.read(fullPath);
-            if (content && !content.includes('PgVectorConverter')) {
-              content = this._patchVectorAnnotations(content, vectorFields, application.packageName);
-              this.fs.write(fullPath, content);
-              this.log.info(`[sql-spring-boot] Patched via this.fs.write: ${entityFile}`);
-            } else if (content && content.includes('PgVectorConverter')) {
-              this.log.info(`[sql-spring-boot] Already patched: ${entityFile}`);
-            }
-          } catch (e) {
-            this.log.warn(`[sql-spring-boot] this.fs approach failed: ${e.message}`);
-          }
-
-          // Approach 2: Use editFile as well
-          this.editFile(entityFile, content => {
-            if (content.includes('PgVectorConverter')) return content;
-            this.log.info(`[sql-spring-boot] editFile patching: ${entityFile}`);
-            return this._patchVectorAnnotations(content, vectorFields, application.packageName);
-          });
         }
 
         // Patch ExceptionTranslator to log stacktraces at ERROR level
@@ -589,26 +594,4 @@ export default class extends BaseApplicationGenerator {
     });
   }
 
-  _patchVectorAnnotations(content, vectorFields, packageName) {
-    // Add ColumnTransformer import
-    if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
-      content = content.replace(
-        /import jakarta\.persistence\.\*;/,
-        'import jakarta.persistence.*;\nimport org.hibernate.annotations.ColumnTransformer;'
-      );
-    }
-
-    for (const field of vectorFields) {
-      const columnName = field.fieldNameAsDatabaseColumn;
-      // Match @Column(name = "xxx_embedding") or @Column(name = "xxx_embedding", ...)
-      const columnRegex = new RegExp(
-        `([ \\t]*)@Column\\(name\\s*=\\s*"${columnName}"[^)]*\\)`,
-        'g'
-      );
-      content = content.replace(columnRegex, (match, indent) => {
-        return `${indent}@Column(name = "${columnName}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n${indent}@Convert(converter = ${packageName}.domain.converter.PgVectorConverter.class)\n${indent}@ColumnTransformer(write = "?::vector")`;
-      });
-    }
-    return content;
-  }
 }

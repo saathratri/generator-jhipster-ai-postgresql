@@ -5,7 +5,7 @@ import jakarta.persistence.Converter;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-@Converter(autoApply = false)
+@Converter(autoApply = true)
 public class PgVectorConverter implements AttributeConverter<float[], String> {
 
     @Override
