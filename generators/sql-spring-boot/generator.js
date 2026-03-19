@@ -511,32 +511,30 @@ export default class extends BaseApplicationGenerator {
           if (vectorFields.length === 0) continue;
 
           const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
+          this.log.info(`[sql-spring-boot] Patching vector annotations in ${entityFile}`);
+
+          // Use editFile for mem-fs patching
           this.editFile(entityFile, content => {
-            // Skip if already patched
             if (content.includes('PgVectorConverter')) return content;
-
-            // Add imports
-            if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
-              content = content.replace(
-                /import jakarta\.persistence\.\*;/,
-                'import jakarta.persistence.*;\nimport org.hibernate.annotations.ColumnTransformer;'
-              );
-            }
-
-            for (const field of vectorFields) {
-              const columnName = field.fieldNameAsDatabaseColumn;
-              // Replace the simple @Column annotation with vector-specific one
-              // Match @Column(name = "name_embedding") or @Column(name = "name_embedding", ...)
-              const simpleColumnRegex = new RegExp(
-                `(\\s*)@Column\\(name\\s*=\\s*"${columnName}"[^)]*\\)`,
-                'g'
-              );
-              content = content.replace(simpleColumnRegex, (match, indent) => {
-                return `${indent}@Column(name = "${columnName}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n${indent}@Convert(converter = ${application.packageName}.domain.converter.PgVectorConverter.class)\n${indent}@ColumnTransformer(write = "?::vector")`;
-              });
-            }
+            content = this._patchVectorAnnotations(content, vectorFields, application.packageName);
             return content;
           });
+
+          // Also patch on disk as fallback (editFile may not work in composed generators)
+          const filePath = this.destinationPath(entityFile);
+          try {
+            const fs = await import('fs');
+            if (fs.existsSync(filePath)) {
+              let content = fs.readFileSync(filePath, 'utf8');
+              if (!content.includes('PgVectorConverter')) {
+                content = this._patchVectorAnnotations(content, vectorFields, application.packageName);
+                fs.writeFileSync(filePath, content, 'utf8');
+                this.log.info(`[sql-spring-boot] Patched ${entityFile} on disk (fallback)`);
+              }
+            }
+          } catch (e) {
+            this.log.warn(`[sql-spring-boot] Disk fallback failed for ${entityFile}: ${e.message}`);
+          }
         }
 
         // Patch ExceptionTranslator to log stacktraces at ERROR level
@@ -573,5 +571,28 @@ export default class extends BaseApplicationGenerator {
     return this.asEndTaskGroup({
       async endTemplateTask() {},
     });
+  }
+
+  _patchVectorAnnotations(content, vectorFields, packageName) {
+    // Add ColumnTransformer import
+    if (!content.includes('import org.hibernate.annotations.ColumnTransformer;')) {
+      content = content.replace(
+        /import jakarta\.persistence\.\*;/,
+        'import jakarta.persistence.*;\nimport org.hibernate.annotations.ColumnTransformer;'
+      );
+    }
+
+    for (const field of vectorFields) {
+      const columnName = field.fieldNameAsDatabaseColumn;
+      // Match @Column(name = "xxx_embedding") or @Column(name = "xxx_embedding", ...)
+      const columnRegex = new RegExp(
+        `([ \\t]*)@Column\\(name\\s*=\\s*"${columnName}"[^)]*\\)`,
+        'g'
+      );
+      content = content.replace(columnRegex, (match, indent) => {
+        return `${indent}@Column(name = "${columnName}", columnDefinition = "vector(${field.vectorDimensionSaathratri})")\n${indent}@Convert(converter = ${packageName}.domain.converter.PgVectorConverter.class)\n${indent}@ColumnTransformer(write = "?::vector")`;
+      });
+    }
+    return content;
   }
 }
