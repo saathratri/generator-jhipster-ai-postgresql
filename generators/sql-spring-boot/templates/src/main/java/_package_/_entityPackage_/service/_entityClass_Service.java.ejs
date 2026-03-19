@@ -298,6 +298,18 @@ const hasVectorFields = vectorFields.length > 0;
 _%>
 <%_ if (hasVectorFields && !reactive) { _%>
 
+    // ==================== AI Text Search ====================
+
+    /**
+     * Search for <%= entityInstancePlural %> using AI-powered semantic similarity.
+     * Converts the text query to an embedding and searches across all vector fields.
+     *
+     * @param query the text query to search for
+     * @param limit maximum number of results to return
+     * @return list of semantically similar <%= entityInstancePlural %>
+     */
+    List<<%= instanceType %>> aiSearch(String query, int limit);
+
     // ==================== Vector Similarity Search Methods ====================
   <%_ for (const vectorField of vectorFields) { _%>
 

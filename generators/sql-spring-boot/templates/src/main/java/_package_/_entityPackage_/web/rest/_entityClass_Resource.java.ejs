@@ -638,12 +638,39 @@ public class <%= entityClass %>Resource {
   <%_ } _%>
 <%- include('../../_partials_entity_/search_template', {viaService}); -%>
 <%_ } _%>
-<%_ /* Saathratri modification - vector similarity search endpoints */ _%>
+<%_ /* Saathratri modification - AI text search and vector similarity search endpoints */ _%>
 <%_
 const vectorFieldsForResource = fields.filter(field => field.fieldTypeVectorSaathratri === true);
 const hasVectorFieldsForResource = vectorFieldsForResource.length > 0;
 _%>
 <%_ if (hasVectorFieldsForResource && !reactive) { _%>
+
+    // ==================== AI Text Search Endpoint ====================
+
+    /**
+     * {@code GET  /<%= entityApiUrl %>/ai-search} : search for <%= entityNamePluralHumanized %> using AI-powered semantic similarity.
+     * Converts the text query to an embedding and searches across all vector fields.
+     *
+     * @param query the text query to search for.
+     * @param limit maximum number of results to return (default: 10).
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of matching <%= entityNamePluralHumanized %> in body.
+     */
+    @GetMapping("/ai-search")
+  <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+  <%_ } _%>
+    public ResponseEntity<List<<%= instanceType %>>> aiSearch(
+            @RequestParam("query") String query,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        LOG.debug("REST request to AI search <%= entityClassPlural %> for query: {}, limit: {}", query, limit);
+    <%_ if (viaService) { _%>
+        List<<%= instanceType %>> result = <%= entityInstance %>Service.aiSearch(query, limit);
+    <%_ } else { _%>
+        LOG.warn("AI search requires service layer, returning empty results");
+        List<<%= instanceType %>> result = List.of();
+    <%_ } _%>
+        return ResponseEntity.ok().body(result);
+    }
 
     // ==================== Vector Similarity Search Endpoints ====================
   <%_ for (const vectorField of vectorFieldsForResource) { _%>

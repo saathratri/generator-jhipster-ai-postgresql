@@ -52,6 +52,14 @@
   }
 _%>
 
+<%_ /* Saathratri modification - inject EmbeddingService for entities with vector fields */ _%>
+<%_
+  const vectorFieldsForInjection = (typeof fields !== 'undefined' ? fields : []).filter(f => f.fieldTypeVectorSaathratri === true);
+  if (vectorFieldsForInjection.length > 0 && !isController) {
+    beans.push({class: 'EmbeddingService', instance: 'embeddingService'});
+  }
+_%>
+<%_ /* End Saathratri modification */ _%>
 <%_ for (const bean of beans) { _%>
     private final <%= bean.class %> <%= bean.instance %>;
 

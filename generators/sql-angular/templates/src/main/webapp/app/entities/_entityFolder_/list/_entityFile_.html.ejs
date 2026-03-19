@@ -97,6 +97,44 @@
     </form>
 <%_ } _%>
 
+<%_ /* Saathratri modification - AI vector search bar for entities with vector fields */ _%>
+<%_
+const vectorFieldsForAiSearch = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const hasVectorFieldsForAiSearch = vectorFieldsForAiSearch.length > 0;
+_%>
+<%_ if (hasVectorFieldsForAiSearch) { _%>
+
+    <form name="aiSearchForm" class="row row-cols-sm-auto align-items-center">
+        <div class="col-sm-12">
+            <div class="input-group w-100 mt-3">
+                <label class="visually-hidden" for="aiSearchQuery">AI Search</label>
+                <input type="text" class="form-control" [(ngModel)]="aiSearchQuery" id="aiSearchQuery" name="aiSearchQuery" placeholder="AI Search (semantic)..."
+                       (keyup.enter)="performAiSearch(aiSearchQuery)">
+
+                <button class="btn btn-warning" (click)="performAiSearch(aiSearchQuery)" [disabled]="aiSearchLoading()">
+                    @if (aiSearchLoading()) {
+                        <fa-icon icon="sync" animation="spin" />
+                    } @else {
+                        <fa-icon icon="search" />
+                    }
+                    <span class="d-none d-md-inline">AI Search</span>
+                </button>
+
+            @if (isAiSearchActive()) {
+                <button class="btn btn-danger" (click)="clearAiSearch()">
+                    <fa-icon icon="trash-alt" />
+                </button>
+            }
+            </div>
+        </div>
+    </form>
+    @if (isAiSearchActive()) {
+        <div class="alert alert-info mt-2 mb-0">
+            <fa-icon icon="search" /> Showing AI-powered semantic search results. <a href="javascript:void(0)" (click)="clearAiSearch()">Clear search</a>
+        </div>
+    }
+<%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 <%_ if (jpaMetamodelFiltering && paginationPagination) { _%>
     <<%= jhiPrefixDashed %>-filter [filters]="filters" />
 <%_ } _%>
@@ -292,7 +330,8 @@ _%>
     </div>
 }
 <%_ if (paginationPagination) { _%>
-@if (<%= entityInstancePlural %>().length > 0) {
+<%_ /* Saathratri modification - hide pagination when AI search is active */ _%>
+@if (<%= entityInstancePlural %>().length > 0<% if (hasVectorFieldsForAiSearch) { %> && !isAiSearchActive()<% } %>) {
     <div>
         <div class="d-flex justify-content-center">
             <<%= jhiPrefixDashed %>-item-count [params]="{ page: page(), totalItems: totalItems(), itemsPerPage: itemsPerPage() }" />
@@ -303,5 +342,6 @@ _%>
         </div>
     </div>
 }
+<%_ /* End Saathratri modification */ _%>
 <%_ } _%>
 </div>
