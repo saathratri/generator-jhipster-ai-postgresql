@@ -317,10 +317,12 @@ export default class extends BaseApplicationGenerator {
           if (!entity.entityFolderName || !entity.entityFileName) continue;
 
           const listTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.ts`;
+          const detailTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/detail/${entity.entityFileName}-detail.ts`;
           const entityApiUrl = entity.entityApiUrl || entity.entityUrl;
           const entityInstancePlural = entity.entityInstancePlural;
           const entityAngularName = entity.entityAngularName || entity.entityClass || entity.name;
 
+          // --- Patch list component ---
           this.editFile(listTsFile, content => {
             // Skip if already patched
             if (content.includes('performAiSearch')) return content;
@@ -362,10 +364,12 @@ export default class extends BaseApplicationGenerator {
               content = content.replace(/imports:\s*\[/, 'imports: [FormsModule, ');
             }
 
-            // 5. Add HttpClient inject and AI search properties/methods
-            // Find the class body to inject properties
-            // Look for the first property declaration after the class opening
-            const classBodyRegex = /export\s+default\s+class\s+\w+[^{]*\{/;
+            // 5. Add SlicePipe import and component registration
+            content = this._addSlicePipeImport(content);
+
+            // 6. Add HttpClient inject and AI search properties/methods
+            // Find the class body to inject properties (match both "export class" and "export default class")
+            const classBodyRegex = /export\s+(?:default\s+)?class\s+\w+[^{]*\{/;
             const classMatch = content.match(classBodyRegex);
             if (classMatch) {
               const insertPos = classMatch.index + classMatch[0].length;
@@ -408,7 +412,7 @@ export default class extends BaseApplicationGenerator {
               content = content.slice(0, insertPos) + aiSearchCode + content.slice(insertPos);
             }
 
-            // 6. Add inject import if not present
+            // 7. Add inject import if not present
             if (!content.match(/import\s*\{[^}]*inject[^}]*\}\s*from\s*'@angular\/core'/)) {
               content = content.replace(/import \{ (.*?) \} from '@angular\/core';/, (match, imports) => {
                 if (imports.includes('inject')) return match;
@@ -419,7 +423,14 @@ export default class extends BaseApplicationGenerator {
             return content;
           });
 
-          this.log.info(`[sql-angular] Patched ${listTsFile} with AI search functionality`);
+          this.log.info(`[sql-angular] Patched ${listTsFile} with AI search and SlicePipe`);
+
+          // --- Patch detail component for SlicePipe ---
+          this.editFile(detailTsFile, content => {
+            return this._addSlicePipeImport(content);
+          });
+
+          this.log.info(`[sql-angular] Patched ${detailTsFile} with SlicePipe`);
         }
       },
     });
@@ -447,5 +458,28 @@ export default class extends BaseApplicationGenerator {
     return this.asEndTaskGroup({
       async endTemplateTask() {},
     });
+  }
+
+  /**
+   * Adds SlicePipe import from @angular/common and registers it in the component's imports array.
+   * Used for vector field display truncation in list and detail templates.
+   */
+  _addSlicePipeImport(content) {
+    if (content.includes('SlicePipe')) return content;
+
+    // Add SlicePipe to the @angular/common import statement, or create one
+    if (content.match(/import\s*\{[^}]*\}\s*from\s*'@angular\/common';/)) {
+      content = content.replace(/import \{ (.*?) \} from '@angular\/common';/, (match, imports) => {
+        return `import { ${imports}, SlicePipe } from '@angular/common';`;
+      });
+    } else {
+      // Add a new import for @angular/common with SlicePipe
+      content = content.replace(/import \{ Component/, "import { SlicePipe } from '@angular/common';\nimport { Component");
+    }
+
+    // Add SlicePipe to the component imports array
+    content = content.replace(/imports:\s*\[/, 'imports: [SlicePipe, ');
+
+    return content;
   }
 }
