@@ -506,9 +506,24 @@ export default class extends BaseApplicationGenerator {
         }
 
         // Patch entity domain files to add vector field annotations
-        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
-          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
-          if (vectorFields.length === 0) continue;
+        const eligibleEntities = entities.filter(e => !e.builtIn && !e.skipServer);
+        this.log.info(`[sql-spring-boot] POST_WRITING_ENTITIES: ${eligibleEntities.length} eligible entities out of ${entities.length} total`);
+        for (const entity of eligibleEntities) {
+          const allFields = entity.fields ?? [];
+          const vectorFields = allFields.filter(f => f.fieldTypeVectorSaathratri);
+          this.log.info(`[sql-spring-boot] Entity ${entity.name}: ${allFields.length} fields, ${vectorFields.length} vector fields`);
+          if (vectorFields.length === 0) {
+            // Log field names to understand why none matched
+            if (allFields.length > 0) {
+              this.log.info(`[sql-spring-boot] Field names: ${allFields.map(f => f.fieldName).join(', ')}`);
+              for (const f of allFields) {
+                if (f.fieldName && f.fieldName.toLowerCase().includes('embedding')) {
+                  this.log.info(`[sql-spring-boot] Embedding field "${f.fieldName}": fieldTypeVectorSaathratri=${f.fieldTypeVectorSaathratri}, options=${JSON.stringify(f.options)}`);
+                }
+              }
+            }
+            continue;
+          }
 
           const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
           this.log.info(`[sql-spring-boot] Patching vector annotations in ${entityFile}`);
