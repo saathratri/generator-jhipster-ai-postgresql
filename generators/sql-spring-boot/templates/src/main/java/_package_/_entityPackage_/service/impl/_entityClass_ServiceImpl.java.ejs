@@ -538,11 +538,14 @@ _%>
         }
 
         // Search across all vector fields and merge results (deduplicated by ID)
+        // Use cosine distance threshold of 0.8 to filter out unrelated results
+        // Cosine distance: 0 = identical, 1 = orthogonal, 2 = opposite
+        double maxDistance = 0.8;
         java.util.Map<<%= primaryKey.type %>, <%= instanceType %>> resultMap = new java.util.LinkedHashMap<>();
 
   <%_ for (const vectorField of vectorFields) { _%>
         // Search by <%= vectorField.fieldName %>
-        <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>(embeddingStr, limit)
+        <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embeddingStr, maxDistance, limit)
             .stream()
     <%_ if (dtoMapstruct) { _%>
             .map(<%= entityToDtoReference %>)

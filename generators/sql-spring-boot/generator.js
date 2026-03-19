@@ -559,6 +559,20 @@ export default class extends BaseApplicationGenerator {
                 content = content.replace(simpleContentTypeRegex, '\n');
               }
 
+              // Add HNSW indexes for vector similarity search (cosine distance)
+              if (!content.includes('hnsw') && !content.includes('vector_cosine_ops')) {
+                const indexChangeset = vectorFields.map(field => {
+                  const columnName = field.fieldNameAsDatabaseColumn;
+                  const indexName = `idx_${entity.entityTableName}_${columnName}_hnsw`;
+                  return `
+    <changeSet id="${entity.changelogDate}-vector-idx-${columnName}" author="jhipster">
+        <sql>CREATE INDEX IF NOT EXISTS ${indexName} ON ${entity.entityTableName} USING hnsw (${columnName} vector_cosine_ops)</sql>
+    </changeSet>`;
+                }).join('\n');
+
+                content = content.replace('</databaseChangeLog>', indexChangeset + '\n</databaseChangeLog>');
+              }
+
               this.fs.write(changelogPath, content);
               this.log.info(`[sql-spring-boot] Patched Liquibase changelog: ${file}`);
             } catch (e) {
