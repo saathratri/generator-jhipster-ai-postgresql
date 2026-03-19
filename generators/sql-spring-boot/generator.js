@@ -526,30 +526,31 @@ export default class extends BaseApplicationGenerator {
           }
 
           const entityFile = `src/main/java/${packageFolder}/domain/${entity.persistClass}.java`;
-          this.log.info(`[sql-spring-boot] Patching vector annotations in ${entityFile}`);
+          const fullPath = this.destinationPath(entityFile);
+          this.log.info(`[sql-spring-boot] Patching vector annotations in ${fullPath}`);
 
-          // Use editFile for mem-fs patching
-          this.editFile(entityFile, content => {
-            if (content.includes('PgVectorConverter')) return content;
-            content = this._patchVectorAnnotations(content, vectorFields, application.packageName);
-            return content;
-          });
+          // Try multiple approaches to patch the entity file
 
-          // Also patch on disk as fallback (editFile may not work in composed generators)
-          const filePath = this.destinationPath(entityFile);
+          // Approach 1: Use this.fs (mem-fs-editor) directly
           try {
-            const fs = await import('fs');
-            if (fs.existsSync(filePath)) {
-              let content = fs.readFileSync(filePath, 'utf8');
-              if (!content.includes('PgVectorConverter')) {
-                content = this._patchVectorAnnotations(content, vectorFields, application.packageName);
-                fs.writeFileSync(filePath, content, 'utf8');
-                this.log.info(`[sql-spring-boot] Patched ${entityFile} on disk (fallback)`);
-              }
+            let content = this.fs.read(fullPath);
+            if (content && !content.includes('PgVectorConverter')) {
+              content = this._patchVectorAnnotations(content, vectorFields, application.packageName);
+              this.fs.write(fullPath, content);
+              this.log.info(`[sql-spring-boot] Patched via this.fs.write: ${entityFile}`);
+            } else if (content && content.includes('PgVectorConverter')) {
+              this.log.info(`[sql-spring-boot] Already patched: ${entityFile}`);
             }
           } catch (e) {
-            this.log.warn(`[sql-spring-boot] Disk fallback failed for ${entityFile}: ${e.message}`);
+            this.log.warn(`[sql-spring-boot] this.fs approach failed: ${e.message}`);
           }
+
+          // Approach 2: Use editFile as well
+          this.editFile(entityFile, content => {
+            if (content.includes('PgVectorConverter')) return content;
+            this.log.info(`[sql-spring-boot] editFile patching: ${entityFile}`);
+            return this._patchVectorAnnotations(content, vectorFields, application.packageName);
+          });
         }
 
         // Patch ExceptionTranslator to log stacktraces at ERROR level
