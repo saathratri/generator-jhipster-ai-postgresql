@@ -68,6 +68,23 @@ As this is a [JHipster](https://www.jhipster.tech/) blueprint, we expect you hav
 
 - [Installing JHipster](https://www.jhipster.tech/installation/)
 
+### AI Semantic Search (Optional)
+
+For entities with vector fields (`@customAnnotation("VECTOR")`), the blueprint generates AI-powered semantic search. To enable it, set your OpenAI API key as an environment variable before running the application:
+
+```console
+export OPENAI_API_KEY=sk-your-key-here
+```
+
+Or add it to your microservice's `application-dev.yml`:
+
+```yaml
+openai:
+  api-key: sk-your-key-here
+```
+
+Without the API key, the application runs normally but embedding generation and AI search are disabled.
+
 # Installation
 
 To install or update this blueprint:
