@@ -1,5 +1,5 @@
 {
-  "name": "generator-jhipster-multiple-human-readable-foreign-key-fields",
+  "name": "generator-jhipster-ai-postgresql",
   "version": "2.0.13",
   "description": "Decription for Multiple Human Readable Foreign Key Fields",
   "keywords": [
@@ -13,15 +13,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields.git"
+    "url": "git+https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql.git"
   },
   "bugs": {
-    "url": "https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields/issues"
+    "url": "https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql/issues"
   },
-  "homepage": "https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields#readme",
+  "homepage": "https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql#readme",
   "type": "module",
   "bin": {
-    "jhipster-multiple-human-readable-foreign-key-fields": "cli/cli.cjs"
+    "jhipster-ai-postgresql": "cli/cli.cjs"
   },
   "files": [
     "cli",

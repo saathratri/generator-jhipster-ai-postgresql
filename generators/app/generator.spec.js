@@ -5,7 +5,7 @@ import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 const SUB_GENERATOR = 'app';
 const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
 
-describe('SubGenerator app of multiple-human-readable-foreign-key-fields JHipster blueprint', () => {
+describe('SubGenerator app of ai-postgresql JHipster blueprint', () => {
   describe('run', () => {
     beforeAll(async function () {
       await helpers
@@ -13,7 +13,7 @@ describe('SubGenerator app of multiple-human-readable-foreign-key-fields JHipste
         .withJHipsterConfig()
         .withOptions({
           ignoreNeedlesError: true,
-          blueprint: 'multiple-human-readable-foreign-key-fields',
+          blueprint: 'ai-postgresql',
         })
         .withJHipsterLookup()
         .withParentBlueprintLookup();

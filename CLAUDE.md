@@ -22,7 +22,7 @@ Instead of showing just `productId: 123` in an Order interface, you can display:
 ## Installation
 
 ```bash
-npm install -g generator-jhipster-multiple-human-readable-foreign-key-fields
+npm install -g generator-jhipster-ai-postgresql
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ npm install -g generator-jhipster-multiple-human-readable-foreign-key-fields
 ### Basic Usage
 
 ```bash
-jhipster --blueprints multiple-human-readable-foreign-key-fields
+jhipster --blueprints ai-postgresql
 ```
 
 ### Entity Definition with Custom Annotations
@@ -73,7 +73,7 @@ The fields will be concatenated in the order they appear with the specified sepa
 ## Project Structure
 
 ```
-generator-jhipster-multiple-human-readable-foreign-key-fields/
+generator-jhipster-ai-postgresql/
 ├── cli/
 │   └── cli.cjs                          # CLI entry point
 ├── generators/
@@ -295,7 +295,7 @@ Each generator follows JHipster's standardized lifecycle phases:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd generator-jhipster-multiple-human-readable-foreign-key-fields
+cd generator-jhipster-ai-postgresql
 
 # Install dependencies
 npm install
@@ -340,8 +340,8 @@ Defines generator configuration:
 
 ```json
 {
-  "generator-jhipster-multiple-human-readable-foreign-key-fields": {
-    "baseName": "generator-jhipster-multiple-human-readable-foreign-key-fields",
+  "generator-jhipster-ai-postgresql": {
+    "baseName": "generator-jhipster-ai-postgresql",
     "sbsBlueprint": true,
     "skipPriorities": [
       "bootstrapping",
@@ -394,7 +394,7 @@ relationship ManyToOne {
 ### Step 2: Generate Application
 
 ```bash
-jhipster --blueprints multiple-human-readable-foreign-key-fields
+jhipster --blueprints ai-postgresql
 jhipster jdl entities.jdl
 ```
 

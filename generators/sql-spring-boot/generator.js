@@ -32,7 +32,7 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
       async composingTemplateTask() {
-        await this.composeWithJHipster('jhipster-multiple-human-readable-foreign-key-fields:sql-spring-boot:data-relational');
+        await this.composeWithJHipster('jhipster-ai-postgresql:sql-spring-boot:data-relational');
       },
     });
   }

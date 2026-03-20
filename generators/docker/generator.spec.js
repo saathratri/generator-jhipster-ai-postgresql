@@ -5,7 +5,7 @@ import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 const SUB_GENERATOR = 'docker';
 const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
 
-describe('SubGenerator docker of multiple-human-readable-foreign-key-fields JHipster blueprint', () => {
+describe('SubGenerator docker of ai-postgresql JHipster blueprint', () => {
   describe('run', () => {
     beforeAll(async function () {
       await helpers
@@ -13,7 +13,7 @@ describe('SubGenerator docker of multiple-human-readable-foreign-key-fields JHip
         .withJHipsterConfig()
         .withOptions({
           ignoreNeedlesError: true,
-          blueprint: 'multiple-human-readable-foreign-key-fields',
+          blueprint: 'ai-postgresql',
         })
         .withJHipsterLookup()
         .withParentBlueprintLookup();

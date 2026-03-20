@@ -1,7 +1,7 @@
 {
   "generator-jhipster": {
     "additionalSubGenerators": "",
-    "baseName": "multiple-human-readable-foreign-key-fields",
+    "baseName": "ai-postgresql",
     "cli": true,
     "entities": [],
     "generators": {

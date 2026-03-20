@@ -1,6 +1,6 @@
-# generator-jhipster-multiple-human-readable-foreign-key-fields
+# generator-jhipster-ai-postgresql
 
-> JHipster blueprint, multiple-human-readable-foreign-key-fields blueprint for JHipster.
+> JHipster blueprint, ai-postgresql blueprint for JHipster.
 
 # Introduction
 
@@ -8,7 +8,7 @@ This is a [JHipster](https://www.jhipster.tech/) blueprint, that is meant to be 
 
 Imagine an application where an Order entity references a Product. Instead of displaying only the productId in the Order interface, you can use this generator to display productName and productCategory, making it more user-friendly.
 
-The generator-jhipster-multiple-human-readable-foreign-key-fields is an open-source JHipster blueprint designed to enhance the default behavior of JHipster entities by allowing multiple human-readable foreign key fields to be used when referencing related entities.
+The generator-jhipster-ai-postgresql is an open-source JHipster blueprint designed to enhance the default behavior of JHipster entities by allowing multiple human-readable foreign key fields to be used when referencing related entities.
 
 This generator addresses the need to display meaningful and descriptive fields from related entities, rather than just relying on technical IDs (primary keys), which are often not user-friendly.
 
@@ -125,7 +125,7 @@ Without the API key, the application runs normally but embedding generation and 
 To install or update this blueprint:
 
 ```console
-npm install -g generator-jhipster-multiple-human-readable-foreign-key-fields
+npm install -g generator-jhipster-ai-postgresql
 ```
 
 # Usage
@@ -133,21 +133,21 @@ npm install -g generator-jhipster-multiple-human-readable-foreign-key-fields
 To use this blueprint, run the below command
 
 ```console
-jhipster --blueprints multiple-human-readable-foreign-key-fields
+jhipster --blueprints ai-postgresql
 ```
 
-You can look for updated multiple-human-readable-foreign-key-fields blueprint specific options by running
+You can look for updated ai-postgresql blueprint specific options by running
 
 ```console
-jhipster app --blueprints multiple-human-readable-foreign-key-fields --help
+jhipster app --blueprints ai-postgresql --help
 ```
 
-And looking for `(blueprint option: multiple-human-readable-foreign-key-fields)` like
+And looking for `(blueprint option: ai-postgresql)` like
 
 # Open Source Software - See the Code
 
 ☕️ Find the example code to run this blueprint/generator on GitHub:
-[https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example](https://github.com/amarpatel-xx/jhipster-multiple-human-readable-foreign-key-fields-example)
+[https://github.com/amarpatel-xx/jhipster-ai-postgresql-example](https://github.com/amarpatel-xx/jhipster-ai-postgresql-example)
 
 ☕️ Find the JHipster blueprint/generator code on GitHub:
-[https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields](https://github.com/amarpatel-xx/generator-jhipster-multiple-human-readable-foreign-key-fields)
+[https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql](https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql)

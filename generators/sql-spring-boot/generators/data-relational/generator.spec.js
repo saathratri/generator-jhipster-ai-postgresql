@@ -5,7 +5,7 @@ import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 const SUB_GENERATOR = 'sql-spring-boot:data-relational';
 const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
 
-describe('SubGenerator sql-spring-boot:data-relational of multiple-human-readable-foreign-key-fields JHipster blueprint', () => {
+describe('SubGenerator sql-spring-boot:data-relational of ai-postgresql JHipster blueprint', () => {
   describe('run', () => {
     beforeAll(async function () {
       await helpers
@@ -13,7 +13,7 @@ describe('SubGenerator sql-spring-boot:data-relational of multiple-human-readabl
         .withJHipsterConfig()
         .withOptions({
           ignoreNeedlesError: true,
-          blueprint: 'multiple-human-readable-foreign-key-fields',
+          blueprint: 'ai-postgresql',
         })
         .withJHipsterLookup()
         .withParentBlueprintLookup();
