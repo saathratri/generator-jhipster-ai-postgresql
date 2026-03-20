@@ -46,6 +46,27 @@ The following improvements have been made since the last open-source tagged rele
 - Angular UI shows vector fields as **readonly** on update forms and **truncates** long vector arrays (first 4 values + "...") on list and detail pages.
 - Embedding fields are hidden from the create/update form input (readonly) since they are auto-generated.
 
+#### JDL Configuration for Vector Fields
+
+To enable AI semantic search on an entity, declare embedding fields as `Blob` with `@customAnnotation("VECTOR")` and `@customAnnotation("<dimensions>")` in your JDL:
+
+```jdl
+entity Tag {
+  id UUID
+  @customAnnotation("DISPLAY_IN_GUI_RELATIONSHIP_LINK") @customAnnotation("") name String maxlength(100) required
+  description String maxlength(255)
+  @customAnnotation("VECTOR") @customAnnotation("1536") nameEmbedding Blob
+  @customAnnotation("VECTOR") @customAnnotation("1536") descriptionEmbedding Blob
+}
+```
+
+**How the annotations work:**
+
+- `@customAnnotation("VECTOR")` -- Marks the field as a pgvector embedding field. The blueprint converts it from `Blob` to `float[]`, generates the `vector(N)` column type in Liquibase, and adds the AI search infrastructure.
+- `@customAnnotation("1536")` -- Specifies the vector dimension (1536 for OpenAI's `text-embedding-3-small` model).
+- The embedding field name must follow the pattern `<sourceField>Embedding` (e.g., `nameEmbedding` derives from `name`, `descriptionEmbedding` derives from `description`). The blueprint auto-generates embeddings from the source field's text value on every create and update.
+- The AI search bar queries **all** embedding fields in the entity, merges results, and deduplicates by ID -- so a match on either `name` or `description` will surface the entity.
+
 #### AI Semantic Search Screenshots
 
 Searching for **"camry"** returns Toyota (a car brand) and Cat (less relevant, ranked lower):
