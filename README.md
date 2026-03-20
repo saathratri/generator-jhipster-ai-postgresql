@@ -31,14 +31,20 @@ Benefits:
 
 The following improvements have been made since the last open-source tagged release (v2.0.12):
 
-### pgvector / AI Embeddings Support
+### pgvector / AI Semantic Search
 - Added full **PostgreSQL pgvector** support for AI-powered semantic search on entity fields.
+- **Automatic embedding generation** on create and update -- when an entity with vector fields is saved, embeddings are generated from source text fields (e.g., `name` -> `nameEmbedding`) using the OpenAI Embedding API.
+- **AI semantic search bar** on list pages for entities with vector fields -- users can type natural language queries and find semantically similar records.
 - Vector embedding fields are automatically excluded from DTOs to keep payloads clean, while remaining in JPA entities for database operations.
-- Added **vector similarity search REST endpoints** that perform cosine distance queries against pgvector columns.
-- Generates `EmbeddingConfiguration` with OpenAI embeddings (1536 dimensions) and a `PgVectorConverter` for proper `float[]` serialization.
-- Added **automatic embedding migration on startup** -- similar to how Liquibase runs, embeddings are generated for any rows missing them.
-- Added `@ColumnTransformer` annotations for explicit vector casting in Hibernate queries.
-- Angular UI truncates long vector arrays for readable display.
+- **Cosine similarity search** with distance threshold (0.8) filters out unrelated results -- only semantically relevant matches are returned.
+- **HNSW indexes** are automatically created on vector columns for fast approximate nearest neighbor search.
+- Generates `EmbeddingConfiguration` with Spring AI 2.0.0-M3 and OpenAI embeddings (text-embedding-3-small, 1536 dimensions).
+- `PgVectorConverter` with `autoApply=true` handles `float[]` <-> PostgreSQL `vector` serialization transparently.
+- **Liquibase changelogs** are automatically patched to use `vector(1536)` column type instead of blob.
+- JDBC URL includes `stringtype=unspecified` for seamless varchar-to-vector casting.
+- **Automatic embedding migration on startup** -- similar to how Liquibase runs, embeddings are generated for any rows missing them.
+- Angular UI shows vector fields as **readonly** on update forms and **truncates** long vector arrays (first 4 values + "...") on list and detail pages.
+- Embedding fields are hidden from the create/update form input (readonly) since they are auto-generated.
 
 ### PDF Blob Support
 - Added **PDF thumbnail and download** support for `blobContentTypeAny` fields in list, detail, and update page templates.
