@@ -104,7 +104,7 @@ export default class extends BaseApplicationGenerator {
           await this.writeFiles({
             sections: {
               files: [
-                { 
+                {
                   templates: [
                     {
                       file: 'docker/postgresql.yml',
@@ -118,7 +118,7 @@ export default class extends BaseApplicationGenerator {
                       file: "docker/postgresql/Dockerfile",
                       renameTo: ctx => `src/main/docker/postgresql/Dockerfile`,
                     }
-                  ] 
+                  ]
                 }
               ],
             },

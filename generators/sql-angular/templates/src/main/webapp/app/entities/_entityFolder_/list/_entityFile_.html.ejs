@@ -99,7 +99,7 @@
 
 <%_ /* Saathratri modification - AI vector search bar for entities with vector fields */ _%>
 <%_
-const vectorFieldsForAiSearch = fields.filter(field => field.fieldTypeVectorSaathratri === true);
+const vectorFieldsForAiSearch = fields.filter(field => field.fieldTypeVectorSaathratri);
 const hasVectorFieldsForAiSearch = vectorFieldsForAiSearch.length > 0;
 _%>
 <%_ if (hasVectorFieldsForAiSearch) { _%>
@@ -126,6 +126,19 @@ _%>
                 </button>
             }
             </div>
+            <%_ if (vectorFieldsForAiSearch.length > 1) { _%>
+            <div class="mt-2 d-flex flex-wrap gap-3">
+                <small class="text-muted me-1">Search in:</small>
+              <%_ for (const vf of vectorFieldsForAiSearch) { _%>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="aiField_<%= vf.fieldName %>"
+                           [checked]="aiSearchSelectedFields['<%= vf.fieldName %>']"
+                           (change)="toggleAiSearchField('<%= vf.fieldName %>')">
+                    <label class="form-check-label" for="aiField_<%= vf.fieldName %>"><%= vf.sourceFieldNameSaathratri %></label>
+                </div>
+              <%_ } _%>
+            </div>
+            <%_ } _%>
         </div>
     </form>
     @if (isAiSearchActive()) {

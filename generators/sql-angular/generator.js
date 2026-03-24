@@ -78,7 +78,19 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.PREPARING_EACH_ENTITY_FIELD]() {
     return this.asPreparingEachEntityFieldTaskGroup({
-      async preparingEachEntityFieldTemplateTask() {},
+      async preparingEachEntityFieldTemplateTask({ field }) {
+        // Detect vector fields independently (in case sql-spring-boot hasn't set the property yet)
+        if (!field.fieldTypeVectorSaathratri) {
+          const vectorAnnotation = field.options?.customAnnotation?.[0];
+          if (vectorAnnotation === 'VECTOR') {
+            field.fieldTypeVectorSaathratri = true;
+            field.vectorDimensionSaathratri = field.options?.customAnnotation?.[1] || '1536';
+            const sourceFieldName = field.fieldName.replace(/Embedding$/, '');
+            field.sourceFieldNameSaathratri = sourceFieldName;
+            field.sourceFieldNameCapitalizedSaathratri = sourceFieldName.charAt(0).toUpperCase() + sourceFieldName.slice(1);
+          }
+        }
+      },
     });
   }
 
@@ -309,14 +321,30 @@ export default class extends BaseApplicationGenerator {
         const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
 
         for (const entity of entities.filter(e => !e.builtIn)) {
-          // Check if entity has vector fields (set by sql-spring-boot generator's PREPARING_EACH_ENTITY_FIELD)
-          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
+          // Detect vector fields using BOTH the prepared property AND the raw JDL annotation
+          // This ensures detection works regardless of generator execution order
+          const vectorFields = (entity.fields ?? []).filter(f =>
+            f.fieldTypeVectorSaathratri || f.options?.customAnnotation?.[0] === 'VECTOR'
+          );
           if (vectorFields.length === 0) continue;
+
+          // Ensure vector field metadata is set (in case PREPARING phase didn't run yet)
+          for (const vf of vectorFields) {
+            if (!vf.fieldTypeVectorSaathratri) {
+              vf.fieldTypeVectorSaathratri = true;
+            }
+            if (!vf.sourceFieldNameSaathratri) {
+              const src = vf.fieldName.replace(/Embedding$/, '');
+              vf.sourceFieldNameSaathratri = src;
+              vf.sourceFieldNameCapitalizedSaathratri = src.charAt(0).toUpperCase() + src.slice(1);
+            }
+          }
 
           // Guard: skip entities that don't have required client properties
           if (!entity.entityFolderName || !entity.entityFileName) continue;
 
           const listTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.ts`;
+          const listHtmlFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.html`;
           const detailTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/detail/${entity.entityFileName}-detail.ts`;
           const entityApiUrl = entity.entityApiUrl || entity.entityUrl;
           const entityInstancePlural = entity.entityInstancePlural;
@@ -324,8 +352,16 @@ export default class extends BaseApplicationGenerator {
 
           // --- Patch list component ---
           this.editFile(listTsFile, content => {
-            // Skip if already patched
-            if (content.includes('performAiSearch')) return content;
+            // Skip if already fully patched (check for field selection which is the latest addition)
+            if (content.includes('aiSearchSelectedFields')) return content;
+
+            // Remove old AI search patch if present (missing field selection support)
+            if (content.includes('performAiSearch')) {
+              content = content.replace(
+                /\n\s*\/\/ Saathratri modification - AI search properties[\s\S]*?\/\/ End Saathratri modification - AI search\n/,
+                '\n',
+              );
+            }
 
             // 1. Add signal import if not present
             if (!content.includes('signal')) {
@@ -363,12 +399,28 @@ export default class extends BaseApplicationGenerator {
               const insertPos = classMatch.index + classMatch[0].length;
 
               const entityServiceInstance = entity.entityInstance + 'Service';
+
+              // Build the default selected fields object
+              const fieldEntries = vectorFields.map(vf => `'${vf.fieldName}': true`).join(', ');
+              const fieldNamesArray = vectorFields.map(vf => `'${vf.fieldName}'`).join(', ');
+
               const aiSearchCode = `
 
   // Saathratri modification - AI search properties
   aiSearchQuery = '';
   aiSearchLoading = signal(false);
   isAiSearchActive = signal(false);
+  aiSearchSelectedFields: { [key: string]: boolean } = { ${fieldEntries} };
+
+  toggleAiSearchField(fieldName: string): void {
+    this.aiSearchSelectedFields[fieldName] = !this.aiSearchSelectedFields[fieldName];
+  }
+
+  private getSelectedAiSearchFields(): string[] {
+    const allFields = [${fieldNamesArray}];
+    const selected = allFields.filter(f => this.aiSearchSelectedFields[f]);
+    return selected.length > 0 ? selected : allFields;
+  }
 
   performAiSearch(query: string): void {
     if (!query || !query.trim()) {
@@ -376,7 +428,8 @@ export default class extends BaseApplicationGenerator {
       return;
     }
     this.aiSearchLoading.set(true);
-    this.${entityServiceInstance}.aiSearch(query.trim(), 20).subscribe({
+    const fields = this.getSelectedAiSearchFields();
+    this.${entityServiceInstance}.aiSearch(query.trim(), 20, fields).subscribe({
       next: results => {
         this.${entityInstancePlural}.set(results);
         this.isAiSearchActive.set(true);
@@ -411,18 +464,61 @@ export default class extends BaseApplicationGenerator {
 
           this.log.info(`[sql-angular] Patched ${listTsFile} with AI search and SlicePipe`);
 
+          // --- Patch list HTML to add vector field checkboxes ---
+          if (vectorFields.length > 1) {
+            this.editFile(listHtmlFile, content => {
+              // Skip if checkboxes already present
+              if (content.includes('toggleAiSearchField')) return content;
+
+              // Build checkboxes HTML
+              let checkboxesHtml = '\n      <div class="mt-2 d-flex flex-wrap gap-3">';
+              checkboxesHtml += '\n        <small class="text-muted me-1">Search in:</small>';
+              for (const vf of vectorFields) {
+                const label = vf.sourceFieldNameSaathratri || vf.fieldName.replace(/Embedding$/, '');
+                checkboxesHtml += `\n        <div class="form-check form-check-inline">`;
+                checkboxesHtml += `\n          <input class="form-check-input" type="checkbox" id="aiField_${vf.fieldName}"`;
+                checkboxesHtml += `\n                 [checked]="aiSearchSelectedFields['${vf.fieldName}']"`;
+                checkboxesHtml += `\n                 (change)="toggleAiSearchField('${vf.fieldName}')">`;
+                checkboxesHtml += `\n          <label class="form-check-label" for="aiField_${vf.fieldName}">${label}</label>`;
+                checkboxesHtml += `\n        </div>`;
+              }
+              checkboxesHtml += '\n      </div>';
+
+              // Strategy: find the aiSearchForm's closing </div></form> pair.
+              // The pattern is: </div> (closes col-sm-12) followed by </form>.
+              // We inject BEFORE that </div> so checkboxes sit inside col-sm-12.
+              const formEndRegex = /(<form\s+name="aiSearchForm"[\s\S]*?)(\s*<\/div>\s*<\/form>)/;
+              content = content.replace(formEndRegex, `$1${checkboxesHtml}$2`);
+
+              return content;
+            });
+
+            this.log.info(`[sql-angular] Patched ${listHtmlFile} with vector field checkboxes`);
+          }
+
           // --- Patch entity service to add aiSearch method ---
           const serviceTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/service/${entity.entityFileName}.service.ts`;
           this.editFile(serviceTsFile, content => {
+            // Remove old aiSearch method if it lacks fields parameter support
+            if (content.includes('aiSearch') && !content.includes('fields?: string[]')) {
+              content = content.replace(
+                /\n\s*aiSearch\(query: string, limit: number\)[^}]*\{[\s\S]*?\n\s*\}\n/,
+                '\n',
+              );
+            }
             if (content.includes('aiSearch')) return content;
 
             // Add aiSearch method before the closing brace
             const lastBrace = content.lastIndexOf('}');
             if (lastBrace !== -1) {
               const aiSearchMethod = `
-  aiSearch(query: string, limit: number): Observable<I${entityAngularName}[]> {
+  aiSearch(query: string, limit: number, fields?: string[]): Observable<I${entityAngularName}[]> {
+    let params: { [key: string]: string | string[] } = { query, limit: String(limit) };
+    if (fields && fields.length > 0) {
+      params['fields'] = fields.join(',');
+    }
     return this.http.get<I${entityAngularName}[]>(\`\${this.resourceUrl}/ai-search\`, {
-      params: { query, limit: String(limit) },
+      params,
     });
   }
 `;

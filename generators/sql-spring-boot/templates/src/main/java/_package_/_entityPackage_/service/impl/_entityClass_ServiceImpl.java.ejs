@@ -519,8 +519,8 @@ _%>
 
     @Override
     @Transactional(readOnly = true)
-    public List<<%= instanceType %>> aiSearch(String query, int limit) {
-        LOG.debug("Request to AI search <%= entityClassPlural %> for query: {}, limit: {}", query, limit);
+    public List<<%= instanceType %>> aiSearch(String query, int limit, List<String> fields) {
+        LOG.debug("Request to AI search <%= entityClassPlural %> for query: {}, limit: {}, fields: {}", query, limit, fields);
 
         if (query == null || query.isBlank()) {
             return List.of();
@@ -537,20 +537,23 @@ _%>
             return List.of();
         }
 
-        // Search across all vector fields and merge results (deduplicated by ID)
+        // Search across selected vector fields (or all if none specified) and merge results (deduplicated by ID)
         // Use cosine distance threshold of 0.8 to filter out unrelated results
         // Cosine distance: 0 = identical, 1 = orthogonal, 2 = opposite
         double maxDistance = 0.8;
+        boolean searchAll = (fields == null || fields.isEmpty());
         java.util.Map<<%= primaryKey.type %>, <%= instanceType %>> resultMap = new java.util.LinkedHashMap<>();
 
   <%_ for (const vectorField of vectorFields) { _%>
         // Search by <%= vectorField.fieldName %>
-        <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embeddingStr, maxDistance, limit)
-            .stream()
+        if (searchAll || fields.contains("<%= vectorField.fieldName %>")) {
+            <%= entityInstance %>Repository.findSimilarBy<%= vectorField.fieldNameCapitalized %>WithThreshold(embeddingStr, maxDistance, limit)
+                .stream()
     <%_ if (dtoMapstruct) { _%>
-            .map(<%= entityToDtoReference %>)
+                .map(<%= entityToDtoReference %>)
     <%_ } _%>
-            .forEach(item -> resultMap.putIfAbsent(item.<%- primaryKey.propertySupplierName %>(), item));
+                .forEach(item -> resultMap.putIfAbsent(item.<%- primaryKey.propertySupplierName %>(), item));
+        }
 
   <%_ } _%>
         return new java.util.ArrayList<>(resultMap.values());
