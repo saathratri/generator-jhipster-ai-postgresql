@@ -148,11 +148,6 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
   <%_ for (const vf of vectorFieldsForMapper) { _%>
     @Mapping(target = "<%= vf.propertyName %>", ignore = true)
   <%_ } _%>
-    <%= persistClass %> toEntity(<%= dtoClass %> <%= dtoInstance %>);
-
-  <%_ for (const vf of vectorFieldsForMapper) { _%>
-    @Mapping(target = "<%= vf.propertyName %>", ignore = true)
-  <%_ } _%>
     void partialUpdate(@MappingTarget <%= persistClass %> entity, <%= dtoClass %> dto);
   <%_ } _%>
 
@@ -207,7 +202,11 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     @Mapping(target = "remove<%= relationship.relationshipNameCapitalized %>", ignore = true)
     <%_ } _%>
   <%_ } _%>
+  <%_ if (vectorFieldsForMapper.length > 0) { renMapAnotDto = true; } _%>
   <%_ if (renMapAnotDto) { _%>
+  <%_ for (const vf of vectorFieldsForMapper) { _%>
+    @Mapping(target = "<%= vf.propertyName %>", ignore = true)
+  <%_ } _%>
     <%= persistClass %> toEntity(<%= dtoClass %> <%= dtoInstance %>);
   <%_ } _%>
   <%_ for (const {otherEntity, relatedField, collection} of otherEntitiesFields) { _%>
