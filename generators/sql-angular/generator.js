@@ -543,6 +543,14 @@ export default class extends BaseApplicationGenerator {
           });
 
           this.log.info(`[sql-angular] Patched ${detailTsFile} with DecimalPipe`);
+
+          // --- Patch update component for JsonPipe ---
+          const updateTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-update.ts`;
+          this.editFile(updateTsFile, content => {
+            return this._addJsonPipeImport(content);
+          });
+
+          this.log.info(`[sql-angular] Patched ${updateTsFile} with JsonPipe`);
         }
       },
     });
@@ -591,6 +599,28 @@ export default class extends BaseApplicationGenerator {
 
     // Add DecimalPipe to the component imports array
     content = content.replace(/imports:\s*\[/, 'imports: [DecimalPipe, ');
+
+    return content;
+  }
+
+  /**
+   * Adds JsonPipe import from @angular/common and registers it in the component's imports array.
+   * Used for vector field full display with JSON formatting in update templates.
+   */
+  _addJsonPipeImport(content) {
+    if (content.includes('JsonPipe')) return content;
+
+    // Add JsonPipe to the @angular/common import statement, or create one
+    if (content.match(/import\s*\{[^}]*\}\s*from\s*'@angular\/common';/)) {
+      content = content.replace(/import \{ (.*?) \} from '@angular\/common';/, (match, imports) => {
+        return `import { ${imports}, JsonPipe } from '@angular/common';`;
+      });
+    } else {
+      content = content.replace(/import \{ Component/, "import { JsonPipe } from '@angular/common';\nimport { Component");
+    }
+
+    // Add JsonPipe to the component imports array
+    content = content.replace(/imports:\s*\[/, 'imports: [JsonPipe, ');
 
     return content;
   }
