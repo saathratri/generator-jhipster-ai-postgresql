@@ -388,8 +388,8 @@ export default class extends BaseApplicationGenerator {
               content = content.replace(/imports:\s*\[/, 'imports: [FormsModule, ');
             }
 
-            // 5. Add SlicePipe import and component registration
-            content = this._addSlicePipeImport(content);
+            // 5. Add DecimalPipe import and component registration
+            content = this._addDecimalPipeImport(content);
 
             // 6. Add HttpClient inject and AI search properties/methods
             // Find the class body to inject properties (match both "export class" and "export default class")
@@ -462,7 +462,7 @@ export default class extends BaseApplicationGenerator {
             return content;
           });
 
-          this.log.info(`[sql-angular] Patched ${listTsFile} with AI search and SlicePipe`);
+          this.log.info(`[sql-angular] Patched ${listTsFile} with AI search and DecimalPipe`);
 
           // --- Patch list HTML to add vector field checkboxes ---
           if (vectorFields.length > 1) {
@@ -537,12 +537,12 @@ export default class extends BaseApplicationGenerator {
 
           this.log.info(`[sql-angular] Patched ${serviceTsFile} with aiSearch method`);
 
-          // --- Patch detail component for SlicePipe ---
+          // --- Patch detail component for DecimalPipe ---
           this.editFile(detailTsFile, content => {
-            return this._addSlicePipeImport(content);
+            return this._addDecimalPipeImport(content);
           });
 
-          this.log.info(`[sql-angular] Patched ${detailTsFile} with SlicePipe`);
+          this.log.info(`[sql-angular] Patched ${detailTsFile} with DecimalPipe`);
         }
       },
     });
@@ -573,24 +573,24 @@ export default class extends BaseApplicationGenerator {
   }
 
   /**
-   * Adds SlicePipe import from @angular/common and registers it in the component's imports array.
-   * Used for vector field display truncation in list and detail templates.
+   * Adds DecimalPipe import from @angular/common and registers it in the component's imports array.
+   * Used for vector field display with number formatting in list and detail templates.
    */
-  _addSlicePipeImport(content) {
-    if (content.includes('SlicePipe')) return content;
+  _addDecimalPipeImport(content) {
+    if (content.includes('DecimalPipe')) return content;
 
-    // Add SlicePipe to the @angular/common import statement, or create one
+    // Add DecimalPipe to the @angular/common import statement, or create one
     if (content.match(/import\s*\{[^}]*\}\s*from\s*'@angular\/common';/)) {
       content = content.replace(/import \{ (.*?) \} from '@angular\/common';/, (match, imports) => {
-        return `import { ${imports}, SlicePipe } from '@angular/common';`;
+        return `import { ${imports}, DecimalPipe } from '@angular/common';`;
       });
     } else {
-      // Add a new import for @angular/common with SlicePipe
-      content = content.replace(/import \{ Component/, "import { SlicePipe } from '@angular/common';\nimport { Component");
+      // Add a new import for @angular/common with DecimalPipe
+      content = content.replace(/import \{ Component/, "import { DecimalPipe } from '@angular/common';\nimport { Component");
     }
 
-    // Add SlicePipe to the component imports array
-    content = content.replace(/imports:\s*\[/, 'imports: [SlicePipe, ');
+    // Add DecimalPipe to the component imports array
+    content = content.replace(/imports:\s*\[/, 'imports: [DecimalPipe, ');
 
     return content;
   }

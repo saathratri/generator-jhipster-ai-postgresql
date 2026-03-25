@@ -237,7 +237,11 @@ _%>
                     <td title="{{ <%= entityInstance %>.<%= fieldName %> }}">{{ <%= entityInstance %>.<%= fieldName %> | duration }}</td>
     <%_ } else { _%>
                     <%_ /* Saathratri modification - vector field display truncation */ _%>
-                    <td<% if (field.id) { %>><a<%- routerLink %><% } %>><% if (field.fieldTypeVectorSaathratri) { %>{{ (<%= entityInstance %>.<%= fieldName %> && <%= entityInstance %>.<%= fieldName %>.length > 4) ? (<%= entityInstance %>.<%= fieldName %> | slice:0:4) + "..." : <%= entityInstance %>.<%= fieldName %> }}<% } else { %>{{ <%= entityInstance %>.<%= fieldName %> }}<% } %><% if (field.id) { %></a><% } %></td>
+    <%_ if (field.fieldTypeVectorSaathratri) { _%>
+                    <td><small class="text-muted">@if (<%= entityInstance %>.<%= fieldName %> && <%= entityInstance %>.<%= fieldName %>.length > 0) {[{{ <%= entityInstance %>.<%= fieldName %>[0] | number:'1.0-5' }}, {{ <%= entityInstance %>.<%= fieldName %>[1] | number:'1.0-5' }}, {{ <%= entityInstance %>.<%= fieldName %>[2] | number:'1.0-5' }}, ...]} @else {<em>Not generated</em>}</small></td>
+    <%_ } else { _%>
+                    <td<% if (field.id) { %>><a<%- routerLink %><% } %>>{{ <%= entityInstance %>.<%= fieldName %> }}<% if (field.id) { %></a><% } %></td>
+    <%_ } _%>
     <%_ } _%>
 <%_ } _%>
 <%_ for (const relationship of relationships.filter(rel => !rel.otherEntity.embedded)) {
