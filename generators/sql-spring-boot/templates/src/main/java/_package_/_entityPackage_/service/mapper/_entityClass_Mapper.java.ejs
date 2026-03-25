@@ -137,12 +137,23 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
       renMapAnotEnt = true; _%>
     @Mapping( target = "<%= field.propertyName %>", expression = "<%- field.mapstructExpression %>")
   <%_ } _%>
-  <%_ for (const field of fields.filter(f => f.fieldTypeVectorSaathratri)) { _%>
-    @Mapping(target = "<%= field.propertyName %>", source = "<%= field.propertyName %>")
-  <%_ } _%>
+  <%_ const vectorFieldsForMapper = fields.filter(f => f.fieldTypeVectorSaathratri);
+  if (vectorFieldsForMapper.length > 0) { renMapAnotEnt = true; } _%>
   <%_ /* End Saathratri modification */ _%>
-  <%_ if (renMapAnotEnt) { _%>
+  <%_ if (renMapAnotEnt || vectorFieldsForMapper.length > 0) { _%>
     <%= dtoClass %> toDto(<%= persistClass %> s);
+  <%_ } _%>
+
+  <%_ if (vectorFieldsForMapper.length > 0) { _%>
+  <%_ for (const vf of vectorFieldsForMapper) { _%>
+    @Mapping(target = "<%= vf.propertyName %>", ignore = true)
+  <%_ } _%>
+    <%= persistClass %> toEntity(<%= dtoClass %> <%= dtoInstance %>);
+
+  <%_ for (const vf of vectorFieldsForMapper) { _%>
+    @Mapping(target = "<%= vf.propertyName %>", ignore = true)
+  <%_ } _%>
+    void partialUpdate(@MappingTarget <%= persistClass %> entity, <%= dtoClass %> dto);
   <%_ } _%>
 
   <%_ /* Saathratri modification - toDtoBasic lightweight mapper for list views */ _%>
@@ -284,5 +295,16 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
     }
   <%_ } _%>
   <%_ /* End Saathratri modification */ _%>
+  <%_ if (fields.some(f => f.fieldTypeVectorSaathratri)) { _%>
+
+    default java.util.List<Float> mapFloatArrayToList(float[] array) {
+        if (array == null) { return null; }
+        java.util.List<Float> list = new java.util.ArrayList<>(array.length);
+        for (float f : array) {
+            list.add(f);
+        }
+        return list;
+    }
+  <%_ } _%>
 <%_ } _%>
 }

@@ -115,6 +115,9 @@ _%>
   <%_ }
 }
 _%>
+<%_ for (const vf of restProperties.filter(p => p.fieldTypeVectorSaathratri)) { _%>
+    private java.util.List<Float> <%- vf.propertyName %>;
+<%_ } _%>
 
 <%_ for (property of dtoProperties) { _%>
     public <%- property.propertyDtoJavaType %> <%- property.propertySupplierName %>() {
@@ -134,6 +137,16 @@ _%>
         this.<%- property.propertyName %>ContentType = <%- property.propertyName %>ContentType;
     }
   <%_ } _%>
+<%_ } _%>
+<%_ for (const vf of restProperties.filter(p => p.fieldTypeVectorSaathratri)) { _%>
+
+    public java.util.List<Float> get<%- vf.propertyName.charAt(0).toUpperCase() + vf.propertyName.slice(1) %>() {
+        return <%- vf.propertyName %>;
+    }
+
+    public void set<%- vf.propertyName.charAt(0).toUpperCase() + vf.propertyName.slice(1) %>(java.util.List<Float> <%- vf.propertyName %>) {
+        this.<%- vf.propertyName %> = <%- vf.propertyName %>;
+    }
 <%_ } _%>
 <%_ /* End Saathratri modification */ _%>
 

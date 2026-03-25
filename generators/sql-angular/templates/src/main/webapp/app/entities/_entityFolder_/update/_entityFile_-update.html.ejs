@@ -148,9 +148,15 @@ _%>
     <%_ } else if (field.fieldTypeLocalTime) { _%>
                     <input type="time" class="form-control" name="<%= fieldName %>" id="field_<%= fieldName %>" data-cy="<%= fieldName %>"
                            formControlName="<%= fieldName %>"<% if (readonly) { %> [readonly]="true"<% } %>/>
+    <%_ } else if (field.fieldTypeVectorSaathratri) { _%>
+                    @if (<%= entityInstance %>?.<%= fieldName %> && <%= entityInstance %>!.<%= fieldName %>!.length > 0) {
+                        <textarea class="form-control font-monospace" readonly rows="4" style="font-size: 0.75rem;">{{ <%= entityInstance %>!.<%= fieldName %>! | json }}</textarea>
+                    } @else {
+                        <div class="form-control bg-light"><small class="text-muted"><em>Not generated yet</em></small></div>
+                    }
     <%_ } else { _%>
                     <input type="<%= fieldInputType %>" class="form-control" name="<%= fieldName %>" id="field_<%= fieldName %>" data-cy="<%= fieldName %>"
-                           formControlName="<%= fieldName %>"<% if (field.id && !field.autoGenerate) { %> [readonly]="editForm.get('<%= primaryKey.name %>')!.disabled"<% } else if (readonly || field.fieldTypeVectorSaathratri) { %> [readonly]="true"<% } %>/>
+                           formControlName="<%= fieldName %>"<% if (field.id && !field.autoGenerate) { %> [readonly]="editForm.get('<%= primaryKey.name %>')!.disabled"<% } else if (readonly) { %> [readonly]="true"<% } %>/>
       <%_ if (field.fieldTypeBinary && !field.blobContentTypeText) { _%>
                     <input type="hidden" class="form-control" name="<%= fieldName %>ContentType" id="field_<%= fieldName %>ContentType"
                            formControlName="<%= fieldName %>ContentType" />
