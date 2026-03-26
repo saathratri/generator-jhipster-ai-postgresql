@@ -113,9 +113,9 @@ A more specific query searching name embeddings returns only 2 semantically rele
 
 ![Semantic Search - 4](screenshots/Semantic%20Search%20-%204.png)
 
-**AI Semantic Search for "Movie" (name only)**
+**AI Semantic Search for "Meow" (name only)**
 
-Searching name embeddings for "Movie" returns Cats, Dogs, and Car based on semantic associations.
+Searching name embeddings for "Meow" returns Cats, Dogs, and Car based on semantic associations.
 
 ![Semantic Search - 5](screenshots/Semantic%20Search%20-%205.png)
 
