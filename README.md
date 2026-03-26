@@ -97,25 +97,25 @@ Searching across both name and description embeddings returns Cats, Dogs, Car, a
 
 **AI Semantic Search for "Boat" (description only)**
 
-With only the "description" checkbox selected, the search is narrowed to description embeddings only, returning 3 results.
+With only the "description" checkbox selected, the search is narrowed to description embeddings only, returning 3 results: Cats, Dogs, and Car.
 
 ![Semantic Search - 2](screenshots/Semantic%20Search%20-%202.png)
 
-**AI Semantic Search for "Boat" (both fields)**
+**AI Semantic Search for "Boat" (name only)**
 
-The same query with both fields checked returns 4 results in a different relevance order, demonstrating how multi-field search impacts ranking.
+The same query with only the "name" checkbox selected returns 4 results in a different relevance order, demonstrating how field selection impacts ranking.
 
 ![Semantic Search - 3](screenshots/Semantic%20Search%20-%203.png)
 
-**AI Semantic Search for "Ferry" (both fields)**
+**AI Semantic Search for "Ferry" (name only)**
 
-A more specific query returns only 2 semantically relevant matches: Car and Hiking.
+A more specific query searching name embeddings returns only 2 semantically relevant matches: Car and Hiking.
 
 ![Semantic Search - 4](screenshots/Semantic%20Search%20-%204.png)
 
-**AI Semantic Search for "Movie" (both fields)**
+**AI Semantic Search for "Movie" (name only)**
 
-Searching for "Movie" returns Cats, Dogs, and Car based on semantic associations.
+Searching name embeddings for "Movie" returns Cats, Dogs, and Car based on semantic associations.
 
 ![Semantic Search - 5](screenshots/Semantic%20Search%20-%205.png)
 
@@ -125,9 +125,9 @@ Searching only description embeddings returns a single precise match: Dogs ("All
 
 ![Semantic Search - 6](screenshots/Semantic%20Search%20-%206.png)
 
-**AI Semantic Search for "Box" (both fields)**
+**AI Semantic Search for "Box" (name only)**
 
-The same query with both fields checked broadens results to 3 matches, showing how field selection impacts search breadth.
+The same query searching name embeddings returns 3 matches: Car, Cats, and Dogs, showing how field selection impacts search breadth and ranking.
 
 ![Semantic Search - 7](screenshots/Semantic%20Search%20-%207.png)
 
