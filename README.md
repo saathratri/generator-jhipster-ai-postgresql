@@ -89,9 +89,9 @@ The Blog column displays "Elljay March 2026-@funvacay" instead of a raw UUID, co
 
 ![Post Save - Human-friendly Foreign Key](screenshots/Post%20Save%20-%20Human-friendly%20Foreign%20Key.png)
 
-**AI Semantic Search for "leopard" (both fields)**
+**AI Semantic Search for "leopard" (name only)**
 
-Searching across both name and description embeddings returns Cats, Dogs, Car, and Hiking ranked by semantic similarity. Embedding previews are shown in the table.
+Searching name embeddings for "leopard" returns Cats, Dogs, Car, and Hiking ranked by semantic similarity. Embedding previews are shown in the table.
 
 ![Semantic Search - 1](screenshots/Semantic%20Search%20-%201.png)
 
