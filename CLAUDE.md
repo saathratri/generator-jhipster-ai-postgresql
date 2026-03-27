@@ -4,7 +4,7 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.13
+**Version:** 2.0.14
 **Author:** Amar Premsaran Patel
 **License:** MIT
 **JHipster Base Version:** 9.0.0
@@ -538,7 +538,12 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.13** (Current)
+**2.0.14** (Current)
+- Detail page MAP/SET rendering fix (converted to modern Angular control flow)
+- KeyValuePipe import for standalone components
+- MAP UI component screenshots and documentation
+
+**2.0.13**
 - Support for JHipster 9.0.0
 - PostgreSQL vector extension support
 - Improved port management for microservices
