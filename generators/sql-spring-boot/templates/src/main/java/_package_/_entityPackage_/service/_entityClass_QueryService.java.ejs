@@ -56,6 +56,12 @@ import <%= entityAbsolutePackage %>.service.criteria.<%= entityClass %>Criteria;
 import <%= entityAbsolutePackage %>.service.dto.<%= dtoClass %>;
 import <%= entityAbsolutePackage %>.service.mapper.<%= entityClass %>Mapper;
 <%_ } _%>
+<%_ /* Saathratri modification - import EmbeddingService for entities with vector fields */ _%>
+<%_ const vectorFieldsForQuerySvcImport = (typeof fields !== 'undefined' ? fields : []).filter(f => f.fieldTypeVectorSaathratri === true); _%>
+<%_ if (vectorFieldsForQuerySvcImport.length > 0) { _%>
+import <%= packageName %>.service.embedding.EmbeddingService;
+<%_ } _%>
+<%_ /* End Saathratri modification */ _%>
 
 /**
  * Service for executing complex queries for {@link <%= persistClass %>} entities in the database.
