@@ -79,9 +79,28 @@ const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.s
 /* Saathratri modification - check for vector fields for pgvector similarity search (needs @Param import) */
 const vectorFields = fields.filter(field => field.fieldTypeVectorSaathratri === true);
 const hasVectorFields = vectorFields.length > 0;
-const needsOptionalImport = hasEagerLoadableRelationships || hasEntityGraphQueries;
+/* Saathratri modification - parse @customQueryAnnotation for custom query methods */
+const customQueryRawForImports = typeof annotations !== 'undefined'
+  ? normalizeDirectives(annotations.customQueryAnnotation) : [];
+const customQueryDirectivesForImports = customQueryRawForImports.flatMap(d => typeof d === 'string' ? d.split('|').map(s => s.trim()).filter(Boolean) : [d]);
+const parseCustomQueryForImports = directive => {
+  if (typeof directive !== 'string') return undefined;
+  const colonIdx = directive.indexOf(':');
+  if (colonIdx < 0) return undefined;
+  const methodName = directive.substring(0, colonIdx).trim();
+  const rest = directive.substring(colonIdx + 1).trim();
+  const paramsMatch = rest.match(/params\s*\[\s*([^\]]*)\s*\]/);
+  const params = paramsMatch ? paramsMatch[1].split(',').map(p => p.trim()).filter(Boolean) : [];
+  if (params.length === 0) return undefined;
+  const isSingleIdQuery = params.length === 1 && params[0] === primaryKey.name;
+  return { methodName, params, isSingleIdQuery };
+};
+const parsedCustomQueriesForImports = customQueryDirectivesForImports.map(parseCustomQueryForImports).filter(Boolean);
+const hasCustomQueriesForImports = parsedCustomQueriesForImports.length > 0;
+/* End Saathratri modification */
+const needsOptionalImport = hasEagerLoadableRelationships || hasEntityGraphQueries || parsedCustomQueriesForImports.some(cq => cq.isSingleIdQuery);
 const needsPageAndPageableImport = hasEagerLoadableRelationships;
-const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries || hasVectorFields;
+const needsParamImport = hasEagerLoadableRelationships || hasEntityGraphQueries || hasVectorFields || hasCustomQueriesForImports;
 _%>
 <%_ /* End Saathratri modification */ _%>
 <%_ /* Saathratri modification - conditional imports based on entity graph, vector, and eager load needs */ _%>
@@ -183,6 +202,71 @@ public interface <%= entityClass %>Repository extends <% if (containsBagRelation
   <%_ } _%>
 <%_ } _%>
 <%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - custom query methods from @customQueryAnnotation */ _%>
+<%_
+const customQueryRaw = typeof annotations !== 'undefined'
+  ? normalizeDirectives(annotations.customQueryAnnotation) : [];
+// Support pipe-delimited multiple queries within a single annotation value
+const customQueryDirectives = customQueryRaw.flatMap(d => typeof d === 'string' ? d.split('|').map(s => s.trim()).filter(Boolean) : [d]);
+
+const parseCustomQuery = directive => {
+  if (typeof directive !== 'string') return undefined;
+  const colonIdx = directive.indexOf(':');
+  if (colonIdx < 0) return undefined;
+  const methodName = directive.substring(0, colonIdx).trim();
+  const rest = directive.substring(colonIdx + 1).trim();
+
+  const paramsMatch = rest.match(/params\s*\[\s*([^\]]*)\s*\]/);
+  const params = paramsMatch
+    ? paramsMatch[1].split(',').map(p => p.trim()).filter(Boolean)
+    : [];
+  if (params.length === 0) return undefined;
+
+  const eagerMatch = rest.match(/eager\s*\[\s*([^\]]*)\s*\]/);
+  const eagerRelationships = eagerMatch
+    ? eagerMatch[1].split(',').map(e => e.trim()).filter(Boolean)
+    : [];
+
+  const hasIndex = /\bindex\b/.test(rest);
+
+  // Resolve field metadata for each param
+  const resolvedParams = params.map(paramName => {
+    if (paramName === primaryKey.name) {
+      return { fieldName: primaryKey.name, fieldType: primaryKey.type, isPrimaryKey: true };
+    }
+    const field = fields.find(f => f.fieldName === paramName);
+    if (field) {
+      return { fieldName: field.fieldName, fieldType: field.fieldType, fieldNameCapitalized: field.fieldNameCapitalized, isPrimaryKey: false };
+    }
+    return { fieldName: paramName, fieldType: 'String', isPrimaryKey: false };
+  });
+
+  const isSingleIdQuery = resolvedParams.length === 1 && resolvedParams[0].isPrimaryKey;
+
+  return { methodName, resolvedParams, eagerRelationships, hasIndex, isSingleIdQuery };
+};
+
+const parsedCustomQueries = customQueryDirectives.map(parseCustomQuery).filter(Boolean);
+const hasCustomQueries = parsedCustomQueries.length > 0;
+_%>
+<%_ if (hasCustomQueries) { _%>
+
+    // ==================== Custom Query Methods ====================
+    // Generated from @customQueryAnnotation in JDL
+  <%_ for (const cq of parsedCustomQueries) { _%>
+
+    @Query("select <%= entityJpqlInstance %> from <%= persistClass %> <%= entityJpqlInstance %> where <%- cq.resolvedParams.map(p => `${entityJpqlInstance}.${p.fieldName} = :${p.fieldName}`).join(' and ') %>")
+    <%_ if (cq.eagerRelationships.length > 0) { _%>
+    @EntityGraph(attributePaths = {
+    <%_ cq.eagerRelationships.forEach((rel, index) => { _%>
+        "<%= rel %>"<% if (index !== cq.eagerRelationships.length - 1) { %>,<% } %>
+    <%_ }); _%>
+    })
+    <%_ } _%>
+    <% if (cq.isSingleIdQuery) { %>Optional<<%= persistClass %>><% } else { %>List<<%= persistClass %>><% } %> <%= cq.methodName %>(<%- cq.resolvedParams.map(p => `@Param("${p.fieldName}") ${p.fieldType} ${p.fieldName}`).join(', ') %>);
+  <%_ } _%>
+<%_ } _%>
+<%_ /* End Saathratri modification - custom query methods */ _%>
 <%_ /* Saathratri modification - pgvector similarity search methods */ _%>
 <%_ if (hasVectorFields) { _%>
 

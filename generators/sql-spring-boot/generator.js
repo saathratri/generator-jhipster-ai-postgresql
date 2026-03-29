@@ -581,6 +581,78 @@ export default class extends BaseApplicationGenerator {
           }
         }
 
+        // Saathratri modification - Generate Liquibase indexes for @customQueryAnnotation with 'index' flag
+        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
+          // JHipster 9 spreads annotations onto entity object, so check both locations
+          const customQueryAnnotations = entity.customQueryAnnotation ?? entity.annotations?.customQueryAnnotation;
+          const customQueryRawArr = customQueryAnnotations
+            ? (Array.isArray(customQueryAnnotations) ? customQueryAnnotations : [customQueryAnnotations])
+            : [];
+          // Support pipe-delimited multiple queries within a single annotation value
+          const customQueryDirectives = customQueryRawArr.flatMap(d => typeof d === 'string' ? d.split('|').map(s => s.trim()).filter(Boolean) : [d]);
+
+          const indexDirectives = [];
+          for (const directive of customQueryDirectives) {
+            if (typeof directive !== 'string') continue;
+            const colonIdx = directive.indexOf(':');
+            if (colonIdx < 0) continue;
+            const methodName = directive.substring(0, colonIdx).trim();
+            const rest = directive.substring(colonIdx + 1).trim();
+            if (!/\bindex\b/.test(rest)) continue;
+            const paramsMatch = rest.match(/params\s*\[\s*([^\]]*)\s*\]/);
+            const params = paramsMatch ? paramsMatch[1].split(',').map(p => p.trim()).filter(Boolean) : [];
+            if (params.length === 0) continue;
+
+            // Convert camelCase to snake_case for database column names
+            const toSnakeCase = str => str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+            const columnNames = params.map(paramName => {
+              const field = entity.fields.find(f => f.fieldName === paramName);
+              return field ? (field.fieldNameAsDatabaseColumn || field.columnName || toSnakeCase(paramName)) : toSnakeCase(paramName);
+            });
+
+            indexDirectives.push({ methodName, columnNames });
+          }
+
+          this.log.info(`[sql-spring-boot] Custom query index check for ${entity.entityClass}: found ${indexDirectives.length} index directives from ${customQueryDirectives.length} queries`);
+          if (indexDirectives.length === 0) continue;
+
+          const fs = await import('fs');
+          const changelogDir = this.destinationPath('src/main/resources/config/liquibase/changelog');
+          let changelogFiles = [];
+          try {
+            const suffix = `_added_entity_${entity.entityClass}.xml`;
+            changelogFiles = fs.readdirSync(changelogDir).filter(f => f.endsWith(suffix));
+          } catch (e) { /* ignore */ }
+
+          for (const file of changelogFiles) {
+            const changelogPath = this.destinationPath(`src/main/resources/config/liquibase/changelog/${file}`);
+            try {
+              let content = this.fs.read(changelogPath);
+              if (!content) continue;
+
+              for (const idx of indexDirectives) {
+                const indexName = `idx_${entity.entityTableName}_${idx.columnNames.join('_')}`;
+                if (content.includes(indexName)) continue;
+
+                const indexChangeset = `
+    <changeSet id="${entity.changelogDate}-custom-idx-${idx.methodName}" author="jhipster">
+        <createIndex indexName="${indexName}" tableName="${entity.entityTableName}">
+${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
+        </createIndex>
+    </changeSet>`;
+
+                content = content.replace('</databaseChangeLog>', indexChangeset + '\n</databaseChangeLog>');
+              }
+
+              this.fs.write(changelogPath, content);
+              this.log.info(`[sql-spring-boot] Added custom query indexes to Liquibase changelog: ${file}`);
+            } catch (e) {
+              this.log.warn(`[sql-spring-boot] Failed to add indexes to changelog ${file}: ${e.message}`);
+            }
+          }
+        }
+        // End Saathratri modification
+
         // Patch ExceptionTranslator to log stacktraces at ERROR level
         const exceptionTranslatorFile = `src/main/java/${packageFolder}/web/rest/errors/ExceptionTranslator.java`;
         this.editFile(exceptionTranslatorFile, content => {

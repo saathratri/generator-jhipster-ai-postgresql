@@ -72,6 +72,31 @@ for (const directive of excludeDirectives) {
 }
 const hasEntityGraphQueries = entityGraphDirectives.length > 0 && !reactive;
 /* End Saathratri modification */
+/* Saathratri modification - parse @customQueryAnnotation for REST endpoints */
+const customQueryRawRes = typeof annotations !== 'undefined'
+  ? normalizeDirectives(annotations.customQueryAnnotation) : [];
+const customQueryDirectivesRes = customQueryRawRes.flatMap(d => typeof d === 'string' ? d.split('|').map(s => s.trim()).filter(Boolean) : [d]);
+const parseCustomQueryRes = directive => {
+  if (typeof directive !== 'string') return undefined;
+  const colonIdx = directive.indexOf(':');
+  if (colonIdx < 0) return undefined;
+  const methodName = directive.substring(0, colonIdx).trim();
+  const rest = directive.substring(colonIdx + 1).trim();
+  const paramsMatch = rest.match(/params\s*\[\s*([^\]]*)\s*\]/);
+  const params = paramsMatch ? paramsMatch[1].split(',').map(p => p.trim()).filter(Boolean) : [];
+  if (params.length === 0) return undefined;
+  const resolvedParams = params.map(paramName => {
+    if (paramName === primaryKey.name) return { fieldName: primaryKey.name, fieldType: primaryKey.type, isPrimaryKey: true };
+    const field = fields.find(f => f.fieldName === paramName);
+    return field ? { fieldName: field.fieldName, fieldType: field.fieldType, isPrimaryKey: false }
+                 : { fieldName: paramName, fieldType: 'String', isPrimaryKey: false };
+  });
+  const isSingleIdQuery = resolvedParams.length === 1 && resolvedParams[0].isPrimaryKey;
+  return { methodName, resolvedParams, isSingleIdQuery };
+};
+const parsedCustomQueriesRes = customQueryDirectivesRes.map(parseCustomQueryRes).filter(Boolean);
+const hasCustomQueriesRes = parsedCustomQueriesRes.length > 0 && !reactive;
+/* End Saathratri modification */
 _%>
 <%_ if (!dtoMapstruct || serviceNo) { _%>
 import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
@@ -583,6 +608,49 @@ public class <%= entityClass %>Resource {
         Optional<<%= instanceType %>> <%= instanceName %> = <%= entityInstance %>Service.<%= entityGraphQuery.methodName %>(id);
         return ResponseUtil.wrapOrNotFound(<%= instanceName %>);
     }
+
+  <%_ } _%>
+<%_ } _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - custom query REST endpoints from @customQueryAnnotation */ _%>
+<%_ if (hasCustomQueriesRes) { _%>
+
+  <%_ for (const cq of parsedCustomQueriesRes) { _%>
+    <%_ if (cq.isSingleIdQuery) { _%>
+    /**
+     * {@code GET  /<%= entityApiUrl %>/:id/<%= cq.methodName %>} : custom query <%= cq.methodName %>.
+     *
+     * @param id the id of the <%= entityInstance %> to retrieve.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the <%= instanceName %>, or with status {@code 404 (Not Found)}.
+     */
+    @GetMapping("/{id}/<%= cq.methodName %>")
+    <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+    <%_ } _%>
+    public ResponseEntity<<%= instanceType %>> <%= cq.methodName %>(@PathVariable("id") <%= primaryKey.type %> id) {
+        LOG.debug("REST request custom query <%= cq.methodName %> on <%= entityClass %> : {}", id);
+        Optional<<%= instanceType %>> result = <%= entityInstance %>Service.<%= cq.methodName %>(id);
+        return ResponseUtil.wrapOrNotFound(result);
+    }
+    <%_ } else { _%>
+    /**
+     * {@code GET  /<%= entityApiUrl %>/<%= cq.methodName %>} : custom query <%= cq.methodName %>.
+     *
+    <%_ for (const p of cq.resolvedParams) { _%>
+     * @param <%= p.fieldName %> the <%= p.fieldName %> to search by.
+    <%_ } _%>
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of results in body.
+     */
+    @GetMapping("/<%= cq.methodName %>")
+    <%_ if (entitySpringReadPreAuthorize) { _%>
+    @PreAuthorize("<%- entitySpringReadPreAuthorize %>")
+    <%_ } _%>
+    public ResponseEntity<List<<%= instanceType %>>> <%= cq.methodName %>(<%- cq.resolvedParams.map(p => `@RequestParam("${p.fieldName}") ${p.fieldType} ${p.fieldName}`).join(', ') %>) {
+        LOG.debug("REST request custom query <%= cq.methodName %> on <%= entityClass %> : {}"<%- cq.resolvedParams.map(p => `, ${p.fieldName}`).join('') %>);
+        List<<%= instanceType %>> result = <%= entityInstance %>Service.<%= cq.methodName %>(<%- cq.resolvedParams.map(p => p.fieldName).join(', ') %>);
+        return ResponseEntity.ok().body(result);
+    }
+    <%_ } _%>
 
   <%_ } _%>
 <%_ } _%>

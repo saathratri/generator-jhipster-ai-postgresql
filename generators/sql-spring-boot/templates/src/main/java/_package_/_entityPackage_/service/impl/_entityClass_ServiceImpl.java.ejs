@@ -83,6 +83,30 @@ const hasEntityGraphQueries = entityGraphDirectives.length > 0 && !reactive;
 const hasEagerLoadableRelationships = implementsEagerLoadApis && relationships.some(relationship =>
   relationship.relationshipEagerLoad || relationship.relationshipManyToMany
 );
+/* Saathratri modification - parse @customQueryAnnotation */
+const customQueryRawImpl = typeof annotations !== 'undefined'
+  ? normalizeDirectives(annotations.customQueryAnnotation) : [];
+const customQueryDirectivesImpl = customQueryRawImpl.flatMap(d => typeof d === 'string' ? d.split('|').map(s => s.trim()).filter(Boolean) : [d]);
+const parseCustomQueryImpl = directive => {
+  if (typeof directive !== 'string') return undefined;
+  const colonIdx = directive.indexOf(':');
+  if (colonIdx < 0) return undefined;
+  const methodName = directive.substring(0, colonIdx).trim();
+  const rest = directive.substring(colonIdx + 1).trim();
+  const paramsMatch = rest.match(/params\s*\[\s*([^\]]*)\s*\]/);
+  const params = paramsMatch ? paramsMatch[1].split(',').map(p => p.trim()).filter(Boolean) : [];
+  if (params.length === 0) return undefined;
+  const resolvedParams = params.map(paramName => {
+    if (paramName === primaryKey.name) return { fieldName: primaryKey.name, fieldType: primaryKey.type, isPrimaryKey: true };
+    const field = fields.find(f => f.fieldName === paramName);
+    return field ? { fieldName: field.fieldName, fieldType: field.fieldType, isPrimaryKey: false }
+                 : { fieldName: paramName, fieldType: 'String', isPrimaryKey: false };
+  });
+  const isSingleIdQuery = resolvedParams.length === 1 && resolvedParams[0].isPrimaryKey;
+  return { methodName, resolvedParams, isSingleIdQuery };
+};
+const parsedCustomQueriesImpl = customQueryDirectivesImpl.map(parseCustomQueryImpl).filter(Boolean);
+const hasCustomQueriesImpl = parsedCustomQueriesImpl.length > 0 && !reactive;
 /* End Saathratri modification */
 
 _%>
@@ -456,6 +480,29 @@ public class <%= serviceClassName %><% if (serviceImpl) { %> implements <%= enti
         return <%= entityInstance %>Repository.<%= entityGraphQuery.methodName %>(<%= primaryKey.name %>)<% if (!dtoMapstruct) { %>;<% } else { %>
             .map(<%= entityInstance %>Mapper::to<%= this._.upperFirst(entityGraphQuery.methodName) %>);
         <% } %>
+    }
+  <%_ } _%>
+<%_ } _%>
+<%_ /* End Saathratri modification */ _%>
+<%_ /* Saathratri modification - custom query method implementations from @customQueryAnnotation */ _%>
+<%_ if (hasCustomQueriesImpl) { _%>
+
+  <%_ for (const cq of parsedCustomQueriesImpl) { _%>
+    @Override
+    <%_ if (databaseTypeSql) { _%>
+    @Transactional(readOnly = true)
+    <%_ } _%>
+    public <% if (cq.isSingleIdQuery) { %><%= optionalOrMono %><<%= instanceType %>><% } else { %>List<<%= instanceType %>><% } %> <%= cq.methodName %>(<%- cq.resolvedParams.map(p => `${p.fieldType} ${p.fieldName}`).join(', ') %>) {
+        LOG.debug("Request custom query <%= cq.methodName %> on <%= entityClass %> : {}"<%- cq.resolvedParams.map(p => `, ${p.fieldName}`).join('') %>);
+    <%_ if (cq.isSingleIdQuery) { _%>
+        return <%= entityInstance %>Repository.<%= cq.methodName %>(<%- cq.resolvedParams.map(p => p.fieldName).join(', ') %>)<% if (dtoMapstruct) { %>
+            .map(<%= entityInstance %>Mapper::toDto)<% } %>;
+    <%_ } else { _%>
+        return <%= entityInstance %>Repository.<%= cq.methodName %>(<%- cq.resolvedParams.map(p => p.fieldName).join(', ') %>)<% if (dtoMapstruct) { %>
+            .stream()
+            .map(<%= entityInstance %>Mapper::toDto)
+            .collect(java.util.stream.Collectors.toList())<% } %>;
+    <%_ } _%>
     }
   <%_ } _%>
 <%_ } _%>
