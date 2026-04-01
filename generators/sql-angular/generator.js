@@ -321,6 +321,28 @@ export default class extends BaseApplicationGenerator {
         const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
 
         for (const entity of entities.filter(e => !e.builtIn)) {
+          // Guard: skip entities that don't have required client properties
+          if (!entity.entityFolderName || !entity.entityFileName) continue;
+
+          // Fix toSignal() in field initializer for microfrontend compatibility.
+          // Module Federation loads remote components outside Angular's injection context,
+          // so toSignal() must be called inside the constructor instead.
+          const listTsForToSignalFix = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.ts`;
+          this.editFile(listTsForToSignalFix, content => {
+            if (!content.includes('filterOptions = toSignal(')) return content;
+            // Change field initializer to uninitialized declaration
+            content = content.replace(
+              /protected readonly filterOptions = toSignal\(this\.filters\.filterChanges\);/,
+              'protected readonly filterOptions;',
+            );
+            // Add assignment inside constructor
+            content = content.replace(
+              /constructor\(\) \{/,
+              'constructor() {\n    this.filterOptions = toSignal(this.filters.filterChanges);',
+            );
+            return content;
+          });
+
           // Detect vector fields using BOTH the prepared property AND the raw JDL annotation
           // This ensures detection works regardless of generator execution order
           const vectorFields = (entity.fields ?? []).filter(f =>
@@ -339,9 +361,6 @@ export default class extends BaseApplicationGenerator {
               vf.sourceFieldNameCapitalizedSaathratri = src.charAt(0).toUpperCase() + src.slice(1);
             }
           }
-
-          // Guard: skip entities that don't have required client properties
-          if (!entity.entityFolderName || !entity.entityFileName) continue;
 
           const listTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.ts`;
           const listHtmlFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.html`;
