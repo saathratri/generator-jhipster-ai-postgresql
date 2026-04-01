@@ -324,22 +324,60 @@ export default class extends BaseApplicationGenerator {
           // Guard: skip entities that don't have required client properties
           if (!entity.entityFolderName || !entity.entityFileName) continue;
 
-          // Fix toSignal() in field initializer for microfrontend compatibility.
-          // Module Federation loads remote components outside Angular's injection context,
-          // so toSignal() must be called inside the constructor instead.
+          // Fix toSignal() for microfrontend compatibility. Module Federation loads
+          // remote components outside Angular's injection context. Use Injector +
+          // runInInjectionContext to ensure toSignal() has access to the DI context.
           const listTsForToSignalFix = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.ts`;
           this.editFile(listTsForToSignalFix, content => {
-            if (!content.includes('filterOptions = toSignal(')) return content;
-            // Change field initializer to uninitialized declaration
+            if (!content.includes('filterOptions = toSignal(') && !content.includes('filterOptions;')) return content;
+            if (content.includes('runInInjectionContext')) return content; // already patched
+
+            // Add Injector and runInInjectionContext imports
+            if (!content.includes('Injector')) {
+              content = content.replace(
+                /import \{ (.*?) \} from '@angular\/core';/,
+                (match, imports) => {
+                  let updated = imports;
+                  if (!updated.includes('Injector')) updated += ', Injector';
+                  if (!updated.includes('inject')) updated += ', inject';
+                  return `import { ${updated} } from '@angular/core';`;
+                },
+              );
+            }
+            if (!content.includes('runInInjectionContext')) {
+              content = content.replace(
+                /import \{ (.*?) \} from '@angular\/core';/,
+                (match, imports) => `import { ${imports}, runInInjectionContext } from '@angular/core';`,
+              );
+            }
+
+            // Change field initializer to uninitialized declaration (if not already)
             content = content.replace(
               /protected readonly filterOptions = toSignal\(this\.filters\.filterChanges\);/,
               'protected readonly filterOptions;',
             );
-            // Add assignment inside constructor
+
+            // Add injector field if not present
+            if (!content.includes('private readonly injector')) {
+              content = content.replace(
+                /protected modalService = inject\(NgbModal\);/,
+                'protected modalService = inject(NgbModal);\n  private readonly injector = inject(Injector);',
+              );
+            }
+
+            // Replace toSignal in constructor with runInInjectionContext version
             content = content.replace(
-              /constructor\(\) \{/,
-              'constructor() {\n    this.filterOptions = toSignal(this.filters.filterChanges);',
+              /constructor\(\) \{\n\s*this\.filterOptions = toSignal\(this\.filters\.filterChanges\);/,
+              'constructor() {\n    this.filterOptions = runInInjectionContext(this.injector, () => toSignal(this.filters.filterChanges));',
             );
+            // Also handle if constructor doesn't have toSignal yet (field was already changed to uninitialized)
+            if (!content.includes('runInInjectionContext(this.injector')) {
+              content = content.replace(
+                /constructor\(\) \{/,
+                'constructor() {\n    this.filterOptions = runInInjectionContext(this.injector, () => toSignal(this.filters.filterChanges));',
+              );
+            }
+
             return content;
           });
 
