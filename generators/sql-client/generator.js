@@ -1,4 +1,5 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
+
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
     super(args, opts, { ...features, sbsBlueprint: true });
@@ -25,9 +26,9 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
       async composeTask() {
-        if (['angularX', 'angular'].includes(this.jhipsterConfigWithDefaults.clientFramework)) {
-         // Delegate the client sub-generator to the angular blueprint.
-         await this.composeWithJHipster('jhipster-ai-postgresql:sql-client');
+        if (['cassandra'].includes(this.jhipsterConfigWithDefaults.databaseType)) {
+          // Delegate to the i18n sub-generator.
+          await this.composeWith('./generators/i18n/index.js');
         }
       },
     });
@@ -63,12 +64,6 @@ export default class extends BaseApplicationGenerator {
     });
   }
 
-  get [BaseApplicationGenerator.PREPARING_EACH_ENTITY_FIELD]() {
-    return this.asPreparingEachEntityFieldTaskGroup({
-      async preparingEachEntityFieldTemplateTask() {},
-    });
-  }
-
   get [BaseApplicationGenerator.PREPARING_EACH_ENTITY_RELATIONSHIP]() {
     return this.asPreparingEachEntityRelationshipTaskGroup({
       async preparingEachEntityRelationshipTemplateTask() {},
@@ -89,14 +84,7 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
-      async writingTemplateTask({ application }) {
-        await this.writeFiles({
-          sections: {
-            files: [{ templates: ['template-file-client'] }],
-          },
-          context: application,
-        });
-      },
+      async writingTemplateTask() {},
     });
   }
 
