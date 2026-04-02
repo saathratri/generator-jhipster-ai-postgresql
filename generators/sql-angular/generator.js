@@ -183,6 +183,17 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.POST_WRITING]() {
     return this.asPostWritingTaskGroup({
+      async fixWebpackMicrofrontendSharing({ application }) {
+        if (application.microfrontend) {
+          this.editFile('webpack/webpack.microfrontend.js', content => {
+            if (content.includes('@angular/core/rxjs-interop')) return content;
+            return content.replace(
+              "'@angular/common/http': sharedDependencies['@angular/common'],\n  'rxjs/operators': sharedDependencies.rxjs,",
+              "'@angular/common/http': sharedDependencies['@angular/common'],\n  '@angular/core/rxjs-interop': sharedDependencies['@angular/core'],\n  'rxjs/operators': sharedDependencies.rxjs,",
+            );
+          });
+        }
+      },
       async postWritingTemplateTask({ application }) {
         // Only patch navbar for applications that have a client
         if (application.skipClient) return;
