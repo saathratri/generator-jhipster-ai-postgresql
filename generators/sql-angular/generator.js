@@ -194,6 +194,55 @@ export default class extends BaseApplicationGenerator {
           });
         }
       },
+      async addMaterialDepsForGateway({ application }) {
+        // SQL gateways that host Cassandra microfrontends need Angular Material
+        // pre-loaded. Without this, Material CSS is injected dynamically when a
+        // Cassandra microfrontend loads, shifting all navbar dropdown positions.
+        if (!application.applicationTypeGateway || !application.microfrontend) return;
+
+        // Add @angular/material, @angular/cdk, material-icons to package.json
+        const packageJsonPath = 'package.json';
+        this.editFile(packageJsonPath, content => {
+          if (!content.includes('@angular/material')) {
+            const angularVersion = application.nodeDependencies?.['@angular/common'] || '21.0.0';
+            content = content.replace(
+              '"@angular/platform-browser"',
+              `"@angular/material": "${angularVersion}",\n    "@angular/cdk": "${angularVersion}",\n    "@angular/platform-browser"`,
+            );
+          }
+          if (!content.includes('"material-icons"')) {
+            content = content.replace(
+              '"vitest-sonar-reporter": null',
+              '"vitest-sonar-reporter": null,\n    "material-icons": "1.13.14"',
+            );
+          }
+          return content;
+        });
+
+        // Add Material CSS imports to global.scss
+        const srcMainWebapp = application.srcMainWebapp ?? 'src/main/webapp/';
+        const globalScssPath = `${srcMainWebapp}content/scss/global.scss`;
+        this.editFile(globalScssPath, content => {
+          if (!content.includes('@angular/material/prebuilt-themes')) {
+            content = content.replace(
+              "@import 'bootstrap/scss/variables';",
+              "@import 'bootstrap/scss/variables';\n@import '@angular/material/prebuilt-themes/indigo-pink.css';\n@import 'material-icons/iconfont/material-icons.scss';",
+            );
+          }
+          return content;
+        });
+      },
+      async fixNavbarDropdownDisplay({ application }) {
+        // Replace display="dynamic" (Popper.js) with display="static" (CSS) on ALL
+        // navbar dropdowns. Cassandra microfrontends inject Angular Material/CDK CSS
+        // that breaks Popper.js positioning for every dropdown on the page.
+        if (application.skipClient) return;
+        const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
+        const navbarHtmlFile = `${clientSrcDir}app/layouts/navbar/navbar.html`;
+        this.editFile(navbarHtmlFile, content => {
+          return content.replace(/display="dynamic"/g, 'display="static"');
+        });
+      },
       async postWritingTemplateTask({ application }) {
         // Only patch navbar for applications that have a client
         if (application.skipClient) return;
@@ -277,7 +326,7 @@ export default class extends BaseApplicationGenerator {
         <li
           ngbDropdown
           class="nav-item dropdown pointer"
-          display="dynamic"
+          display="static"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
         >

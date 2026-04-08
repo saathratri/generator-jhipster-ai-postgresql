@@ -41,10 +41,19 @@
       typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphIncludeCustomAnnotation) : [];
     const entityGraphExcludeDirectives =
       typeof annotations !== 'undefined' ? normalizeDirectives(annotations.entityGraphExcludeCustomAnnotation) : [];
+    const parsedIncludeDirectives = entityGraphIncludeDirectives
+      .map(parseDirective)
+      .filter(Boolean);
     const parsedExcludeDirectives = entityGraphExcludeDirectives
       .map(parseDirective)
       .filter(Boolean);
-    const defaultEntityGraphDirective = parsedExcludeDirectives.length > 0 ? parsedExcludeDirectives[0] : undefined;
+    // Prefer include directive (small entity graph) over exclude directive (large entity graph)
+    // for the default findOne() method to avoid slow queries and N+1 lazy-load cascades on
+    // bidirectional @OneToOne mappedBy relationships.
+    const defaultEntityGraphDirective =
+      parsedIncludeDirectives.length > 0 ? parsedIncludeDirectives[0] :
+      parsedExcludeDirectives.length > 0 ? parsedExcludeDirectives[0] :
+      undefined;
     const useDefaultEntityGraphDirective = !reactive && !!defaultEntityGraphDirective;
     const entityGraphDirectiveMapperReference = defaultEntityGraphDirective
       ? `${mapper}::to${this._.upperFirst(defaultEntityGraphDirective.methodName)}`
