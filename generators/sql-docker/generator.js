@@ -94,6 +94,17 @@ export default class extends BaseApplicationGenerator {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
 
+        await this.writeFiles({
+          sections: {
+            files: [
+              {
+                templates: ['template-file-sql-docker'],
+              },
+            ],
+          },
+          context: application,
+        });
+
         if (application.applicationTypeMicroservice) {
 
           const portData = await sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);

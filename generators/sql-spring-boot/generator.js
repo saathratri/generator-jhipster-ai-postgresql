@@ -265,6 +265,7 @@ export default class extends BaseApplicationGenerator {
             files: [
               {
                 templates: [
+                  'template-file-sql-spring-boot',
                   'src/main/resources/config/application-dev.yml',
                 ]
               },
@@ -330,8 +331,6 @@ export default class extends BaseApplicationGenerator {
                     'web/rest/_entityClass_Resource.java',
                     'service/_entityClass_Service.java',
                     'service/impl/_entityClass_ServiceImpl.java',
-                    /* saathratri-needle-sql-copy-dto-class */
-                    'service/mapper/_entityClass_Mapper.java',
           ];
           if (entity.jpaMetamodelFiltering) {
             mainTemplates.push('service/_entityClass_QueryService.java');
@@ -341,12 +340,20 @@ export default class extends BaseApplicationGenerator {
             sections: {
               files: [
                 {
-                  condition: generator => generator.databaseTypeSql && !entity.skipServer,
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer && entity.dtoMapstruct,
                   ...javaMainPackageTemplatesBlock('_entityPackage_/'),
                   templates: mainTemplates,
                 },
                 {
-                  condition: generator => generator.databaseTypeSql && !entity.skipServer,
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer && entity.dtoMapstruct,
+                  ...javaMainPackageTemplatesBlock('_entityPackage_/'),
+                  templates: [
+                    'service/dto/_dtoClass_.java',
+                    'service/mapper/_entityClass_Mapper.java',
+                  ],
+                },
+                {
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer && entity.dtoMapstruct,
                   ...javaTestPackageTemplatesBlock('_entityPackage_/'),
                   templates: [
                     'web/rest/_entityClass_ResourceIT.java',
