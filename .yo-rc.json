@@ -145,34 +145,6 @@
         "sbs": true,
         "written": true
       },
-      "sql-server": {
-        "command": false,
-        "priorities": [
-          "initializing",
-          "prompting",
-          "configuring",
-          "composing",
-          "loading",
-          "preparing",
-          "configuringEachEntity",
-          "loadingEntities",
-          "preparingEachEntity",
-          "preparingEachEntityField",
-          "preparingEachEntityRelationship",
-          "postPreparingEachEntity",
-          "default",
-          "writing",
-          "writingEntities",
-          "postWriting",
-          "postWritingEntities",
-          "loadingTranslations",
-          "install",
-          "postInstall",
-          "end"
-        ],
-        "sbs": true,
-        "written": true
-      },
       "java": {
         "command": false,
         "priorities": [
