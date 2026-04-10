@@ -4,7 +4,7 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.14
+**Version:** 2.0.15
 **Author:** Amar Premsaran Patel
 **License:** MIT
 **JHipster Base Version:** 9.0.0
@@ -538,7 +538,14 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.14** (Current)
+**2.0.15** (Current)
+- Remove Cassandra-only client/sql-client generators and stale sql-server config
+- Clean up unreferenced templates and link all stub files
+- Add Material deps + dropdown display fix for SQL gateways with Cassandra microfrontends
+- Fix microfrontend NG0203: share @angular/core/rxjs-interop in webpack module federation
+- Fix toSignal: use runInInjectionContext for Module Federation
+
+**2.0.14**
 - Detail page MAP/SET rendering fix (converted to modern Angular control flow)
 - KeyValuePipe import for standalone components
 - MAP UI component screenshots and documentation
