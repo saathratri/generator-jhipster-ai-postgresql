@@ -31,6 +31,19 @@ Benefits:
 
 The following improvements have been made since the last open-source tagged release (v2.0.12):
 
+### v2.0.15
+- Removed Cassandra-only client/sql-client generators and stale sql-server config.
+- Cleaned up unreferenced templates and linked all stub files.
+- Added Material dependencies and dropdown display fix for SQL gateways with Cassandra microfrontends.
+- Fixed microfrontend NG0203: share `@angular/core/rxjs-interop` in webpack module federation.
+- Fixed `toSignal`: use `runInInjectionContext` for Module Federation.
+
+### v2.0.14
+- Detail page MAP/SET rendering fix (converted to modern Angular control flow).
+- `KeyValuePipe` import for standalone components.
+- MAP UI component screenshots and documentation.
+
+
 ### pgvector / AI Semantic Search
 - Added full **PostgreSQL pgvector** support for AI-powered semantic search on entity fields.
 - **Automatic embedding generation** on create and update -- when an entity with vector fields is saved, embeddings are generated from source text fields (e.g., `name` -> `nameEmbedding`) using the OpenAI Embedding API.
