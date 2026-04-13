@@ -301,10 +301,6 @@ export default class extends BaseApplicationGenerator {
                       sourceFile: 'src/main/java/_package_/domain/converter/PgVectorType.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/converter/PgVectorType.java`,
                     },
-                    {
-                      sourceFile: 'src/main/java/_package_/domain/package-info.java.ejs',
-                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/package-info.java`,
-                    },
                   ]
                 },
               ],
@@ -658,6 +654,41 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
           }
         }
         // End Saathratri modification
+
+        // Patch entity classes to add @Type(PgVectorType.class) on vector fields.
+        // Hibernate 7's built-in float[] mapping (FloatPrimitiveArrayJavaType + ArrayJdbcType)
+        // treats vector columns as PostgreSQL arrays, which fails. The @Type annotation
+        // per-field overrides the built-in mapping and uses our PgVectorType (Types.OTHER)
+        // which lets PostgreSQL handle the varchar↔vector cast transparently.
+        for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
+          const vectorFields = (entity.fields ?? []).filter(f => f.fieldTypeVectorSaathratri);
+          if (vectorFields.length === 0) continue;
+
+          const entityFile = `src/main/java/${packageFolder}/domain/${entity.entityClass}.java`;
+          this.editFile(entityFile, content => {
+            // Add imports if not present
+            if (!content.includes('import org.hibernate.annotations.Type;')) {
+              content = content.replace(
+                'import jakarta.persistence.*;',
+                'import jakarta.persistence.*;\nimport org.hibernate.annotations.Type;\nimport ' + application.packageName + '.domain.converter.PgVectorType;'
+              );
+            }
+
+            // Add @Type(PgVectorType.class) before each vector field's @Column annotation
+            for (const field of vectorFields) {
+              const columnAnnotation = `@Column(name = "${field.fieldNameAsDatabaseColumn}")`;
+              if (content.includes(columnAnnotation) && !content.includes(`@Type(PgVectorType.class)\n    ${columnAnnotation}`)) {
+                content = content.replace(
+                  `    ${columnAnnotation}`,
+                  `    @Type(PgVectorType.class)\n    ${columnAnnotation}`
+                );
+              }
+            }
+
+            return content;
+          });
+          this.log.info(`[sql-spring-boot] Added @Type(PgVectorType.class) to ${vectorFields.length} vector fields in ${entity.entityClass}`);
+        }
 
         // Patch ExceptionTranslator to log stacktraces at ERROR level
         const exceptionTranslatorFile = `src/main/java/${packageFolder}/web/rest/errors/ExceptionTranslator.java`;
