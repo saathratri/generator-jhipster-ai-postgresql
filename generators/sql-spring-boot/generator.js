@@ -254,11 +254,6 @@ export default class extends BaseApplicationGenerator {
           application.devJdbcUrlSaathratri = application.devJdbcUrl;
         }
 
-        // Add stringtype=unspecified for pgvector compatibility (allows varchar-to-vector auto-cast)
-        if (application.hasVectorFieldsSaathratri && application.devJdbcUrlSaathratri) {
-          const separator = application.devJdbcUrlSaathratri.includes('?') ? '&' : '?';
-          application.devJdbcUrlSaathratri += `${separator}stringtype=unspecified`;
-        }
 
         await this.writeFiles({
           sections: {
@@ -303,8 +298,12 @@ export default class extends BaseApplicationGenerator {
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/web/rest/EmbeddingMigrationResource.java`,
                     },
                     {
-                      sourceFile: 'src/main/java/_package_/domain/converter/PgVectorConverter.java.ejs',
-                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/converter/PgVectorConverter.java`,
+                      sourceFile: 'src/main/java/_package_/domain/converter/PgVectorType.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/converter/PgVectorType.java`,
+                    },
+                    {
+                      sourceFile: 'src/main/java/_package_/domain/package-info.java.ejs',
+                      destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/package-info.java`,
                     },
                   ]
                 },

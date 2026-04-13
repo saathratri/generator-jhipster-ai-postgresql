@@ -1,0 +1,8 @@
+/**
+ * Registers {@link <%= packageName %>.domain.converter.PgVectorType} as the
+ * Hibernate type for all {@code float[]} entity fields, so pgvector columns
+ * are bound with {@link java.sql.Types#OTHER} instead of
+ * {@link java.sql.Types#VARCHAR}.
+ */
+@org.hibernate.annotations.TypeRegistration(basicClass = float[].class, userType = <%= packageName %>.domain.converter.PgVectorType.class)
+package <%= packageName %>.domain;
