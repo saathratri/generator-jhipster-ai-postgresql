@@ -469,6 +469,34 @@ export default class extends BaseApplicationGenerator {
             return content;
           });
 
+          // --- Patch the Angular entity service's default find(id) to hit the
+          // --- "full details" entity-graph endpoint whenever the entity declares
+          // --- an @entityGraphExcludeCustomAnnotation. The include-annotation
+          // --- graph (narrow) is still used by the backend's default findOne
+          // --- and by explicit callers that need a lighter payload; the JHipster
+          // --- admin detail/edit views want every relationship column rendered,
+          // --- which only the exclude-annotation ("full") graph guarantees.
+          const excludeAnnotation = entity.annotations?.entityGraphExcludeCustomAnnotation;
+          if (typeof excludeAnnotation === 'string' && excludeAnnotation.trim()) {
+            const firstDirective = excludeAnnotation.split('|')[0].trim();
+            const colonIdx = firstDirective.indexOf(':');
+            const fullDetailsMethod = colonIdx > 0 ? firstDirective.substring(0, colonIdx).trim() : '';
+            if (fullDetailsMethod) {
+              const fullDetailsServiceTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/service/${entity.entityFileName}.service.ts`;
+              this.editFile(fullDetailsServiceTsFile, content => {
+                if (content.includes(`/${fullDetailsMethod}\``)) return content;
+                // Only rewrite the default find(id) URL - leave findAll, create,
+                // update, etc. untouched. Match the exact template-literal shape
+                // produced by upstream JHipster's _entityFile_.service.ts.ejs.
+                const findUrlPattern = /find\(id: string\)[\s\S]*?\.get<Rest\w+>\(`\$\{this\.resourceUrl\}\/\$\{encodeURIComponent\(id\)\}(`)/;
+                return content.replace(findUrlPattern, match =>
+                  match.replace(/`$/, `/${fullDetailsMethod}\``),
+                );
+              });
+              this.log.info(`[sql-angular] Patched ${fullDetailsServiceTsFile} find(id) -> /${fullDetailsMethod}`);
+            }
+          }
+
           // Detect vector fields using BOTH the prepared property AND the raw JDL annotation
           // This ensures detection works regardless of generator execution order
           const vectorFields = (entity.fields ?? []).filter(f =>
