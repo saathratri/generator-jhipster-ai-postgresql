@@ -31,7 +31,11 @@ const repository = entityInstance  + 'Repository';
 
 /* Saathratri modification - entity graph directive parsing */
 const normalizeDirectives = value =>
-  value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
+  value === undefined || value === null
+    ? []
+    : (Array.isArray(value) ? value : [value]).flatMap(v =>
+        typeof v === 'string' ? v.split('|').map(s => s.trim()).filter(Boolean) : [v],
+      );
 const parseDirective = directive => {
   if (typeof directive !== 'string') return undefined;
   const [rawMethod, rawAttributes] = directive.split(':');

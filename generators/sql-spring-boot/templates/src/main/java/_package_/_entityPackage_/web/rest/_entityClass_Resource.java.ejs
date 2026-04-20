@@ -22,7 +22,11 @@ package <%= entityAbsolutePackage %>.web.rest;
 const viaService = !serviceNo;
 /* Saathratri modification - entity graph parsing for custom annotated query endpoints */
 const normalizeDirectives = value =>
-  value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
+  value === undefined || value === null
+    ? []
+    : (Array.isArray(value) ? value : [value]).flatMap(v =>
+        typeof v === 'string' ? v.split('|').map(s => s.trim()).filter(Boolean) : [v],
+      );
 const parseDirective = directive => {
   if (typeof directive !== 'string') return undefined;
   const [rawMethod, rawAttributes] = directive.split(':');

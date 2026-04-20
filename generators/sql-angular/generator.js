@@ -194,6 +194,34 @@ export default class extends BaseApplicationGenerator {
           });
         }
       },
+      async fixEntityDetailGridOverflow({ application }) {
+        // Upstream JHipster's entity-detail grid (.row-md.jh-entity-details) uses
+        // `grid-template-columns: auto 1fr`, but grid items default to
+        // min-width: auto (= min-content). A long unbreakable value in a dd (API
+        // keys, prompt text, etc.) forces the grid to expand past the viewport
+        // and pushes the dt column off-screen, hiding every label. Patch dd to
+        // allow the 1fr track to actually constrain the cell and wrap long text.
+        if (application.skipClient) return;
+        const srcMainWebapp = application.srcMainWebapp ?? 'src/main/webapp/';
+        const globalScssPath = `${srcMainWebapp}content/scss/global.scss`;
+        this.editFile(globalScssPath, content => {
+          if (content.includes('overflow-wrap: anywhere')) return content;
+          return content.replace(
+            `    dd {
+      border-bottom: 1px solid #eee;
+      padding: 0.5em 0;
+      margin-left: 0;
+    }`,
+            `    dd {
+      border-bottom: 1px solid #eee;
+      padding: 0.5em 0;
+      margin-left: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }`,
+          );
+        });
+      },
       async addMaterialDepsForGateway({ application }) {
         // SQL gateways that host Cassandra microfrontends need Angular Material
         // pre-loaded. Without this, Material CSS is injected dynamically when a

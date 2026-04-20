@@ -23,7 +23,11 @@ import <%= entityAbsolutePackage %>.domain.<%= persistClass %>;
 <%_ /* Saathratri modification - entity graph directive parsing for custom repository methods */ _%>
 <%_
 const normalizeDirectives = value =>
-  value !== undefined && value !== null ? (Array.isArray(value) ? value : [value]) : [];
+  value === undefined || value === null
+    ? []
+    : (Array.isArray(value) ? value : [value]).flatMap(v =>
+        typeof v === 'string' ? v.split('|').map(s => s.trim()).filter(Boolean) : [v],
+      );
 const parseDirective = directive => {
   if (typeof directive !== 'string') return undefined;
   const [rawMethod, rawAttributes] = directive.split(':');
