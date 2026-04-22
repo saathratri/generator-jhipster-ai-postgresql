@@ -398,15 +398,29 @@ export default class extends BaseApplicationGenerator {
         // full-details mapper path).
         if (application.databaseTypeSql) {
           this.editFile(pomFile, content => {
-            if (content.includes('hibernate-enhance-maven-plugin')) return content;
+            // Idempotently converge to the correct coordinates. Strip any
+            // pre-existing enhance-plugin version property and <plugin> block
+            // (from an earlier generator that used org.hibernate.orm or a
+            // wrong version like 7.2.4.Final that doesn't exist on central),
+            // then re-insert the known-good config. Pin to 6.6.49.Final, the
+            // latest STABLE (no 7.x Final is published yet - only Alpha/Beta).
+            // The 6.6.49 plugin works against Hibernate 7 entities because
+            // enhancement operates on stable jakarta.persistence annotations
+            // (@Entity, @OneToOne, etc.), not Hibernate internals.
+            content = content.replace(
+              /^ *<hibernate-enhance-maven-plugin\.version>[^<]*<\/hibernate-enhance-maven-plugin\.version>\n/m,
+              '',
+            );
+            content = content.replace(
+              /^ *<plugin>\n(?: *<groupId>[^<]*<\/groupId>\n)? *<artifactId>hibernate-enhance-maven-plugin<\/artifactId>[\s\S]*?<\/plugin>\n/m,
+              '',
+            );
 
-            // Pin plugin version (matches Spring Boot 4.0.3's hibernate-core 7.2.x)
-            if (!content.includes('<hibernate-enhance-maven-plugin.version>')) {
-              content = content.replace(
-                '    </properties>',
-                '        <hibernate-enhance-maven-plugin.version>7.2.4.Final</hibernate-enhance-maven-plugin.version>\n    </properties>',
-              );
-            }
+            // Insert version property
+            content = content.replace(
+              '    </properties>',
+              '        <hibernate-enhance-maven-plugin.version>6.6.49.Final</hibernate-enhance-maven-plugin.version>\n    </properties>',
+            );
 
             // Anchor on the spring-boot-maven-plugin block (12-space indent), unique in the active <build><plugins>.
             const sbAnchor =
@@ -417,7 +431,7 @@ export default class extends BaseApplicationGenerator {
             if (content.includes(sbAnchor)) {
               const enhancePlugin =
                 '            <plugin>\n' +
-                '                <groupId>org.hibernate.orm</groupId>\n' +
+                '                <groupId>org.hibernate.orm.tooling</groupId>\n' +
                 '                <artifactId>hibernate-enhance-maven-plugin</artifactId>\n' +
                 '                <version>${hibernate-enhance-maven-plugin.version}</version>\n' +
                 '                <executions>\n' +
