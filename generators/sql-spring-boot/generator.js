@@ -386,6 +386,57 @@ export default class extends BaseApplicationGenerator {
           return content;
         });
 
+        // Hibernate bytecode enhancement: enable lazy initialization for inverse
+        // @OneToOne (and to-one in general) so they actually defer SELECT until
+        // accessed. Without this, Hibernate fires an extra SELECT per loaded
+        // entity to resolve nullable inverse one-to-ones (e.g.
+        // TajEmail.emailConsent, Phone.textConsent, TajOrganization.contractor)
+        // even though they're declared fetch=LAZY -- a proxy can't decide
+        // null-vs-entity on the inverse side without querying. Bytecode
+        // enhancement generates true lazy proxies at compile time so the
+        // SELECT is deferred until actually accessed (it never is, in our
+        // full-details mapper path).
+        if (application.databaseTypeSql) {
+          this.editFile(pomFile, content => {
+            if (content.includes('hibernate-enhance-maven-plugin')) return content;
+
+            // Pin plugin version (matches Spring Boot 4.0.3's hibernate-core 7.2.x)
+            if (!content.includes('<hibernate-enhance-maven-plugin.version>')) {
+              content = content.replace(
+                '    </properties>',
+                '        <hibernate-enhance-maven-plugin.version>7.2.4.Final</hibernate-enhance-maven-plugin.version>\n    </properties>',
+              );
+            }
+
+            // Anchor on the spring-boot-maven-plugin block (12-space indent), unique in the active <build><plugins>.
+            const sbAnchor =
+              '            <plugin>\n' +
+              '                <groupId>org.springframework.boot</groupId>\n' +
+              '                <artifactId>spring-boot-maven-plugin</artifactId>\n' +
+              '            </plugin>';
+            if (content.includes(sbAnchor)) {
+              const enhancePlugin =
+                '            <plugin>\n' +
+                '                <groupId>org.hibernate.orm</groupId>\n' +
+                '                <artifactId>hibernate-enhance-maven-plugin</artifactId>\n' +
+                '                <version>${hibernate-enhance-maven-plugin.version}</version>\n' +
+                '                <executions>\n' +
+                '                    <execution>\n' +
+                '                        <id>enhance</id>\n' +
+                '                        <goals><goal>enhance</goal></goals>\n' +
+                '                    </execution>\n' +
+                '                </executions>\n' +
+                '            </plugin>';
+              content = content.replace(sbAnchor, sbAnchor + '\n' + enhancePlugin);
+              this.log.info(
+                '[sql-spring-boot] Added hibernate-enhance-maven-plugin to pom.xml (kills inverse @OneToOne N+1 by enabling true lazy loading)',
+              );
+            }
+
+            return content;
+          });
+        }
+
         // Add Spring AI dependencies if any entity has vector fields
         if (application.hasVectorFieldsSaathratri) {
           this.editFile(pomFile, content => {
