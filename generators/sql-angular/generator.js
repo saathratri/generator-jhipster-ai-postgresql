@@ -3,6 +3,9 @@ import { generateEntityClientEnumImports } from 'generator-jhipster/generators/c
 import { filterEntitiesAndPropertiesForClient } from 'generator-jhipster/generators/client/support';
 import { angularSaathratriUtils } from './sql-angular-utils.js';
 import { angularFilesFromSaathratri, entityModelFiles } from './entity-files.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // Navbar modifications are applied in POST_WRITING via editFile
 // to avoid needing upstream Angular variables (microfrontend, clientSrcDir, etc.)
@@ -495,6 +498,168 @@ export default class extends BaseApplicationGenerator {
               });
               this.log.info(`[sql-angular] Patched ${fullDetailsServiceTsFile} find(id) -> /${fullDetailsMethod}`);
             }
+          }
+
+          // --- Mirror the HTML template's excluded-relationship filter into the
+          // --- update.ts and -form.service.ts so those relationships don't leave
+          // --- behind dead <X>Service.query() calls, unused signals/injects, or
+          // --- FormControls that would send an empty array on every save. The
+          // --- HTML template (update.html.ejs) already skips these - this just
+          // --- cleans up the matching supporting code in the two upstream-
+          // --- generated TypeScript files we don't own a template for.
+          const excludedFormRels = [];
+          if (typeof excludeAnnotation === 'string' && excludeAnnotation.trim()) {
+            const firstDirective = excludeAnnotation.split('|')[0].trim();
+            const bracketMatch = firstDirective.match(/\[\s*([^\]]+?)\s*\]/);
+            if (bracketMatch) {
+              const excludedNames = bracketMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+              for (const name of excludedNames) {
+                const rel = (entity.relationships || []).find(
+                  r =>
+                    r.propertyName === name ||
+                    r.relationshipFieldNamePlural === name ||
+                    r.relationshipFieldName === name ||
+                    r.relationshipName === name,
+                );
+                if (rel) excludedFormRels.push(rel);
+              }
+            }
+          }
+
+          if (excludedFormRels.length) {
+            const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const updateTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-update.ts`;
+            const formSvcFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-form.service.ts`;
+
+            this.editFile(updateTsFile, content => {
+              for (const rel of excludedFormRels) {
+                const ea = rel.otherEntity.entityAngularName;
+                const pn = rel.propertyName;
+                const svcVar = ea.charAt(0).toLowerCase() + ea.slice(1) + 'Service';
+                const eaE = escapeRe(ea);
+                const pnE = escapeRe(pn);
+                const svcE = escapeRe(svcVar);
+
+                // Drop "import { IX } from '...';" and "import { XService } from '...';"
+                content = content.replace(new RegExp(`^import \\{ I${eaE} \\} from [^\\n]*?;\\n`, 'm'), '');
+                content = content.replace(new RegExp(`^import \\{ ${eaE}Service \\} from [^\\n]*?;\\n`, 'm'), '');
+                // Drop "xsSharedCollection = signal<IX[]>([]);"
+                content = content.replace(
+                  new RegExp(`\\s*${pnE}SharedCollection = signal<I${eaE}\\[\\]>\\(\\[\\]\\);`),
+                  '',
+                );
+                // Drop "protected xService = inject(XService);"
+                content = content.replace(new RegExp(`\\s*protected ${svcE} = inject\\(${eaE}Service\\);`), '');
+                // Drop "compareX = (o1: IX | null, o2: IX | null): boolean => this.xService.compareX(o1, o2);"
+                content = content.replace(
+                  new RegExp(
+                    `\\s*compare${eaE} = \\(o1: I${eaE} \\| null, o2: I${eaE} \\| null\\): boolean =>[\\s\\n]*this\\.${svcE}\\.compare${eaE}\\(o1, o2\\);`,
+                  ),
+                  '',
+                );
+                // Drop updateForm block "this.xsSharedCollection.update(xs => ...);"
+                content = content.replace(
+                  new RegExp(`\\s*this\\.${pnE}SharedCollection\\.update\\([\\s\\S]*?\\n\\s*\\);`),
+                  '',
+                );
+                // Drop loadRelationshipsOptions block "this.xService.query()...subscribe(...);"
+                content = content.replace(
+                  new RegExp(`\\s*this\\.${svcE}\\s*\\.query\\(\\)[\\s\\S]*?\\.subscribe\\([\\s\\S]*?\\);`),
+                  '',
+                );
+              }
+              return content;
+            });
+
+            this.editFile(formSvcFile, content => {
+              // Defensive: if the file wasn't written yet or isn't a string, bail
+              // out and leave it alone. Returning anything falsy here has caused
+              // the file to vanish from the output on past runs.
+              if (typeof content !== 'string' || content.length === 0) {
+                this.log.info(`[sql-angular] skip form-service edit, empty content: ${formSvcFile}`);
+                return content;
+              }
+              const excludedPns = excludedFormRels.map(r => r.propertyName);
+              // Upstream writes the Pick<> union on a SINGLE long line
+              // (prettier re-wraps it later). Line filtering can't touch it,
+              // so strip excluded names out of the in-line union first.
+              for (const pn of excludedPns) {
+                const pnEsc = pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                content = content.replace(new RegExp(`\\s*\\|\\s*'${pnEsc}'`, 'g'), '');
+              }
+              const lines = content.split('\n');
+              const kept = [];
+              let dropped = 0;
+              // The upstream createFormGroup formats each entry over 3 lines:
+              //     xs: new FormControl(
+              //       tajOrganizationRawValue.xs ?? []
+              //     ),
+              // so when we drop the first line we also have to consume everything
+              // up to and including the `),` that closes that call. We track
+              // "remainingParens" while skipping to allow for any bracket depth.
+              let skipUntilParensClose = 0;
+              for (const line of lines) {
+                if (skipUntilParensClose > 0) {
+                  // continue dropping until the paren count balances
+                  for (const ch of line) {
+                    if (ch === '(') skipUntilParensClose++;
+                    else if (ch === ')') skipUntilParensClose--;
+                  }
+                  dropped++;
+                  continue;
+                }
+                const trimmed = line.trim();
+                let drop = false;
+                for (const pn of excludedPns) {
+                  if (
+                    // Pick union entry:            | 'xs'
+                    trimmed === `| '${pn}'` ||
+                    // FormGroupContent decl:       xs: FormControl<...['xs']>;
+                    /^\w+: FormControl<.+>;$/.test(trimmed) && trimmed.startsWith(`${pn}: `) ||
+                    // createFormGroup init:        xs: new FormControl(...) - may be 1 or many lines
+                    trimmed.startsWith(`${pn}: new FormControl(`) ||
+                    // getFormDefaults entry:       xs: [],
+                    trimmed === `${pn}: [],` ||
+                    // convertToRawValue entry:     xs: tajOrganization.xs ?? [],
+                    trimmed.startsWith(`${pn}: `) && trimmed.endsWith(`.${pn} ?? [],`)
+                  ) {
+                    drop = true;
+                    dropped++;
+                    // If this is the FormControl opener, start paren-balancing
+                    // so the next N lines (body + `),`) get swept too.
+                    if (trimmed.startsWith(`${pn}: new FormControl(`)) {
+                      let depth = 0;
+                      for (const ch of line) {
+                        if (ch === '(') depth++;
+                        else if (ch === ')') depth--;
+                      }
+                      if (depth > 0) skipUntilParensClose = depth;
+                    }
+                    break;
+                  }
+                }
+                if (!drop) kept.push(line);
+              }
+              this.log.info(
+                `[sql-angular] form-service: dropped ${dropped} line(s) for ${excludedPns.join(',')} in ${entity.entityFileName}`,
+              );
+              const result = kept.join('\n');
+              // Debug: dump the pre/post content so we can diagnose syntax errors
+              // that JHipster's prettier pass flags. Survives across runs.
+              try {
+                const dumpDir = path.join(os.tmpdir(), 'saathratri-formsvc-dump');
+                fs.mkdirSync(dumpDir, { recursive: true });
+                fs.writeFileSync(path.join(dumpDir, `${entity.entityFileName}.pre.ts`), content);
+                fs.writeFileSync(path.join(dumpDir, `${entity.entityFileName}.post.ts`), result);
+              } catch (e) {
+                this.log.info(`[sql-angular] dump failed: ${e.message}`);
+              }
+              return result;
+            });
+
+            this.log.info(
+              `[sql-angular] Stripped ${excludedFormRels.length} excluded rel(s) from ${entity.entityFileName} update/form`,
+            );
           }
 
           // Detect vector fields using BOTH the prepared property AND the raw JDL annotation

@@ -210,7 +210,28 @@ _%>
                 </div>
             <% if (field.autoGenerate) { %>}<% } %>
 <%_ } _%>
-<%_ for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey)) {
+<%_
+  /* Saathratri modification - skip relationships excluded from the "full details"
+     entity graph (entityGraphExcludeCustomAnnotation). The backend mapper zeroes
+     those out of the DTO so the form has nothing to pre-select, and the client
+     would otherwise still issue a <X>Service.query() for each excluded listbox
+     just to populate options that can't be saved. */
+  const excludedFromUpdateForm = new Set();
+  if (typeof annotations !== 'undefined') {
+    const excludeAnno = annotations.entityGraphExcludeCustomAnnotation;
+    if (typeof excludeAnno === 'string' && excludeAnno.trim()) {
+      const firstDirective = excludeAnno.split('|')[0].trim();
+      const bracketMatch = firstDirective.match(/\[\s*([^\]]+?)\s*\]/);
+      if (bracketMatch) {
+        for (const tok of bracketMatch[1].split(',')) {
+          const s = tok.trim();
+          if (s) excludedFromUpdateForm.add(s);
+        }
+      }
+    }
+  }
+_%>
+<%_ for (const relationship of relationships.filter(rel => rel.otherEntity.primaryKey && !excludedFromUpdateForm.has(rel.propertyName))) {
   const { otherEntity, relationshipName, propertyName, otherEntityField, relationshipRequired } = relationship;
   const otherEntityName = relationship.otherEntityName;
   const relationshipFieldName = relationship.relationshipFieldName;
