@@ -535,17 +535,26 @@ export default class extends BaseApplicationGenerator {
               for (const rel of excludedFormRels) {
                 const ea = rel.otherEntity.entityAngularName;
                 const pn = rel.propertyName;
+                // Shared-collection variable names come from the OTHER entity's instance plural
+                // (upstream template: `<%= otherEntity.entityInstancePlural %>SharedCollection`),
+                // NOT from the relationship's propertyName. For relationships like
+                // `hiredContractor -> Contractor` these differ (hiredContractors vs contractors),
+                // so matching by pn silently fails and leaves orphans. They coincide only when
+                // the JDL names the relationship after the other entity's plural (e.g. customers
+                // -> Customer), which is why the bug was latent until a mismatched rel was added.
+                const eip = rel.otherEntity.entityInstancePlural;
                 const svcVar = ea.charAt(0).toLowerCase() + ea.slice(1) + 'Service';
                 const eaE = escapeRe(ea);
                 const pnE = escapeRe(pn);
+                const eipE = escapeRe(eip);
                 const svcE = escapeRe(svcVar);
 
                 // Drop "import { IX } from '...';" and "import { XService } from '...';"
                 content = content.replace(new RegExp(`^import \\{ I${eaE} \\} from [^\\n]*?;\\n`, 'm'), '');
                 content = content.replace(new RegExp(`^import \\{ ${eaE}Service \\} from [^\\n]*?;\\n`, 'm'), '');
-                // Drop "xsSharedCollection = signal<IX[]>([]);"
+                // Drop "xsSharedCollection = signal<IX[]>([]);" (name derives from otherEntity.entityInstancePlural)
                 content = content.replace(
-                  new RegExp(`\\s*${pnE}SharedCollection = signal<I${eaE}\\[\\]>\\(\\[\\]\\);`),
+                  new RegExp(`\\s*${eipE}SharedCollection = signal<I${eaE}\\[\\]>\\(\\[\\]\\);`),
                   '',
                 );
                 // Drop "protected xService = inject(XService);"
@@ -557,9 +566,11 @@ export default class extends BaseApplicationGenerator {
                   ),
                   '',
                 );
-                // Drop updateForm block "this.xsSharedCollection.update(xs => ...);"
+                // Drop updateForm block "this.xsSharedCollection.update(xs => ...);" — the block
+                // body accesses `tajOrganization.${pn}`, but the collection itself is named after
+                // eip, so we anchor the regex on the collection prefix.
                 content = content.replace(
-                  new RegExp(`\\s*this\\.${pnE}SharedCollection\\.update\\([\\s\\S]*?\\n\\s*\\);`),
+                  new RegExp(`\\s*this\\.${eipE}SharedCollection\\.update\\([\\s\\S]*?\\n\\s*\\);`),
                   '',
                 );
                 // Drop loadRelationshipsOptions block "this.xService.query()...subscribe(...);"
