@@ -86,12 +86,24 @@ export function getDisplayLabelField(otherEntity) {
  */
 export function getOwningSideFieldName(entity, otherEntity, relationship) {
   const otherRels = otherEntity?.relationships || [];
-  const inverse = otherRels.find(
-    r =>
-      r.otherEntityName === entity.entityInstance ||
-      r.otherEntityName === entity.name ||
-      r.otherEntityName === entity.entityNameCapitalized,
-  );
+  // Two-pair entity relationships are common (e.g. Contractor has both
+  // `organization` (OneToOne) and `workedForOrganizations` (ManyToMany
+  // inverse to TajOrganization.hiredContractor)). Pick the right inverse by
+  // matching the relationship NAME we already know about — every JHipster
+  // relationship records its peer's role name in `otherEntityRelationshipName`
+  // — and only fall back to a same-peer search if that anchor is missing.
+  const wantedName = relationship?.otherEntityRelationshipName;
+  let inverse = wantedName
+    ? otherRels.find(r => r.relationshipName === wantedName || r.propertyName === wantedName || r.relationshipFieldName === wantedName)
+    : null;
+  if (!inverse) {
+    inverse = otherRels.find(
+      r =>
+        r.otherEntityName === entity.entityInstance ||
+        r.otherEntityName === entity.name ||
+        r.otherEntityName === entity.entityNameCapitalized,
+    );
+  }
   if (!inverse) return null;
   return (
     inverse.relationshipFieldNamePlural ||

@@ -581,6 +581,241 @@ export class LazyRelationshipReadModalComponent implements OnInit {
         this.writeDestination(this.destinationPath(`${dir}/lazy-relationship-read-modal.html`), componentHtml);
         this.log.ok(`[sql-angular] lazy-load: wrote LazyRelationshipReadModalComponent into ${dir}`);
       },
+
+      async writeLazyRelationshipEditModalComponent({ application }) {
+        // Editable counterpart of LazyRelationshipReadModalComponent. Fetches:
+        //   - GET /{parentApiUrl}/{parentId}/{fieldName}/ids        (current member IDs, for pre-selection)
+        //   - GET /{parentApiUrl}/{parentId}/{fieldName}/candidates (paginated peer list for picker)
+        // Renders checkboxes per row (pre-checked from /ids), preserves the
+        // selection set across pagination/search, and on Save PUTs the new
+        // membership set to /{parentApiUrl}/{parentId}/{fieldName}.
+        if (application.skipClient || !application.databaseTypeSql || !application.applicationTypeMicroservice) {
+          return;
+        }
+        const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
+        const dir = `${clientSrcDir}app/shared/lazy-relationship`;
+
+        const componentTs = `import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { NgbActiveModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
+import { TranslateModule } from '@ngx-translate/core';
+
+/**
+ * Generic edit popup for a single excluded relationship of a parent entity.
+ *
+ * The user picks which existing peer entities should be members of the
+ * relationship (no new-peer creation here — peers are created via their
+ * own admin pages). The selection set is preserved across pagination and
+ * search so a Save commits the full picked set, not just the current page.
+ *
+ * Caller workflow:
+ *   const modal = this.modalService.open(LazyRelationshipEditModalComponent, { size: 'lg', backdrop: 'static' });
+ *   modal.componentInstance.parentApiUrl = '/api/taj-organizations';
+ *   modal.componentInstance.parentId = this.entity.id;
+ *   modal.componentInstance.fieldName = 'customers';
+ *   modal.componentInstance.fieldDisplayName = 'Customers';
+ *   modal.componentInstance.displayLabelField = 'name';
+ *   modal.result.then(saved => { ... });  // 'saved' if Save clicked, dismissed otherwise
+ */
+@Component({
+  selector: 'jhi-lazy-relationship-edit-modal',
+  standalone: true,
+  templateUrl: './lazy-relationship-edit-modal.html',
+  imports: [CommonModule, FormsModule, NgbPagination, TranslateModule],
+})
+export class LazyRelationshipEditModalComponent implements OnInit {
+  parentApiUrl = '';
+  parentId: string | number = '';
+  fieldName = '';
+  fieldDisplayName = '';
+  displayLabelField: string | null = null;
+
+  protected readonly activeModal = inject(NgbActiveModal);
+  private readonly http = inject(HttpClient);
+
+  readonly candidates = signal<Array<Record<string, unknown>>>([]);
+  readonly totalCandidates = signal<number>(0);
+  readonly page = signal<number>(1);
+  readonly pageSize = signal<number>(20);
+  readonly searchTerm = signal<string>('');
+  readonly loadingCandidates = signal<boolean>(false);
+  readonly loadingIds = signal<boolean>(false);
+  readonly saving = signal<boolean>(false);
+  readonly errorMessage = signal<string | null>(null);
+
+  // Stringified ids so a UUID and a numeric primary key compare consistently.
+  readonly selectedIds = signal<Set<string>>(new Set());
+
+  ngOnInit(): void {
+    this.loadIds();
+    this.loadCandidates();
+  }
+
+  loadIds(): void {
+    this.loadingIds.set(true);
+    const url = \`\${this.parentApiUrl}/\${encodeURIComponent(String(this.parentId))}/\${this.fieldName}/ids\`;
+    this.http.get<Array<string | number>>(url).subscribe({
+      next: ids => {
+        this.selectedIds.set(new Set((ids ?? []).map(id => String(id))));
+        this.loadingIds.set(false);
+      },
+      error: err => {
+        this.errorMessage.set(err?.message ?? 'Failed to load current selection');
+        this.loadingIds.set(false);
+      },
+    });
+  }
+
+  loadCandidates(): void {
+    this.loadingCandidates.set(true);
+    let params = new HttpParams()
+      .set('page', String(this.page() - 1))
+      .set('size', String(this.pageSize()));
+    const term = this.searchTerm().trim();
+    if (term) params = params.set('search', term);
+    const url = \`\${this.parentApiUrl}/\${encodeURIComponent(String(this.parentId))}/\${this.fieldName}/candidates\`;
+    this.http.get<Array<Record<string, unknown>>>(url, { params, observe: 'response' }).subscribe({
+      next: response => {
+        this.candidates.set(response.body ?? []);
+        const totalHeader = response.headers.get('X-Total-Count');
+        this.totalCandidates.set(totalHeader ? parseInt(totalHeader, 10) || 0 : (response.body?.length ?? 0));
+        this.loadingCandidates.set(false);
+      },
+      error: err => {
+        this.errorMessage.set(err?.message ?? 'Failed to load candidates');
+        this.loadingCandidates.set(false);
+      },
+    });
+  }
+
+  onPageChange(newPage: number): void {
+    if (newPage === this.page()) return;
+    this.page.set(newPage);
+    this.loadCandidates();
+  }
+
+  onSearchInput(value: string): void {
+    this.searchTerm.set(value);
+    this.page.set(1);
+    this.loadCandidates();
+  }
+
+  isSelected(item: Record<string, unknown>): boolean {
+    const id = item['id'];
+    return id != null && this.selectedIds().has(String(id));
+  }
+
+  toggle(item: Record<string, unknown>): void {
+    const id = item['id'];
+    if (id == null) return;
+    const next = new Set(this.selectedIds());
+    const key = String(id);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    this.selectedIds.set(next);
+  }
+
+  getDisplayLabel(item: Record<string, unknown>): string {
+    if (this.displayLabelField && item[this.displayLabelField] != null) {
+      return String(item[this.displayLabelField]);
+    }
+    const id = item['id'];
+    return id != null ? String(id) : '';
+  }
+
+  save(): void {
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    const url = \`\${this.parentApiUrl}/\${encodeURIComponent(String(this.parentId))}/\${this.fieldName}\`;
+    const ids = Array.from(this.selectedIds());
+    this.http.put<void>(url, ids).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.activeModal.close('saved');
+      },
+      error: err => {
+        this.errorMessage.set(err?.message ?? 'Save failed');
+        this.saving.set(false);
+      },
+    });
+  }
+
+  cancel(): void {
+    this.activeModal.dismiss();
+  }
+}
+`;
+
+        const componentHtml = `<div class="modal-header">
+  <h4 class="modal-title">Edit {{ fieldDisplayName }}</h4>
+  <button type="button" class="btn-close" aria-label="Close" (click)="cancel()" [disabled]="saving()"></button>
+</div>
+<div class="modal-body">
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Search..."
+        [ngModel]="searchTerm()"
+        (ngModelChange)="onSearchInput($event)"
+      />
+    </div>
+  </div>
+  @if (errorMessage()) {
+    <div class="alert alert-danger">{{ errorMessage() }}</div>
+  }
+  @if (loadingCandidates() || loadingIds()) {
+    <div class="text-center py-3"><em>Loading...</em></div>
+  } @else if (candidates().length === 0) {
+    <div class="alert alert-warning">No candidates found.</div>
+  } @else {
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th style="width: 3rem;"></th>
+          <th>{{ displayLabelField || 'ID' }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of candidates(); track $index) {
+          <tr (click)="toggle(item)" style="cursor: pointer;">
+            <td><input type="checkbox" class="form-check-input" [checked]="isSelected(item)" (click)="$event.stopPropagation(); toggle(item)" /></td>
+            <td>{{ getDisplayLabel(item) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="text-muted">{{ selectedIds().size }} selected of {{ totalCandidates() }} total</span>
+      @if (totalCandidates() > pageSize()) {
+        <ngb-pagination
+          [collectionSize]="totalCandidates()"
+          [page]="page()"
+          (pageChange)="onPageChange($event)"
+          [pageSize]="pageSize()"
+          [maxSize]="5"
+          [rotate]="true"
+          [boundaryLinks]="true"
+        ></ngb-pagination>
+      }
+    </div>
+  }
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="saving()">Cancel</button>
+  <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loadingCandidates() || loadingIds()">
+    @if (saving()) { <em>Saving...</em> } @else { Save }
+  </button>
+</div>
+`;
+
+        this.writeDestination(this.destinationPath(`${dir}/lazy-relationship-edit-modal.ts`), componentTs);
+        this.writeDestination(this.destinationPath(`${dir}/lazy-relationship-edit-modal.html`), componentHtml);
+        this.log.ok(`[sql-angular] lazy-load: wrote LazyRelationshipEditModalComponent into ${dir}`);
+      },
     });
   }
 
@@ -1078,6 +1313,144 @@ export class LazyRelationshipReadModalComponent implements OnInit {
           });
 
           this.log.info(`[sql-angular] Patched ${updateTsFile} with JsonPipe`);
+        }
+      },
+
+      async wireLazyRelationshipEditButtonsIntoUpdatePage({ application, entities }) {
+        // For each entity that carries entityGraphExcludeCustomAnnotation,
+        // inject an "Edit {field}" button row above the Cancel/Save buttons in
+        // the update page (the upstream JHipster template silently strips
+        // these relationships, so there's nothing to replace — we just add a
+        // new section). Each button opens LazyRelationshipEditModalComponent
+        // for the given excluded relationship; saves PUT immediately,
+        // independent of the parent form's Save button.
+        if (application.skipClient || !application.databaseTypeSql || !application.applicationTypeMicroservice) {
+          return;
+        }
+        const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
+        const MARKER = 'SAATHRATRI: lazy-load excluded-relationship edit buttons';
+
+        for (const entity of entities) {
+          if (entity.builtIn || !entity.entityFolderName || !entity.entityFileName) continue;
+          const excluded = getExcludedRelationships(entity);
+          if (!excluded.length) continue;
+
+          const blocks = [];
+          for (const rel of excluded) {
+            const meta = describeExcludedRelationship(entity, rel, entities);
+            if (!meta) continue;
+            if (meta.relationshipType !== 'many-to-many' || !meta.isInverseSide) continue;
+            blocks.push(meta);
+          }
+          if (!blocks.length) continue;
+
+          const updateHtmlPath = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-update.html`;
+          const updateTsPath = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-update.ts`;
+
+          // ---- update.html: inject section above Cancel/Save buttons ----
+          this.editFile(updateHtmlPath, content => {
+            if (typeof content !== 'string' || content.includes(MARKER)) return content;
+
+            const buttons = blocks
+              .map(meta => {
+                const fld = meta.fieldName;
+                const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
+                return `        <button type="button" class="btn btn-info btn-sm me-2 mb-2" ` +
+                  `(click)="openLazyRelationshipEdit('${fld}', '${meta.otherEntityClass}', ${labelArg})">` +
+                  `Edit ${meta.otherEntityClass}s</button>`;
+              })
+              .join('\n');
+
+            const section =
+              `\n      <!-- ${MARKER} -->\n` +
+              `      <div class="form-group mb-3">\n` +
+              `        <label class="form-label fw-bold">Related collections (saved independently of this form):</label><br />\n` +
+              buttons + '\n' +
+              `      </div>\n`;
+
+            // Anchor: the <div> that wraps the Cancel button. The whole row
+            // is `<div>\n        <button type="button" id="cancel-save" ...`,
+            // so we look for that id and insert before its enclosing <div>.
+            // mem-fs buffers on Windows can be CRLF — `\r?\n` tolerates either.
+            // The upstream JHipster buffer at this point is pre-prettier and uses
+            // wider indentation than the final on-disk file. Match the indent
+            // generically (any whitespace), capture the leading whitespace so we
+            // can re-emit `<div>` with the same indent, and tolerate CRLF.
+            const anchorRe = /(\r?\n)([\s]*)<div>(\r?\n[\s]*<button type="button" id="cancel-save")/;
+            const m = content.match(anchorRe);
+            if (!m) {
+              const idx = content.indexOf('cancel-save');
+              const window = idx >= 0 ? JSON.stringify(content.slice(Math.max(0, idx - 80), idx + 30)) : '<no cancel-save substring>';
+              this.log.warn(
+                `[sql-angular] lazy-load: ${entity.entityClass} -> cancel-save anchor not found in ${updateHtmlPath}, content len=${content.length}, around-cancel-save=${window}`,
+              );
+              return content;
+            }
+            const leadingNl = m[1];
+            const indent = m[2];
+            const tail = m[3];
+            // Re-indent our injected section to match the surrounding form's level.
+            const indentedSection = section
+              .split('\n')
+              .map((line, idx) => (idx === 0 ? line : (line.length ? indent + line.replace(/^      /, '') : line)))
+              .join('\n');
+            return content.replace(anchorRe, leadingNl + indentedSection + leadingNl + indent + '<div>' + tail);
+          });
+
+          // ---- update.ts: add openLazyRelationshipEdit handler + imports ----
+          this.editFile(updateTsPath, content => {
+            if (typeof content !== 'string' || content.includes(MARKER)) return content;
+
+            const importBlock = [
+              `import { NgbModal } from '@ng-bootstrap/ng-bootstrap';`,
+              `import { LazyRelationshipEditModalComponent } from 'app/shared/lazy-relationship/lazy-relationship-edit-modal';`,
+            ];
+            for (const imp of importBlock) {
+              if (!content.includes(imp)) {
+                content = content.replace(/((?:^import [^\n]+;\n)+)/m, m => `${m}${imp}\n`);
+              }
+            }
+
+            // Make sure inject() is on the @angular/core named imports.
+            const angularCoreImportRe = /import\s*\{([^}]*)\}\s*from\s*['"]@angular\/core['"]\s*;/;
+            const m = content.match(angularCoreImportRe);
+            if (m) {
+              const names = m[1].split(',').map(s => s.trim()).filter(Boolean);
+              if (!names.includes('inject')) {
+                names.push('inject');
+                names.sort();
+                content = content.replace(angularCoreImportRe, `import { ${names.join(', ')} } from '@angular/core';`);
+              }
+            } else {
+              content = content.replace(/((?:^import [^\n]+;\n)+)/m, m => `${m}import { inject } from '@angular/core';\n`);
+            }
+
+            const handler = `
+  // ---- ${MARKER} ----
+  private readonly lazyEditModalService = inject(NgbModal);
+  protected readonly lazyEditParentApiUrl = '/api/${entity.entityApiUrl}';
+
+  openLazyRelationshipEdit(fieldName: string, fieldDisplayName: string, displayLabelField: string | null): void {
+    // Parent id comes from the form's id field; only meaningful on edit, not create.
+    const parentId = this.editForm?.get('id')?.value;
+    if (!parentId) {
+      // eslint-disable-next-line no-console
+      console.warn('[lazy-load] cannot edit ' + fieldName + ': parent id missing (still in create flow?)');
+      return;
+    }
+    const modal = this.lazyEditModalService.open(LazyRelationshipEditModalComponent, { size: 'lg', backdrop: 'static' });
+    modal.componentInstance.parentApiUrl = this.lazyEditParentApiUrl;
+    modal.componentInstance.parentId = parentId;
+    modal.componentInstance.fieldName = fieldName;
+    modal.componentInstance.fieldDisplayName = fieldDisplayName;
+    modal.componentInstance.displayLabelField = displayLabelField;
+  }
+  // ---- end ${MARKER} ----`;
+
+            const lastBraceIdx = content.lastIndexOf('}');
+            if (lastBraceIdx < 0) return content;
+            return content.slice(0, lastBraceIdx) + handler + '\n' + content.slice(lastBraceIdx);
+          });
         }
       },
 

@@ -881,12 +881,15 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
             if (typeof content !== 'string' || content.includes(MARKER)) return content;
             for (const fqn of [
               'java.util.List',
+              'java.util.Set',
               'org.springframework.data.domain.Page',
               'org.springframework.data.domain.Pageable',
               'org.springframework.http.HttpHeaders',
               'org.springframework.http.ResponseEntity',
               'org.springframework.web.bind.annotation.GetMapping',
               'org.springframework.web.bind.annotation.PathVariable',
+              'org.springframework.web.bind.annotation.PutMapping',
+              'org.springframework.web.bind.annotation.RequestBody',
               'org.springframework.web.bind.annotation.RequestParam',
               'org.springframework.web.servlet.support.ServletUriComponentsBuilder',
               'tech.jhipster.web.util.PaginationUtil',
@@ -924,6 +927,39 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
     @GetMapping("/{id}/${fld}/ids")
     public ResponseEntity<List<${idType}>> get${entityClass}${suffix}Ids(@PathVariable("id") ${idType} id) {
         return ResponseEntity.ok(${entityInstance}Service.get${entityClass}${suffix}Ids(id));
+    }
+
+    /**
+     * {@code GET  /api/${entity.entityApiUrl}/{id}/${fld}/candidates} : paginated list of ALL peer
+     * entities of this relationship's type (membership-agnostic). Used by the edit popup to
+     * present the full candidate set with checkboxes pre-checked for current members.
+     */
+    @GetMapping("/{id}/${fld}/candidates")
+    public ResponseEntity<List<${dto}>> get${entityClass}${suffix}Candidates(
+        @PathVariable("id") ${idType} id,
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable,
+        @RequestParam(value = "search", required = false) String search
+    ) {
+        LOG.debug("REST request to list candidates for ${fld} of ${entityClass} {} (search={})", id, search);
+        Page<${dto}> page = ${entityInstance}Service.get${entityClass}${suffix}Candidates(search, pageable);
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
+        return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
+    /**
+     * {@code PUT  /api/${entity.entityApiUrl}/{id}/${fld}} : bulk-replace the membership of "${fld}".
+     * Body is a JSON array of peer IDs that should be the new membership set; the server
+     * diffs against current state and reconciles each addition/removal individually
+     * (peers' owning-side collections are the source of truth for inverse-MtM).
+     */
+    @PutMapping("/{id}/${fld}")
+    public ResponseEntity<Void> set${entityClass}${suffix}(
+        @PathVariable("id") ${idType} id,
+        @RequestBody Set<${idType}> peerIds
+    ) {
+        LOG.debug("REST request to bulk-replace ${fld} of ${entityClass} {} with {} peer ids", id, peerIds == null ? 0 : peerIds.size());
+        ${entityInstance}Service.set${entityClass}${suffix}(id, peerIds == null ? java.util.Collections.emptySet() : peerIds);
+        return ResponseEntity.noContent().build();
     }`;
               })
               .join('\n');
@@ -941,7 +977,9 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
           this.editFile(serviceImplPath, content => {
             if (typeof content !== 'string' || content.includes(MARKER)) return content;
             for (const fqn of [
+              'java.util.HashSet',
               'java.util.List',
+              'java.util.Set',
               'java.util.stream.Collectors',
               'org.springframework.data.domain.Page',
               'org.springframework.data.domain.PageImpl',
@@ -956,6 +994,9 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
               content = ensureImport(content, `${packageName}.service.dto.${meta.otherEntityDtoClass}`);
               content = ensureImport(content, `${packageName}.service.mapper.${meta.otherEntityClass}Mapper`);
             }
+            // Parent entity import too — the bulk-replace method needs to load it
+            // by id so it can be added/removed from each peer's owning-side collection.
+            content = ensureImport(content, `${packageName}.domain.${entityClass}`);
 
             const fields =
               `\n    // ${MARKER} (fields)\n` +
@@ -974,6 +1015,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
                 const other = meta.otherEntityClass;
                 const dto = meta.otherEntityDtoClass;
                 const ownerField = meta.otherEntityFieldOnOwner;
+                const ownerFieldGetter = ownerField.charAt(0).toUpperCase() + ownerField.slice(1);
                 const labelField = meta.displayLabelField;
                 const searchClauseLiteral = labelField
                   ? `" AND LOWER(CAST(child.${labelField} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))"`
@@ -1011,6 +1053,30 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
         return new PageImpl<>(dtos, pageable, total);
     }
 
+    /** ${MARKER}: paginated list of all peer ${other}s for the edit-popup candidate picker. */
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<${dto}> get${entityClass}${suffix}Candidates(String search, Pageable pageable) {
+        ${labelComment}
+        String baseFrom = "FROM ${other} child";
+        String searchClause = ${labelField ? `(search != null && !search.isBlank()) ? " WHERE LOWER(CAST(child.${labelField} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))" : ""` : `""`};
+        jakarta.persistence.TypedQuery<${other}> listQuery = lazyEntityManager
+            .createQuery("SELECT child " + baseFrom + searchClause + " ORDER BY child.id ASC", ${other}.class);
+        jakarta.persistence.TypedQuery<Long> countQuery = lazyEntityManager
+            .createQuery("SELECT COUNT(child) " + baseFrom + searchClause, Long.class);
+        ${labelField ? `if (search != null && !search.isBlank()) { listQuery.setParameter("search", search); countQuery.setParameter("search", search); }` : `// no search binding (no display label field on peer)`}
+        long total = countQuery.getSingleResult();
+        if (total == 0L) {
+            return Page.empty(pageable);
+        }
+        List<${other}> rows = listQuery
+            .setFirstResult((int) pageable.getOffset())
+            .setMaxResults(pageable.getPageSize())
+            .getResultList();
+        List<${dto}> dtos = rows.stream().map(lazy${suffix}Mapper::toDto).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, total);
+    }
+
     /** ${MARKER}: id-only lookup of "${meta.fieldName}" for edit-popup pre-selection. */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -1022,6 +1088,46 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
             )
             .setParameter("id", id)
             .getResultList();
+    }
+
+    /**
+     * ${MARKER}: bulk-replace the "${meta.fieldName}" membership for the given parent.
+     *
+     * For inverse-side ManyToMany the join table is owned by the peer's "${ownerField}"
+     * collection, so we load each affected peer and add/remove the parent from its
+     * collection. Diff-based to keep the work minimal when most of the membership
+     * is unchanged. All updates run inside a single @Transactional block so a
+     * partial failure rolls everything back.
+     */
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void set${entityClass}${suffix}(${idType} id, Set<${idType}> newPeerIds) {
+        ${entityClass} parent = lazyEntityManager.find(${entityClass}.class, id);
+        if (parent == null) {
+            throw new IllegalArgumentException("${entityClass} not found: " + id);
+        }
+        Set<${idType}> targetIds = newPeerIds == null ? new HashSet<>() : new HashSet<>(newPeerIds);
+        Set<${idType}> currentIds = new HashSet<>(get${entityClass}${suffix}Ids(id));
+
+        Set<${idType}> toAdd = new HashSet<>(targetIds);
+        toAdd.removeAll(currentIds);
+        Set<${idType}> toRemove = new HashSet<>(currentIds);
+        toRemove.removeAll(targetIds);
+
+        for (${idType} peerId : toAdd) {
+            ${other} peer = lazyEntityManager.find(${other}.class, peerId);
+            if (peer != null) {
+                peer.get${ownerFieldGetter}().add(parent);
+                lazyEntityManager.merge(peer);
+            }
+        }
+        for (${idType} peerId : toRemove) {
+            ${other} peer = lazyEntityManager.find(${other}.class, peerId);
+            if (peer != null) {
+                peer.get${ownerFieldGetter}().remove(parent);
+                lazyEntityManager.merge(peer);
+            }
+        }
     }`;
               })
               .join('\n');
@@ -1041,6 +1147,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
             if (typeof content !== 'string' || content.includes(MARKER)) return content;
             for (const fqn of [
               'java.util.List',
+              'java.util.Set',
               'org.springframework.data.domain.Page',
               'org.springframework.data.domain.Pageable',
             ]) {
@@ -1058,8 +1165,14 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
     /** ${MARKER}: paginated, optionally search-filtered lookup of "${meta.fieldName}". */
     Page<${dto}> get${entityClass}${suffix}(${idType} id, String search, Pageable pageable);
 
+    /** ${MARKER}: paginated list of all peer ${dto}s (membership-agnostic) for the edit-popup picker. */
+    Page<${dto}> get${entityClass}${suffix}Candidates(String search, Pageable pageable);
+
     /** ${MARKER}: id-only lookup of "${meta.fieldName}" for edit-popup pre-selection. */
-    List<${idType}> get${entityClass}${suffix}Ids(${idType} id);`;
+    List<${idType}> get${entityClass}${suffix}Ids(${idType} id);
+
+    /** ${MARKER}: bulk-replace "${meta.fieldName}" membership; reconciles each affected peer's owning-side collection. */
+    void set${entityClass}${suffix}(${idType} id, Set<${idType}> peerIds);`;
               })
               .join('\n');
 
