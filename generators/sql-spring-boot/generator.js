@@ -1,6 +1,7 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import { javaMainPackageTemplatesBlock, javaTestPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
 import { sqlSpringBootUtils } from './sql-spring-boot-utils.js';
+import { describeExcludedRelationship, getExcludedRelationships } from './lazy-relationship-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -778,6 +779,306 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
             }
             return content;
           });
+        }
+      },
+
+      async injectLazyRelationshipReadEndpoints({ application, entities }) {
+        // For each entity annotated with `entityGraphExcludeCustomAnnotation`,
+        // inject a pair of READ endpoints per excluded relationship into the
+        // already-generated Resource.java + ServiceImpl.java + Service.java.
+        //
+        //   GET /api/{resource}/{id}/{field}?page=&size=&search=  -> paginated DTOs
+        //   GET /api/{resource}/{id}/{field}/ids                  -> List<id>
+        //
+        // The endpoints back the admin UI's lazy-load popups so each excluded
+        // collection is fetched on demand instead of paying the full-graph cost
+        // on every detail/edit page hit. This block is intentionally read-only
+        // — the matching PUT (bulk-replace, with inverse-side ManyToMany
+        // reconciliation) lands in a follow-up session along with the edit
+        // popup component.
+        //
+        // Scope guards (in order):
+        //   1. SQL apps only (this generator already filters non-SQL out of
+        //      WRITING, but POST_WRITING_ENTITIES still fires for them).
+        //   2. Microservices only (the gateway forwards entity API calls).
+        //   3. Entities that actually carry the annotation; everything else is
+        //      left exactly as upstream wrote it.
+        //
+        // For each excluded relationship we currently only handle the
+        // ManyToMany INVERSE side (the case TajOrganization uses). Other shapes
+        // (owning-side MtM, OneToMany, ManyToOne) are logged + skipped so the
+        // generator still completes cleanly; they can be filled in incrementally
+        // as the corresponding entities adopt the annotation.
+        if (!application.databaseTypeSql || !application.applicationTypeMicroservice) {
+          return;
+        }
+
+        const packageFolder = (application.packageFolder ?? (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined) ?? '').replace(/\/+$/, '');
+        const packageName = application.packageName;
+        if (!packageFolder || !packageName) {
+          this.log.warn('[sql-spring-boot] injectLazyRelationshipReadEndpoints: package metadata unavailable, skipping');
+          return;
+        }
+
+        const MARKER = 'SAATHRATRI: lazy-load excluded-relationship endpoints';
+        let touchedEntities = 0;
+
+        for (const entity of entities) {
+          if (entity.builtIn || entity.skipServer) continue;
+          const excluded = getExcludedRelationships(entity);
+          if (!excluded.length) continue;
+
+          const entityClass = entity.entityClass;
+          const entityInstance = entity.entityInstance;
+          const idType = entity.primaryKey?.type || 'UUID';
+          const resourcePath = `src/main/java/${packageFolder}/web/rest/${entityClass}Resource.java`;
+          const serviceImplPath = `src/main/java/${packageFolder}/service/impl/${entityClass}ServiceImpl.java`;
+          const serviceIntfPath = `src/main/java/${packageFolder}/service/${entityClass}Service.java`;
+
+          // Build per-relationship metadata once so each file edit just
+          // concatenates blocks; missing/unsupported peers are filtered here.
+          const blocks = [];
+          for (const rel of excluded) {
+            const meta = describeExcludedRelationship(entity, rel, entities);
+            if (!meta) {
+              this.log.warn(
+                `[sql-spring-boot] lazy-load: ${entityClass}.${rel.relationshipName} -> peer entity not found, skipping`,
+              );
+              continue;
+            }
+            if (meta.relationshipType !== 'many-to-many' || !meta.isInverseSide) {
+              this.log.warn(
+                `[sql-spring-boot] lazy-load: ${entityClass}.${meta.fieldName} (${meta.relationshipType}, ${meta.isInverseSide ? 'inverse' : 'owning'}) ` +
+                  'is not yet supported by the lazy-load helper; only inverse ManyToMany is wired in this session. Skipping.',
+              );
+              continue;
+            }
+            if (!meta.otherEntityFieldOnOwner) {
+              this.log.warn(
+                `[sql-spring-boot] lazy-load: ${entityClass}.${meta.fieldName} -> could not resolve owning-side field name on ${meta.otherEntityClass}, skipping`,
+              );
+              continue;
+            }
+            blocks.push(meta);
+          }
+          if (!blocks.length) continue;
+
+          const ensureImport = (src, fqn) => {
+            if (src.includes(`import ${fqn};`)) return src;
+            // Java files start with `package ...;` on line 1 (no leading newline).
+            // mem-fs buffers on Windows can be CRLF even when the on-disk file is LF.
+            const re = /^(package [^;]+;\r?\n)/m;
+            if (!re.test(src)) {
+              throw new Error(
+                `[sql-spring-boot] lazy-load: cannot find package declaration to insert import "${fqn}" after`,
+              );
+            }
+            return src.replace(re, (_, m) => `${m}import ${fqn};\n`);
+          };
+
+          // ---- Resource.java ---------------------------------------------------
+          this.editFile(resourcePath, content => {
+            if (typeof content !== 'string' || content.includes(MARKER)) return content;
+            for (const fqn of [
+              'java.util.List',
+              'org.springframework.data.domain.Page',
+              'org.springframework.data.domain.Pageable',
+              'org.springframework.http.HttpHeaders',
+              'org.springframework.http.ResponseEntity',
+              'org.springframework.web.bind.annotation.GetMapping',
+              'org.springframework.web.bind.annotation.PathVariable',
+              'org.springframework.web.bind.annotation.RequestParam',
+              'org.springframework.web.servlet.support.ServletUriComponentsBuilder',
+              'tech.jhipster.web.util.PaginationUtil',
+            ]) {
+              content = ensureImport(content, fqn);
+            }
+            for (const meta of blocks) {
+              content = ensureImport(content, `${packageName}.service.dto.${meta.otherEntityDtoClass}`);
+            }
+
+            const methods = blocks
+              .map(meta => {
+                const fld = meta.fieldName;
+                const suffix = meta.methodSuffix;
+                const dto = meta.otherEntityDtoClass;
+                return `
+    /**
+     * {@code GET  /api/${entity.entityApiUrl}/{id}/${fld}} : lazy-load excluded relationship "${fld}" (paginated, with optional search).
+     */
+    @GetMapping("/{id}/${fld}")
+    public ResponseEntity<List<${dto}>> get${entityClass}${suffix}(
+        @PathVariable("id") ${idType} id,
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable,
+        @RequestParam(value = "search", required = false) String search
+    ) {
+        LOG.debug("REST request to lazy-load ${fld} of ${entityClass} {} (search={})", id, search);
+        Page<${dto}> page = ${entityInstance}Service.get${entityClass}${suffix}(id, search, pageable);
+        HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
+        return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
+    /**
+     * {@code GET  /api/${entity.entityApiUrl}/{id}/${fld}/ids} : lazy-load IDs of "${fld}" for the edit popup's pre-selection.
+     */
+    @GetMapping("/{id}/${fld}/ids")
+    public ResponseEntity<List<${idType}>> get${entityClass}${suffix}Ids(@PathVariable("id") ${idType} id) {
+        return ResponseEntity.ok(${entityInstance}Service.get${entityClass}${suffix}Ids(id));
+    }`;
+              })
+              .join('\n');
+
+            const block =
+              `\n    // ---- ${MARKER} ----\n` +
+              methods +
+              `\n    // ---- end ${MARKER} ----\n`;
+            const lastBraceIdx = content.lastIndexOf('}');
+            if (lastBraceIdx < 0) return content;
+            return content.slice(0, lastBraceIdx) + block + content.slice(lastBraceIdx);
+          });
+
+          // ---- ServiceImpl.java -----------------------------------------------
+          this.editFile(serviceImplPath, content => {
+            if (typeof content !== 'string' || content.includes(MARKER)) return content;
+            for (const fqn of [
+              'java.util.List',
+              'java.util.stream.Collectors',
+              'org.springframework.data.domain.Page',
+              'org.springframework.data.domain.PageImpl',
+              'org.springframework.data.domain.Pageable',
+              'jakarta.persistence.EntityManager',
+              'jakarta.persistence.PersistenceContext',
+            ]) {
+              content = ensureImport(content, fqn);
+            }
+            for (const meta of blocks) {
+              content = ensureImport(content, `${packageName}.domain.${meta.otherEntityClass}`);
+              content = ensureImport(content, `${packageName}.service.dto.${meta.otherEntityDtoClass}`);
+              content = ensureImport(content, `${packageName}.service.mapper.${meta.otherEntityClass}Mapper`);
+            }
+
+            const fields =
+              `\n    // ${MARKER} (fields)\n` +
+              `    @PersistenceContext\n    private EntityManager lazyEntityManager;\n` +
+              blocks
+                .map(
+                  meta =>
+                    `    @org.springframework.beans.factory.annotation.Autowired private ${meta.otherEntityClass}Mapper lazy${meta.methodSuffix}Mapper;`,
+                )
+                .join('\n') +
+              `\n`;
+
+            const methods = blocks
+              .map(meta => {
+                const suffix = meta.methodSuffix;
+                const other = meta.otherEntityClass;
+                const dto = meta.otherEntityDtoClass;
+                const ownerField = meta.otherEntityFieldOnOwner;
+                const labelField = meta.displayLabelField;
+                const searchClauseLiteral = labelField
+                  ? `" AND LOWER(CAST(child.${labelField} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))"`
+                  : `""`;
+                const labelComment = labelField
+                  ? `// search filters on peer's DISPLAY_IN_GUI_RELATIONSHIP_LINK field "${labelField}"`
+                  : `// peer ${other} has no DISPLAY_IN_GUI_RELATIONSHIP_LINK field; the search arg is accepted but ignored`;
+                const bindSearchLine = labelField
+                  ? `if (search != null && !search.isBlank()) { listQuery.setParameter("search", search); countQuery.setParameter("search", search); }`
+                  : `// no search binding (no display label field on peer)`;
+                return `
+    /** ${MARKER}: paginated, optionally search-filtered lookup of "${meta.fieldName}". */
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<${dto}> get${entityClass}${suffix}(${idType} id, String search, Pageable pageable) {
+        ${labelComment}
+        String baseFrom = "FROM ${other} child JOIN child.${ownerField} parent WHERE parent.id = :id";
+        String searchClause = ${labelField ? `(search != null && !search.isBlank()) ? ${searchClauseLiteral} : ""` : `""`};
+        jakarta.persistence.TypedQuery<${other}> listQuery = lazyEntityManager
+            .createQuery("SELECT child " + baseFrom + searchClause + " ORDER BY child.id ASC", ${other}.class)
+            .setParameter("id", id);
+        jakarta.persistence.TypedQuery<Long> countQuery = lazyEntityManager
+            .createQuery("SELECT COUNT(child) " + baseFrom + searchClause, Long.class)
+            .setParameter("id", id);
+        ${bindSearchLine}
+        long total = countQuery.getSingleResult();
+        if (total == 0L) {
+            return Page.empty(pageable);
+        }
+        List<${other}> rows = listQuery
+            .setFirstResult((int) pageable.getOffset())
+            .setMaxResults(pageable.getPageSize())
+            .getResultList();
+        List<${dto}> dtos = rows.stream().map(lazy${suffix}Mapper::toDto).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, total);
+    }
+
+    /** ${MARKER}: id-only lookup of "${meta.fieldName}" for edit-popup pre-selection. */
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<${idType}> get${entityClass}${suffix}Ids(${idType} id) {
+        return lazyEntityManager
+            .createQuery(
+                "SELECT child.id FROM ${other} child JOIN child.${ownerField} parent WHERE parent.id = :id ORDER BY child.id ASC",
+                ${idType}.class
+            )
+            .setParameter("id", id)
+            .getResultList();
+    }`;
+              })
+              .join('\n');
+
+            const block =
+              `\n    // ---- ${MARKER} ----\n` +
+              fields +
+              methods +
+              `\n    // ---- end ${MARKER} ----\n`;
+            const lastBraceIdx = content.lastIndexOf('}');
+            if (lastBraceIdx < 0) return content;
+            return content.slice(0, lastBraceIdx) + block + content.slice(lastBraceIdx);
+          });
+
+          // ---- Service.java (interface) ---------------------------------------
+          this.editFile(serviceIntfPath, content => {
+            if (typeof content !== 'string' || content.includes(MARKER)) return content;
+            for (const fqn of [
+              'java.util.List',
+              'org.springframework.data.domain.Page',
+              'org.springframework.data.domain.Pageable',
+            ]) {
+              content = ensureImport(content, fqn);
+            }
+            for (const meta of blocks) {
+              content = ensureImport(content, `${packageName}.service.dto.${meta.otherEntityDtoClass}`);
+            }
+
+            const sigs = blocks
+              .map(meta => {
+                const suffix = meta.methodSuffix;
+                const dto = meta.otherEntityDtoClass;
+                return `
+    /** ${MARKER}: paginated, optionally search-filtered lookup of "${meta.fieldName}". */
+    Page<${dto}> get${entityClass}${suffix}(${idType} id, String search, Pageable pageable);
+
+    /** ${MARKER}: id-only lookup of "${meta.fieldName}" for edit-popup pre-selection. */
+    List<${idType}> get${entityClass}${suffix}Ids(${idType} id);`;
+              })
+              .join('\n');
+
+            const block =
+              `\n    // ---- ${MARKER} ----\n` +
+              sigs +
+              `\n    // ---- end ${MARKER} ----\n`;
+            const lastBraceIdx = content.lastIndexOf('}');
+            if (lastBraceIdx < 0) return content;
+            return content.slice(0, lastBraceIdx) + block + content.slice(lastBraceIdx);
+          });
+
+          touchedEntities += 1;
+        }
+
+        if (touchedEntities > 0) {
+          this.log.ok(
+            `[sql-spring-boot] lazy-load: injected READ endpoints for ${touchedEntities} entit${touchedEntities === 1 ? 'y' : 'ies'} in ${application.baseName}`,
+          );
         }
       },
     });

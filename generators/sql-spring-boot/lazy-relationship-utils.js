@@ -1,0 +1,174 @@
+/**
+ * Utilities for the "lazy-load excluded relationships" feature.
+ *
+ * Entities annotated with `entityGraphExcludeCustomAnnotation` mark certain
+ * relationships as too heavy to load eagerly with the rest of the entity
+ * (the JDL annotation lists them after the entity-graph method name, e.g.
+ *   `getOrganizationWithFullDetails: [ customers, people, employees, hiredContractors ]`
+ * means those four collections are NOT included in the full-details graph).
+ *
+ * The lazy-load feature exposes each excluded relationship via a small set
+ * of dedicated REST endpoints so the admin UI can fetch them on demand from
+ * a popup, instead of paying the eager-load cost for every detail-page hit.
+ *
+ * This helper parses the annotation and returns the resolved relationship
+ * objects together with the per-relationship metadata the postWriting hooks
+ * need to emit endpoints, service methods, and (later) Angular components.
+ */
+
+const RELATIONSHIP_NAME_KEYS = [
+  'propertyName',
+  'relationshipFieldNamePlural',
+  'relationshipFieldName',
+  'relationshipNamePlural',
+  'relationshipName',
+];
+
+export function getExcludedRelationshipNames(entity) {
+  const ann = entity?.annotations?.entityGraphExcludeCustomAnnotation;
+  if (typeof ann !== 'string' || !ann.trim()) return [];
+  // First directive looks like "<methodName>: [ name1, name2, ... ]"; later
+  // directives (separated by `|`) are reserved for additional graphs and
+  // have no effect on the lazy-load endpoints, which always operate on the
+  // first (canonical full-details) graph's exclusion list.
+  const firstDirective = ann.split('|')[0].trim();
+  const m = firstDirective.match(/\[\s*([^\]]+?)\s*\]/);
+  if (!m) return [];
+  return m[1]
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function findRelationshipByName(entity, name) {
+  const rels = entity?.relationships || [];
+  return rels.find(r => RELATIONSHIP_NAME_KEYS.some(k => r[k] === name));
+}
+
+/**
+ * Returns the resolved relationship objects for an entity's excluded fields.
+ * Order matches the JDL annotation. Names that don't resolve are silently
+ * dropped (they would already have failed earlier strip/patch passes loudly).
+ */
+export function getExcludedRelationships(entity) {
+  return getExcludedRelationshipNames(entity)
+    .map(name => findRelationshipByName(entity, name))
+    .filter(Boolean);
+}
+
+/**
+ * Returns the field name on `otherEntity` that carries the
+ * DISPLAY_IN_GUI_RELATIONSHIP_LINK custom annotation, or `null` if none.
+ * Callers should fall back to the primary key when this returns null.
+ */
+export function getDisplayLabelField(otherEntity) {
+  const fields = otherEntity?.fields;
+  if (!Array.isArray(fields)) return null;
+  for (const f of fields) {
+    const ca = f.options?.customAnnotation || f.customAnnotation;
+    if (Array.isArray(ca) && ca[0] === 'DISPLAY_IN_GUI_RELATIONSHIP_LINK') {
+      return f.fieldName;
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolves the owning-side field name on `otherEntity` that points back to
+ * `entity` for the given `relationship`.
+ *
+ * Used to derive Spring Data JPA query method names like
+ * `findByOrganizationsId(...)` on the other-side repository.
+ *
+ * For the inverse side of a ManyToMany the relevant field on the owning side
+ * is a collection (plural), so we prefer the plural form when both are
+ * available. For OneToMany the owning side is a singular ManyToOne field.
+ */
+export function getOwningSideFieldName(entity, otherEntity, relationship) {
+  const otherRels = otherEntity?.relationships || [];
+  const inverse = otherRels.find(
+    r =>
+      r.otherEntityName === entity.entityInstance ||
+      r.otherEntityName === entity.name ||
+      r.otherEntityName === entity.entityNameCapitalized,
+  );
+  if (!inverse) return null;
+  return (
+    inverse.relationshipFieldNamePlural ||
+    inverse.relationshipFieldName ||
+    inverse.propertyName ||
+    inverse.relationshipName
+  );
+}
+
+/**
+ * Looks up an entity object in the `entities` array by its (case-insensitive)
+ * entity name. Used to resolve `relationship.otherEntityName` to the
+ * full peer-entity model so we can read its fields and relationships.
+ */
+export function findEntityByName(entities, name) {
+  if (!Array.isArray(entities) || !name) return null;
+  const wanted = String(name).toLowerCase();
+  return entities.find(e => {
+    const candidates = [e.name, e.entityClass, e.entityInstance, e.entityNameCapitalized]
+      .filter(Boolean)
+      .map(s => String(s).toLowerCase());
+    return candidates.includes(wanted);
+  });
+}
+
+/**
+ * Composes the per-relationship metadata used by the postWriting endpoint
+ * generators. Returns null when the peer entity can't be resolved (e.g. an
+ * orphaned relationship name) so callers can skip rather than emit broken
+ * Java.
+ *
+ * Shape:
+ *   {
+ *     fieldName,                // e.g. 'customers' (plural; the URL/path segment)
+ *     fieldNameSingular,        // e.g. 'customer'
+ *     methodSuffix,             // PascalCase; appended to verbs (e.g. 'Customers')
+ *     otherEntity,              // resolved peer entity object
+ *     otherEntityClass,         // e.g. 'Customer'
+ *     otherEntityDtoClass,      // e.g. 'CustomerDTO'
+ *     otherEntityFieldOnOwner,  // owning-side field name on the peer (e.g. 'organizations')
+ *     displayLabelField,        // peer field with DISPLAY_IN_GUI_RELATIONSHIP_LINK, or null
+ *     relationshipType,         // raw JDL value: 'many-to-many' | 'one-to-many' | etc.
+ *     isInverseSide,            // true iff the join column lives on the peer
+ *   }
+ */
+export function describeExcludedRelationship(entity, relationship, entities) {
+  const otherEntity = findEntityByName(entities, relationship.otherEntityName);
+  if (!otherEntity) return null;
+
+  const fieldName =
+    relationship.relationshipFieldNamePlural ||
+    relationship.propertyName ||
+    relationship.relationshipNamePlural ||
+    relationship.relationshipName;
+  const fieldNameSingular =
+    relationship.relationshipFieldName ||
+    relationship.relationshipName ||
+    fieldName;
+  const methodSuffix = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+
+  const otherEntityClass = otherEntity.entityClass || otherEntity.entityNameCapitalized || otherEntity.name;
+  const otherEntityDtoClass = `${otherEntityClass}DTO`;
+  const otherEntityFieldOnOwner = getOwningSideFieldName(entity, otherEntity, relationship);
+  const displayLabelField = getDisplayLabelField(otherEntity);
+
+  const isInverseSide = relationship.relationshipSide === 'right' || relationship.ownerSide === false;
+
+  return {
+    fieldName,
+    fieldNameSingular,
+    methodSuffix,
+    otherEntity,
+    otherEntityClass,
+    otherEntityDtoClass,
+    otherEntityFieldOnOwner,
+    displayLabelField,
+    relationshipType: relationship.relationshipType,
+    isInverseSide,
+  };
+}
