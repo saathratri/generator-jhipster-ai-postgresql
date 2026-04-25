@@ -1404,6 +1404,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
 
             const importBlock = [
               `import { NgbModal } from '@ng-bootstrap/ng-bootstrap';`,
+              `import { ApplicationConfigService } from 'app/core/config/application-config.service';`,
               `import { LazyRelationshipEditModalComponent } from 'app/shared/lazy-relationship/lazy-relationship-edit-modal';`,
             ];
             for (const imp of importBlock) {
@@ -1428,8 +1429,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
 
             const handler = `
   // ---- ${MARKER} ----
+  // Base URL is resolved via ApplicationConfigService — same path the
+  // generated entity service uses — so gateway/microfrontend routing is
+  // honoured (raw '/api/...' bypasses it and 404s).
   private readonly lazyEditModalService = inject(NgbModal);
-  protected readonly lazyEditParentApiUrl = '/api/${entity.entityApiUrl}';
+  private readonly lazyEditAppConfig = inject(ApplicationConfigService);
+  protected readonly lazyEditParentApiUrl = this.lazyEditAppConfig.getEndpointFor('api/${entity.entityApiUrl}', '${application.baseName}');
 
   openLazyRelationshipEdit(fieldName: string, fieldDisplayName: string, displayLabelField: string | null): void {
     // Parent id comes from the form's id field; only meaningful on edit, not create.
@@ -1533,6 +1538,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             // 1. Add imports right after the last existing `import ... ;` line.
             const importBlock = [
               `import { NgbModal } from '@ng-bootstrap/ng-bootstrap';`,
+              `import { ApplicationConfigService } from 'app/core/config/application-config.service';`,
               `import { LazyRelationshipReadModalComponent } from 'app/shared/lazy-relationship/lazy-relationship-read-modal';`,
             ];
             for (const imp of importBlock) {
@@ -1544,10 +1550,14 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             // 2. Inject the modalService inject() + handler method right
             //    before the class's closing brace. Handler is parameterised at
             //    call site so a single method serves every excluded field.
+            //    Base URL is resolved via ApplicationConfigService — same path
+            //    the generated entity service uses — so the gateway/microfrontend
+            //    routing is honoured (raw '/api/...' bypasses it and 404s).
             const handler = `
   // ---- ${MARKER} ----
   private readonly lazyModalService = inject(NgbModal);
-  protected readonly lazyParentApiUrl = '/api/${entity.entityApiUrl}';
+  private readonly lazyAppConfig = inject(ApplicationConfigService);
+  protected readonly lazyParentApiUrl = this.lazyAppConfig.getEndpointFor('api/${entity.entityApiUrl}', '${application.baseName}');
 
   openLazyRelationship(fieldName: string, fieldDisplayName: string, displayLabelField: string | null): void {
     const ref = this.${entity.entityInstance}();
