@@ -1355,9 +1355,10 @@ export class LazyRelationshipEditModalComponent implements OnInit {
               .map(meta => {
                 const fld = meta.fieldName;
                 const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
+                const plural = meta.otherEntityClassPlural;
                 return `        <button type="button" class="btn btn-info btn-sm me-2 mb-2" ` +
-                  `(click)="openLazyRelationshipEdit('${fld}', '${meta.otherEntityClass}', ${labelArg})">` +
-                  `Edit ${meta.otherEntityClass}s</button>`;
+                  `(click)="openLazyRelationshipEdit('${fld}', '${plural}', ${labelArg})">` +
+                  `Edit ${plural}</button>`;
               })
               .join('\n');
 
@@ -1510,10 +1511,11 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 continue;
               }
               const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
+              const titlePlural = meta.otherEntityClassPlural;
               const replacement =
                 `<dd>\n            <button type="button" class="btn btn-info btn-sm" ` +
-                `(click)="openLazyRelationship('${fld}', '${meta.otherEntityClass}', ${labelArg})" ` +
-                `title="View ${fld}">\n              ` +
+                `(click)="openLazyRelationship('${fld}', '${titlePlural}', ${labelArg})" ` +
+                `title="View ${titlePlural}">\n              ` +
                 `<span jhiTranslate="entity.action.view">View</span>\n            </button>\n          </dd>`;
               next = next.replace(re, replacement);
             }

@@ -165,6 +165,13 @@ export function describeExcludedRelationship(entity, relationship, entities) {
   const methodSuffix = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
 
   const otherEntityClass = otherEntity.entityClass || otherEntity.entityNameCapitalized || otherEntity.name;
+  // Prefer JHipster's pre-computed plural so English irregulars (Person -> People)
+  // come out right; only fall back to a naive `+ "s"` when the entity model
+  // doesn't carry one (older JHipster, custom blueprints).
+  const otherEntityClassPlural =
+    otherEntity.entityClassPlural ||
+    otherEntity.entityNameCapitalizedPlural ||
+    `${otherEntityClass}s`;
   const otherEntityDtoClass = `${otherEntityClass}DTO`;
   const otherEntityFieldOnOwner = getOwningSideFieldName(entity, otherEntity, relationship);
   const displayLabelField = getDisplayLabelField(otherEntity);
@@ -177,6 +184,7 @@ export function describeExcludedRelationship(entity, relationship, entities) {
     methodSuffix,
     otherEntity,
     otherEntityClass,
+    otherEntityClassPlural,
     otherEntityDtoClass,
     otherEntityFieldOnOwner,
     displayLabelField,
