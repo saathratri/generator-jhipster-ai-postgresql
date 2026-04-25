@@ -3,6 +3,7 @@ import { generateEntityClientEnumImports } from 'generator-jhipster/generators/c
 import { filterEntitiesAndPropertiesForClient } from 'generator-jhipster/generators/client/support';
 import { angularSaathratriUtils } from './sql-angular-utils.js';
 import { angularFilesFromSaathratri, entityModelFiles } from './entity-files.js';
+import { describeExcludedRelationship, getExcludedRelationships } from '../sql-spring-boot/lazy-relationship-utils.js';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -402,6 +403,183 @@ export default class extends BaseApplicationGenerator {
             return content;
           });
         }
+      },
+
+      async writeLazyRelationshipReadModalComponent({ application }) {
+        // Writes the shared LazyRelationshipReadModal component into the app's
+        // webapp/app/shared/lazy-relationship/ directory. The component is
+        // generic — caller passes parentApiUrl/parentId/fieldName/etc. via
+        // componentInstance after open. Used by detail pages to lazy-load
+        // entityGraphExcludeCustomAnnotation fields on demand.
+        //
+        // Idempotent — writeDestination overwrites whatever's there, but the
+        // file content is fully derived from inputs so re-runs are no-ops.
+        if (application.skipClient || !application.databaseTypeSql || !application.applicationTypeMicroservice) {
+          return;
+        }
+        const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
+        const dir = `${clientSrcDir}app/shared/lazy-relationship`;
+
+        const componentTs = `import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { NgbActiveModal, NgbPagination } from '@ng-bootstrap/ng-bootstrap';
+import { TranslateModule } from '@ngx-translate/core';
+
+/**
+ * Generic read-only popup that lazy-loads a single excluded relationship of
+ * a parent entity (one of the fields listed in entityGraphExcludeCustomAnnotation).
+ *
+ * Caller workflow (typical):
+ *   const modal = this.modalService.open(LazyRelationshipReadModalComponent, { size: 'lg', backdrop: 'static' });
+ *   modal.componentInstance.parentApiUrl = '/api/taj-organizations';
+ *   modal.componentInstance.parentId = this.entity.id;
+ *   modal.componentInstance.fieldName = 'customers';
+ *   modal.componentInstance.fieldDisplayName = 'Customers';
+ *   modal.componentInstance.displayLabelField = 'name';   // or null to fall back to id
+ */
+@Component({
+  selector: 'jhi-lazy-relationship-read-modal',
+  standalone: true,
+  templateUrl: './lazy-relationship-read-modal.html',
+  imports: [CommonModule, FormsModule, NgbPagination, TranslateModule],
+})
+export class LazyRelationshipReadModalComponent implements OnInit {
+  // Inputs set by caller via componentInstance after modalService.open(...).
+  parentApiUrl = '';
+  parentId: string | number = '';
+  fieldName = '';
+  fieldDisplayName = '';
+  displayLabelField: string | null = null;
+
+  protected readonly activeModal = inject(NgbActiveModal);
+  private readonly http = inject(HttpClient);
+
+  readonly items = signal<Array<Record<string, unknown>>>([]);
+  readonly totalItems = signal<number>(0);
+  readonly page = signal<number>(1);
+  readonly pageSize = signal<number>(20);
+  readonly searchTerm = signal<string>('');
+  readonly loading = signal<boolean>(false);
+  readonly errorMessage = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.errorMessage.set(null);
+    let params = new HttpParams()
+      .set('page', String(this.page() - 1)) // ngb-pagination is 1-based, Spring Pageable is 0-based
+      .set('size', String(this.pageSize()));
+    const term = this.searchTerm().trim();
+    if (term) {
+      params = params.set('search', term);
+    }
+    const url = \`\${this.parentApiUrl}/\${encodeURIComponent(String(this.parentId))}/\${this.fieldName}\`;
+    this.http.get<Array<Record<string, unknown>>>(url, { params, observe: 'response' }).subscribe({
+      next: response => {
+        this.items.set(response.body ?? []);
+        const totalHeader = response.headers.get('X-Total-Count');
+        this.totalItems.set(totalHeader ? parseInt(totalHeader, 10) || 0 : (response.body?.length ?? 0));
+        this.loading.set(false);
+      },
+      error: err => {
+        this.errorMessage.set(err?.message ?? 'Failed to load');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  onPageChange(newPage: number): void {
+    if (newPage === this.page()) return;
+    this.page.set(newPage);
+    this.load();
+  }
+
+  onSearchInput(value: string): void {
+    this.searchTerm.set(value);
+    this.page.set(1);
+    this.load();
+  }
+
+  getDisplayLabel(item: Record<string, unknown>): string {
+    if (this.displayLabelField && item[this.displayLabelField] != null) {
+      return String(item[this.displayLabelField]);
+    }
+    const id = item['id'];
+    return id != null ? String(id) : '';
+  }
+
+  cancel(): void {
+    this.activeModal.dismiss();
+  }
+}
+`;
+
+        const componentHtml = `<div class="modal-header">
+  <h4 class="modal-title">{{ fieldDisplayName }}</h4>
+  <button type="button" class="btn-close" aria-label="Close" (click)="cancel()"></button>
+</div>
+<div class="modal-body">
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Search..."
+        [ngModel]="searchTerm()"
+        (ngModelChange)="onSearchInput($event)"
+      />
+    </div>
+  </div>
+  @if (loading()) {
+    <div class="text-center py-3"><em>Loading...</em></div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger">{{ errorMessage() }}</div>
+  } @else if (items().length === 0) {
+    <div class="alert alert-warning">No items found.</div>
+  } @else {
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th>{{ displayLabelField || 'ID' }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track $index) {
+          <tr>
+            <td>{{ getDisplayLabel(item) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="text-muted">Showing {{ items().length }} of {{ totalItems() }}</span>
+      @if (totalItems() > pageSize()) {
+        <ngb-pagination
+          [collectionSize]="totalItems()"
+          [page]="page()"
+          (pageChange)="onPageChange($event)"
+          [pageSize]="pageSize()"
+          [maxSize]="5"
+          [rotate]="true"
+          [boundaryLinks]="true"
+        ></ngb-pagination>
+      }
+    </div>
+  }
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" (click)="cancel()">Close</button>
+</div>
+`;
+
+        this.writeDestination(this.destinationPath(`${dir}/lazy-relationship-read-modal.ts`), componentTs);
+        this.writeDestination(this.destinationPath(`${dir}/lazy-relationship-read-modal.html`), componentHtml);
+        this.log.ok(`[sql-angular] lazy-load: wrote LazyRelationshipReadModalComponent into ${dir}`);
       },
     });
   }
@@ -900,6 +1078,135 @@ export default class extends BaseApplicationGenerator {
           });
 
           this.log.info(`[sql-angular] Patched ${updateTsFile} with JsonPipe`);
+        }
+      },
+
+      async wireLazyRelationshipReadButtonsIntoDetailPage({ application, entities }) {
+        // For each entity carrying entityGraphExcludeCustomAnnotation, replace
+        // the inline `<dd>...@for(...)...</dd>` for each excluded relationship
+        // in the detail page with a "View {field}" button that opens the
+        // shared LazyRelationshipReadModalComponent. Also injects the matching
+        // `openLazyRelationship(...)` handler + ngb-modal/import wiring into
+        // the detail.ts.
+        //
+        // Scope guards: same as the backend hook (SQL microservices only,
+        // skip entities without the annotation, skip non-inverse-MtM rels).
+        if (application.skipClient || !application.databaseTypeSql || !application.applicationTypeMicroservice) {
+          return;
+        }
+        const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
+        const MARKER = 'SAATHRATRI: lazy-load excluded-relationship buttons';
+
+        for (const entity of entities) {
+          if (entity.builtIn || !entity.entityFolderName || !entity.entityFileName) continue;
+          const excluded = getExcludedRelationships(entity);
+          if (!excluded.length) continue;
+
+          // Resolve per-relationship metadata; only inverse-MtM survives the
+          // backend filter so we mirror that here to keep the UI in sync.
+          const blocks = [];
+          for (const rel of excluded) {
+            const meta = describeExcludedRelationship(entity, rel, entities);
+            if (!meta) continue;
+            if (meta.relationshipType !== 'many-to-many' || !meta.isInverseSide) continue;
+            blocks.push(meta);
+          }
+          if (!blocks.length) continue;
+
+          const detailHtmlPath = `${clientSrcDir}app/entities/${entity.entityFolderName}/detail/${entity.entityFileName}-detail.html`;
+          const detailTsPath = `${clientSrcDir}app/entities/${entity.entityFolderName}/detail/${entity.entityFileName}-detail.ts`;
+          const entityRefVar = `${entity.entityInstance}Ref`;
+
+          // ---- detail.html: replace each excluded field's <dd>...@for...</dd> ----
+          this.editFile(detailHtmlPath, content => {
+            if (typeof content !== 'string') return content;
+            let next = content;
+            for (const meta of blocks) {
+              const fld = meta.fieldName;
+              const safeFld = fld.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // Match the <dd> wrapper around the @for that targets {entityRefVar}.{fld}.
+              // Tolerates whitespace + the variations in the upstream JHipster
+              // template (track $index, let last = $last, link rendering, etc.).
+              const re = new RegExp(
+                `<dd>\\s*@for\\s*\\(\\s*\\w+\\s+of\\s+${entityRefVar}\\.${safeFld}[\\s\\S]*?\\}\\s*</dd>`,
+              );
+              if (!re.test(next)) {
+                this.log.warn(
+                  `[sql-angular] lazy-load: ${entity.entityClass}.${fld} -> @for block not found in ${detailHtmlPath}, skipping replacement`,
+                );
+                continue;
+              }
+              const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
+              const replacement =
+                `<dd>\n            <button type="button" class="btn btn-info btn-sm" ` +
+                `(click)="openLazyRelationship('${fld}', '${meta.otherEntityClass}', ${labelArg})" ` +
+                `title="View ${fld}">\n              ` +
+                `<span jhiTranslate="entity.action.view">View</span>\n            </button>\n          </dd>`;
+              next = next.replace(re, replacement);
+            }
+            // Drop a marker comment at the very top so re-runs short-circuit.
+            if (!next.includes(MARKER)) {
+              next = `<!-- ${MARKER} -->\n` + next;
+            }
+            return next;
+          });
+
+          // ---- detail.ts: add the openLazyRelationship method + imports ----
+          this.editFile(detailTsPath, content => {
+            if (typeof content !== 'string' || content.includes(MARKER)) return content;
+
+            // 1. Add imports right after the last existing `import ... ;` line.
+            const importBlock = [
+              `import { NgbModal } from '@ng-bootstrap/ng-bootstrap';`,
+              `import { LazyRelationshipReadModalComponent } from 'app/shared/lazy-relationship/lazy-relationship-read-modal';`,
+            ];
+            for (const imp of importBlock) {
+              if (!content.includes(imp)) {
+                content = content.replace(/((?:^import [^\n]+;\n)+)/m, m => `${m}${imp}\n`);
+              }
+            }
+
+            // 2. Inject the modalService inject() + handler method right
+            //    before the class's closing brace. Handler is parameterised at
+            //    call site so a single method serves every excluded field.
+            const handler = `
+  // ---- ${MARKER} ----
+  private readonly lazyModalService = inject(NgbModal);
+  protected readonly lazyParentApiUrl = '/api/${entity.entityApiUrl}';
+
+  openLazyRelationship(fieldName: string, fieldDisplayName: string, displayLabelField: string | null): void {
+    const ref = this.${entity.entityInstance}();
+    if (!ref?.id) return;
+    const modal = this.lazyModalService.open(LazyRelationshipReadModalComponent, { size: 'lg', backdrop: 'static' });
+    modal.componentInstance.parentApiUrl = this.lazyParentApiUrl;
+    modal.componentInstance.parentId = ref.id;
+    modal.componentInstance.fieldName = fieldName;
+    modal.componentInstance.fieldDisplayName = fieldDisplayName;
+    modal.componentInstance.displayLabelField = displayLabelField;
+  }
+  // ---- end ${MARKER} ----`;
+
+            // Make sure `inject` is imported from @angular/core. Upstream
+            // detail.ts has `import { Component, input } from '@angular/core';`
+            // by default — `inject` is NOT on that list, so we either need to
+            // add it to the existing named-imports list or add a fresh import.
+            const angularCoreImportRe = /import\s*\{([^}]*)\}\s*from\s*['"]@angular\/core['"]\s*;/;
+            const m = content.match(angularCoreImportRe);
+            if (m) {
+              const names = m[1].split(',').map(s => s.trim()).filter(Boolean);
+              if (!names.includes('inject')) {
+                names.push('inject');
+                names.sort();
+                content = content.replace(angularCoreImportRe, `import { ${names.join(', ')} } from '@angular/core';`);
+              }
+            } else {
+              content = content.replace(/((?:^import [^\n]+;\n)+)/m, m => `${m}import { inject } from '@angular/core';\n`);
+            }
+
+            const lastBraceIdx = content.lastIndexOf('}');
+            if (lastBraceIdx < 0) return content;
+            return content.slice(0, lastBraceIdx) + handler + '\n' + content.slice(lastBraceIdx);
+          });
         }
       },
     });
