@@ -57,6 +57,37 @@ export function getExcludedRelationships(entity) {
 }
 
 /**
+ * Returns the parsed display-label PATH from an entity-level
+ * `@displayInGuiRelationshipLinkPathCustomAnnotation("rel.field rel.field2 ...")`.
+ *
+ * The annotation lets an entity declare its display label as one or more
+ * fields reached through a relationship, which is the only sensible source
+ * for entities like Employee/Customer (their own fields are mostly FKs/IDs;
+ * the human-readable label lives on a related entity such as Person).
+ *
+ * Returns:
+ *   - `[ ['person','firstName'], ['person','lastName'] ]` for the example above
+ *   - `null` when the annotation is absent or unparseable
+ *
+ * Each path is dot-separated; multiple paths are space- or comma-separated and
+ * concatenated with a single space when rendered in the UI. We deliberately
+ * limit to depth-1 (relationship.field) for now: deeper traversal would need
+ * additional JOIN logic in the backend and is unnecessary for the current
+ * Saathratri data model.
+ */
+export function getDisplayLabelPath(entity) {
+  const ann = entity?.annotations?.displayInGuiRelationshipLinkPathCustomAnnotation;
+  if (typeof ann !== 'string' || !ann.trim()) return null;
+  const paths = ann
+    .split(/[\s,]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(p => p.split('.'))
+    .filter(parts => parts.length === 2 && parts[0] && parts[1]);
+  return paths.length ? paths : null;
+}
+
+/**
  * Returns the field name on `otherEntity` that carries the
  * DISPLAY_IN_GUI_RELATIONSHIP_LINK custom annotation, or `null` if none.
  * Callers should fall back to the primary key when this returns null.
@@ -174,7 +205,11 @@ export function describeExcludedRelationship(entity, relationship, entities) {
     `${otherEntityClass}s`;
   const otherEntityDtoClass = `${otherEntityClass}DTO`;
   const otherEntityFieldOnOwner = getOwningSideFieldName(entity, otherEntity, relationship);
+  // Two display-label sources: a path through a relationship on the peer
+  // (entity-level annotation, takes priority) and a single field on the peer
+  // (field-level annotation, the legacy form). One, both, or neither may be set.
   const displayLabelField = getDisplayLabelField(otherEntity);
+  const displayLabelPath = getDisplayLabelPath(otherEntity);
 
   const isInverseSide = relationship.relationshipSide === 'right' || relationship.ownerSide === false;
 
@@ -188,6 +223,7 @@ export function describeExcludedRelationship(entity, relationship, entities) {
     otherEntityDtoClass,
     otherEntityFieldOnOwner,
     displayLabelField,
+    displayLabelPath,
     relationshipType: relationship.relationshipType,
     isInverseSide,
   };

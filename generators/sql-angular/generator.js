@@ -451,7 +451,12 @@ export class LazyRelationshipReadModalComponent implements OnInit {
   parentId: string | number = '';
   fieldName = '';
   fieldDisplayName = '';
+  // displayLabelField: a single field on the peer (legacy DISPLAY_IN_GUI_RELATIONSHIP_LINK marker).
+  // displayLabelPath: a space-separated set of dot-paths through a relationship on the peer
+  //   (e.g. "person.firstName person.lastName"); takes priority over displayLabelField.
+  // If neither is set, renderer falls back to the peer's id.
   displayLabelField: string | null = null;
+  displayLabelPath: string | null = null;
 
   protected readonly activeModal = inject(NgbActiveModal);
   private readonly http = inject(HttpClient);
@@ -506,11 +511,30 @@ export class LazyRelationshipReadModalComponent implements OnInit {
   }
 
   getDisplayLabel(item: Record<string, unknown>): string {
+    // Path takes priority — composes the label from one or more relationship paths
+    // (e.g. \"person.firstName person.lastName\") and joins the results with spaces.
+    if (this.displayLabelPath) {
+      const paths = this.displayLabelPath.trim().split(/\\s+/).filter(Boolean);
+      const values = paths
+        .map(p => this.walkPath(item, p))
+        .filter(v => v != null && v !== '')
+        .map(v => String(v));
+      if (values.length) return values.join(' ');
+    }
     if (this.displayLabelField && item[this.displayLabelField] != null) {
       return String(item[this.displayLabelField]);
     }
     const id = item['id'];
     return id != null ? String(id) : '';
+  }
+
+  private walkPath(obj: Record<string, unknown>, path: string): unknown {
+    let cur: unknown = obj;
+    for (const part of path.split('.')) {
+      if (cur == null || typeof cur !== 'object') return null;
+      cur = (cur as Record<string, unknown>)[part];
+    }
+    return cur;
   }
 
   cancel(): void {
@@ -630,7 +654,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   parentId: string | number = '';
   fieldName = '';
   fieldDisplayName = '';
+  // displayLabelField: a single field on the peer (legacy DISPLAY_IN_GUI_RELATIONSHIP_LINK marker).
+  // displayLabelPath: a space-separated set of dot-paths through a relationship on the peer
+  //   (e.g. "person.firstName person.lastName"); takes priority over displayLabelField.
+  // If neither is set, renderer falls back to the peer's id.
   displayLabelField: string | null = null;
+  displayLabelPath: string | null = null;
 
   protected readonly activeModal = inject(NgbActiveModal);
   private readonly http = inject(HttpClient);
@@ -718,11 +747,30 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   }
 
   getDisplayLabel(item: Record<string, unknown>): string {
+    // Path takes priority — composes the label from one or more relationship paths
+    // (e.g. \"person.firstName person.lastName\") and joins the results with spaces.
+    if (this.displayLabelPath) {
+      const paths = this.displayLabelPath.trim().split(/\\s+/).filter(Boolean);
+      const values = paths
+        .map(p => this.walkPath(item, p))
+        .filter(v => v != null && v !== '')
+        .map(v => String(v));
+      if (values.length) return values.join(' ');
+    }
     if (this.displayLabelField && item[this.displayLabelField] != null) {
       return String(item[this.displayLabelField]);
     }
     const id = item['id'];
     return id != null ? String(id) : '';
+  }
+
+  private walkPath(obj: Record<string, unknown>, path: string): unknown {
+    let cur: unknown = obj;
+    for (const part of path.split('.')) {
+      if (cur == null || typeof cur !== 'object') return null;
+      cur = (cur as Record<string, unknown>)[part];
+    }
+    return cur;
   }
 
   save(): void {
@@ -1355,9 +1403,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
               .map(meta => {
                 const fld = meta.fieldName;
                 const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
+                const pathArg = Array.isArray(meta.displayLabelPath)
+                  ? `'${meta.displayLabelPath.map(p => p.join('.')).join(' ')}'`
+                  : 'null';
                 const plural = meta.otherEntityClassPlural;
                 return `        <button type="button" class="btn btn-info btn-sm me-2 mb-2" ` +
-                  `(click)="openLazyRelationshipEdit('${fld}', '${plural}', ${labelArg})">` +
+                  `(click)="openLazyRelationshipEdit('${fld}', '${plural}', ${labelArg}, ${pathArg})">` +
                   `Edit ${plural}</button>`;
               })
               .join('\n');
@@ -1436,7 +1487,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   private readonly lazyEditAppConfig = inject(ApplicationConfigService);
   protected readonly lazyEditParentApiUrl = this.lazyEditAppConfig.getEndpointFor('api/${entity.entityApiUrl}', '${application.baseName}');
 
-  openLazyRelationshipEdit(fieldName: string, fieldDisplayName: string, displayLabelField: string | null): void {
+  openLazyRelationshipEdit(
+    fieldName: string,
+    fieldDisplayName: string,
+    displayLabelField: string | null,
+    displayLabelPath: string | null,
+  ): void {
     // Parent id comes from the form's id field; only meaningful on edit, not create.
     const parentId = this.editForm?.get('id')?.value;
     if (!parentId) {
@@ -1450,6 +1506,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
     modal.componentInstance.fieldName = fieldName;
     modal.componentInstance.fieldDisplayName = fieldDisplayName;
     modal.componentInstance.displayLabelField = displayLabelField;
+    modal.componentInstance.displayLabelPath = displayLabelPath;
   }
   // ---- end ${MARKER} ----`;
 
@@ -1516,10 +1573,13 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 continue;
               }
               const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
+              const pathArg = Array.isArray(meta.displayLabelPath)
+                ? `'${meta.displayLabelPath.map(p => p.join('.')).join(' ')}'`
+                : 'null';
               const titlePlural = meta.otherEntityClassPlural;
               const replacement =
                 `<dd>\n            <button type="button" class="btn btn-info btn-sm" ` +
-                `(click)="openLazyRelationship('${fld}', '${titlePlural}', ${labelArg})" ` +
+                `(click)="openLazyRelationship('${fld}', '${titlePlural}', ${labelArg}, ${pathArg})" ` +
                 `title="View ${titlePlural}">\n              ` +
                 `<span jhiTranslate="entity.action.view">View</span>\n            </button>\n          </dd>`;
               next = next.replace(re, replacement);
@@ -1559,7 +1619,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   private readonly lazyAppConfig = inject(ApplicationConfigService);
   protected readonly lazyParentApiUrl = this.lazyAppConfig.getEndpointFor('api/${entity.entityApiUrl}', '${application.baseName}');
 
-  openLazyRelationship(fieldName: string, fieldDisplayName: string, displayLabelField: string | null): void {
+  openLazyRelationship(
+    fieldName: string,
+    fieldDisplayName: string,
+    displayLabelField: string | null,
+    displayLabelPath: string | null,
+  ): void {
     const ref = this.${entity.entityInstance}();
     if (!ref?.id) return;
     const modal = this.lazyModalService.open(LazyRelationshipReadModalComponent, { size: 'lg', backdrop: 'static' });
@@ -1568,6 +1633,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
     modal.componentInstance.fieldName = fieldName;
     modal.componentInstance.fieldDisplayName = fieldDisplayName;
     modal.componentInstance.displayLabelField = displayLabelField;
+    modal.componentInstance.displayLabelPath = displayLabelPath;
   }
   // ---- end ${MARKER} ----`;
 

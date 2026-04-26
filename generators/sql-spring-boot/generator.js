@@ -1009,31 +1009,52 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
                 .join('\n') +
               `\n`;
 
+            const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
             const methods = blocks
               .map(meta => {
                 const suffix = meta.methodSuffix;
                 const other = meta.otherEntityClass;
                 const dto = meta.otherEntityDtoClass;
                 const ownerField = meta.otherEntityFieldOnOwner;
-                const ownerFieldGetter = ownerField.charAt(0).toUpperCase() + ownerField.slice(1);
+                const ownerFieldGetter = cap(ownerField);
                 const labelField = meta.displayLabelField;
-                const searchClauseLiteral = labelField
-                  ? `" AND LOWER(CAST(child.${labelField} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))"`
-                  : `""`;
-                const labelComment = labelField
-                  ? `// search filters on peer's DISPLAY_IN_GUI_RELATIONSHIP_LINK field "${labelField}"`
-                  : `// peer ${other} has no DISPLAY_IN_GUI_RELATIONSHIP_LINK field; the search arg is accepted but ignored`;
-                const bindSearchLine = labelField
-                  ? `if (search != null && !search.isBlank()) { listQuery.setParameter("search", search); countQuery.setParameter("search", search); }`
-                  : `// no search binding (no display label field on peer)`;
+                const labelPath = meta.displayLabelPath;
+
+                // Three search modes:
+                //   - 'path'  : entity-level @displayInGuiRelationshipLinkPathCustomAnnotation
+                //               Join through each unique relation, OR across each leaf field.
+                //   - 'field' : peer field tagged with DISPLAY_IN_GUI_RELATIONSHIP_LINK.
+                //   - 'uuid'  : neither set; fall back to substring-match on stringified id
+                //               so the search box still does something useful.
+                // Search is always supported now — the upstream UI surfaces the search box
+                // for every popup, so a "search arg silently ignored" mode would just confuse.
+                let pathJoins = '';
+                let searchFrag;
+                let labelComment;
+                if (Array.isArray(labelPath) && labelPath.length) {
+                  const uniqueRels = [...new Set(labelPath.map(p => p[0]))];
+                  pathJoins = ' ' + uniqueRels.map(r => `LEFT JOIN child.${r} child${cap(r)}`).join(' ');
+                  const orClauses = labelPath.map(
+                    ([rel, fld]) => `LOWER(CAST(child${cap(rel)}.${fld} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))`,
+                  );
+                  searchFrag = orClauses.length === 1 ? orClauses[0] : `(${orClauses.join(' OR ')})`;
+                  labelComment = `// search filters on peer's display-path: ${labelPath.map(p => p.join('.')).join(', ')}`;
+                } else if (labelField) {
+                  searchFrag = `LOWER(CAST(child.${labelField} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))`;
+                  labelComment = `// search filters on peer's DISPLAY_IN_GUI_RELATIONSHIP_LINK field "${labelField}"`;
+                } else {
+                  searchFrag = `LOWER(CAST(child.id AS string)) LIKE LOWER(CONCAT('%', :search, '%'))`;
+                  labelComment = `// no display label on peer ${other}; search filters on stringified id (UUID fallback)`;
+                }
+                const bindSearchLine = `if (search != null && !search.isBlank()) { listQuery.setParameter("search", search); countQuery.setParameter("search", search); }`;
                 return `
     /** ${MARKER}: paginated, optionally search-filtered lookup of "${meta.fieldName}". */
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public Page<${dto}> get${entityClass}${suffix}(${idType} id, String search, Pageable pageable) {
         ${labelComment}
-        String baseFrom = "FROM ${other} child JOIN child.${ownerField} parent WHERE parent.id = :id";
-        String searchClause = ${labelField ? `(search != null && !search.isBlank()) ? ${searchClauseLiteral} : ""` : `""`};
+        String baseFrom = "FROM ${other} child JOIN child.${ownerField} parent${pathJoins} WHERE parent.id = :id";
+        String searchClause = (search != null && !search.isBlank()) ? " AND ${searchFrag}" : "";
         jakarta.persistence.TypedQuery<${other}> listQuery = lazyEntityManager
             .createQuery("SELECT child " + baseFrom + searchClause + " ORDER BY child.id ASC", ${other}.class)
             .setParameter("id", id);
@@ -1058,13 +1079,13 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public Page<${dto}> get${entityClass}${suffix}Candidates(String search, Pageable pageable) {
         ${labelComment}
-        String baseFrom = "FROM ${other} child";
-        String searchClause = ${labelField ? `(search != null && !search.isBlank()) ? " WHERE LOWER(CAST(child.${labelField} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))" : ""` : `""`};
+        String baseFrom = "FROM ${other} child${pathJoins}";
+        String searchClause = (search != null && !search.isBlank()) ? " WHERE ${searchFrag}" : "";
         jakarta.persistence.TypedQuery<${other}> listQuery = lazyEntityManager
             .createQuery("SELECT child " + baseFrom + searchClause + " ORDER BY child.id ASC", ${other}.class);
         jakarta.persistence.TypedQuery<Long> countQuery = lazyEntityManager
             .createQuery("SELECT COUNT(child) " + baseFrom + searchClause, Long.class);
-        ${labelField ? `if (search != null && !search.isBlank()) { listQuery.setParameter("search", search); countQuery.setParameter("search", search); }` : `// no search binding (no display label field on peer)`}
+        ${bindSearchLine}
         long total = countQuery.getSingleResult();
         if (total == 0L) {
             return Page.empty(pageable);
