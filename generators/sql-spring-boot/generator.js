@@ -1,7 +1,8 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
 import { javaMainPackageTemplatesBlock, javaTestPackageTemplatesBlock } from 'generator-jhipster/generators/java/support';
-import { sqlSpringBootUtils } from './sql-spring-boot-utils.js';
+
 import { describeExcludedRelationship, getExcludedRelationships } from './lazy-relationship-utils.js';
+import { sqlSpringBootUtils } from './sql-spring-boot-utils.js';
 
 export default class extends BaseApplicationGenerator {
   constructor(args, opts, features) {
@@ -10,6 +11,11 @@ export default class extends BaseApplicationGenerator {
 
   async beforeQueue() {
     await this.dependsOnBootstrapApplication();
+    // spring-boot bootstrap derives application.springBoot4 (and other spring-boot
+    // properties) used by this generator's templates (e.g. application-dev.yml.ejs).
+    // In a full app run spring-boot:bootstrap already runs first; declaring it here
+    // makes this sub-generator self-sufficient (and testable in isolation).
+    await this.dependsOnBootstrap('spring-boot');
   }
 
   get [BaseApplicationGenerator.INITIALIZING]() {
@@ -75,19 +81,15 @@ export default class extends BaseApplicationGenerator {
         if (!entity.relationships || entity.relationships.length === 0) {
           return;
         }
-        const selfRefRelationship = entity.relationships.find(r =>
-          r.otherEntityName === entity.entityClass &&
-          (r.relationshipManyToOne || r.relationshipOneToMany === false)
+        const selfRefRelationship = entity.relationships.find(
+          r => r.otherEntityName === entity.entityClass && (r.relationshipManyToOne || r.relationshipOneToMany === false),
         );
         if (selfRefRelationship) {
           entity.hasSelfReferentialTreeSaathratri = true;
           entity.treeParentFieldNameSaathratri = selfRefRelationship.relationshipFieldName; // e.g., "child"
           entity.treeParentFieldNameCapitalizedSaathratri = selfRefRelationship.relationshipNameCapitalized; // e.g., "Child"
           // Find the inverse collection (children)
-          const childrenRelationship = entity.relationships.find(r =>
-            r.otherEntityName === entity.entityClass &&
-            r.relationshipOneToMany
-          );
+          const childrenRelationship = entity.relationships.find(r => r.otherEntityName === entity.entityClass && r.relationshipOneToMany);
           if (childrenRelationship) {
             entity.treeChildrenFieldNameSaathratri = childrenRelationship.relationshipFieldNamePlural; // e.g., "parents"
           }
@@ -107,7 +109,7 @@ export default class extends BaseApplicationGenerator {
           const vectorDimension = field.options?.customAnnotation?.[1] || '1536';
 
           // Mark field as vector type for exclusion from DTO
-                    field.fieldTypeVectorSaathratri = true;
+          field.fieldTypeVectorSaathratri = true;
           field.vectorDimensionSaathratri = vectorDimension;
           field.propertyDtoJavaType = 'float[]';
 
@@ -147,7 +149,7 @@ export default class extends BaseApplicationGenerator {
               entityClass: entity.entityClass,
               entityInstance: entity.entityInstance,
               entityInstancePlural: entity.entityInstancePlural,
-              vectorFields: []
+              vectorFields: [],
             };
             application.vectorEntitiesSaathratri.push(vectorEntity);
           }
@@ -156,12 +158,14 @@ export default class extends BaseApplicationGenerator {
           vectorEntity.vectorFields.push({
             fieldName: field.fieldName,
             fieldNameCapitalized: field.fieldNameCapitalized,
-            sourceFieldName: sourceFieldName,
+            sourceFieldName,
             sourceFieldNameCapitalized: field.sourceFieldNameCapitalizedSaathratri,
-            vectorDimension: vectorDimension
+            vectorDimension,
           });
 
-          this.log.info(`Field '${field.fieldName}' in entity '${entity.entityClass}' marked as vector(${vectorDimension}) type (source: ${sourceFieldName}, excluded from DTO)`);
+          this.log.info(
+            `Field '${field.fieldName}' in entity '${entity.entityClass}' marked as vector(${vectorDimension}) type (source: ${sourceFieldName}, excluded from DTO)`,
+          );
         }
       },
     });
@@ -197,9 +201,9 @@ export default class extends BaseApplicationGenerator {
           if (duplicates.length > 0) {
             this.log.warn(
               `Entity '${entity.entityClass}' has duplicate filter names in Criteria class: [${duplicates.join(', ')}]. ` +
-              `This is likely caused by multiple relationships with the same name. ` +
-              `Consider renaming one of the relationships in your JDL to avoid conflicts. ` +
-              `Duplicates have been removed to prevent compilation errors.`
+                `This is likely caused by multiple relationships with the same name. ` +
+                `Consider renaming one of the relationships in your JDL to avoid conflicts. ` +
+                `Duplicates have been removed to prevent compilation errors.`,
             );
             entity.entityJavaFilterableProperties = uniqueProperties;
           }
@@ -226,7 +230,7 @@ export default class extends BaseApplicationGenerator {
           if (duplicateRelationships.length > 0) {
             this.log.warn(
               `Entity '${entity.entityClass}' has duplicate relationship names: [${duplicateRelationships.join(', ')}]. ` +
-              `Only the first occurrence will be used in QueryService specifications.`
+                `Only the first occurrence will be used in QueryService specifications.`,
             );
             entity.relationships = uniqueRelationships;
           }
@@ -244,7 +248,6 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
-
         if (application.applicationTypeMicroservice) {
           sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);
           const portData = sqlSpringBootUtils.incrementAndSetLastUsedPort(this.destinationPath(), this.appname);
@@ -255,15 +258,11 @@ export default class extends BaseApplicationGenerator {
           application.devJdbcUrlSaathratri = application.devJdbcUrl;
         }
 
-
         await this.writeFiles({
           sections: {
             files: [
               {
-                templates: [
-                  'template-file-sql-spring-boot',
-                  'src/main/resources/config/application-dev.yml',
-                ]
+                templates: ['template-file-sql-spring-boot', 'src/main/resources/config/application-dev.yml'],
               },
             ],
           },
@@ -278,7 +277,7 @@ export default class extends BaseApplicationGenerator {
               files: [
                 {
                   templates: [
-                                        {
+                    {
                       sourceFile: 'src/main/java/_package_/config/EmbeddingConfiguration.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/config/EmbeddingConfiguration.java`,
                     },
@@ -302,7 +301,7 @@ export default class extends BaseApplicationGenerator {
                       sourceFile: 'src/main/java/_package_/domain/converter/PgVectorType.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/converter/PgVectorType.java`,
                     },
-                  ]
+                  ],
                 },
               ],
             },
@@ -320,13 +319,12 @@ export default class extends BaseApplicationGenerator {
     return this.asWritingEntitiesTaskGroup({
       async writingEntitiesTemplateTask({ application, entities }) {
         for (const entity of entities.filter(e => !e.builtIn)) {
-
           entity.serviceImpl = true;
 
           const mainTemplates = [
-                    'web/rest/_entityClass_Resource.java',
-                    'service/_entityClass_Service.java',
-                    'service/impl/_entityClass_ServiceImpl.java',
+            'web/rest/_entityClass_Resource.java',
+            'service/_entityClass_Service.java',
+            'service/impl/_entityClass_ServiceImpl.java',
           ];
           if (entity.jpaMetamodelFiltering) {
             mainTemplates.push('service/_entityClass_QueryService.java');
@@ -343,19 +341,14 @@ export default class extends BaseApplicationGenerator {
                 {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer && entity.dtoMapstruct,
                   ...javaMainPackageTemplatesBlock('_entityPackage_/'),
-                  templates: [
-                    'service/dto/_dtoClass_.java',
-                    'service/mapper/_entityClass_Mapper.java',
-                  ],
+                  templates: ['service/dto/_dtoClass_.java', 'service/mapper/_entityClass_Mapper.java'],
                 },
                 {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer && entity.dtoMapstruct,
                   ...javaTestPackageTemplatesBlock('_entityPackage_/'),
-                  templates: [
-                    'web/rest/_entityClass_ResourceIT.java',
-                  ]
+                  templates: ['web/rest/_entityClass_ResourceIT.java'],
                 },
-              ]
+              ],
             },
             context: { ...application, ...entity, ...sqlSpringBootUtils },
           });
@@ -375,13 +368,13 @@ export default class extends BaseApplicationGenerator {
             content = content.replace(
               '                        <parameters>true</parameters>\n                        <annotationProcessorPaths>',
               '                        <parameters>true</parameters>\n' +
-              '                        <!-- Fork the compiler in a separate process with more memory -->\n' +
-              '                        <!-- This helps prevent OutOfMemoryError during MapStruct annotation processing -->\n' +
-              '                        <!-- especially with complex entity relationships -->\n' +
-              '                        <fork>true</fork>\n' +
-              '                        <meminitial>2048m</meminitial>\n' +
-              '                        <maxmem>8192m</maxmem>\n' +
-              '                        <annotationProcessorPaths>'
+                '                        <!-- Fork the compiler in a separate process with more memory -->\n' +
+                '                        <!-- This helps prevent OutOfMemoryError during MapStruct annotation processing -->\n' +
+                '                        <!-- especially with complex entity relationships -->\n' +
+                '                        <fork>true</fork>\n' +
+                '                        <meminitial>2048m</meminitial>\n' +
+                '                        <maxmem>8192m</maxmem>\n' +
+                '                        <annotationProcessorPaths>',
             );
           }
           return content;
@@ -408,9 +401,7 @@ export default class extends BaseApplicationGenerator {
               '',
             );
             if (content !== before) {
-              this.log.info(
-                '[sql-spring-boot] Stripped stale hibernate-enhance-maven-plugin config from pom.xml',
-              );
+              this.log.info('[sql-spring-boot] Stripped stale hibernate-enhance-maven-plugin config from pom.xml');
             }
             return content;
           });
@@ -421,10 +412,7 @@ export default class extends BaseApplicationGenerator {
           this.editFile(pomFile, content => {
             // Add Spring AI version property
             if (!content.includes('spring-ai.version')) {
-              content = content.replace(
-                '    </properties>',
-                '        <spring-ai.version>2.0.0-M7</spring-ai.version>\n    </properties>'
-              );
+              content = content.replace('    </properties>', '        <spring-ai.version>2.0.0-M7</spring-ai.version>\n    </properties>');
             }
 
             // Add Spring AI BOM to dependencyManagement
@@ -434,29 +422,29 @@ export default class extends BaseApplicationGenerator {
                 content = content.replace(
                   '        </dependencies>\n    </dependencyManagement>',
                   '            <dependency>\n' +
-                  '                <groupId>org.springframework.ai</groupId>\n' +
-                  '                <artifactId>spring-ai-bom</artifactId>\n' +
-                  '                <version>${spring-ai.version}</version>\n' +
-                  '                <type>pom</type>\n' +
-                  '                <scope>import</scope>\n' +
-                  '            </dependency>\n' +
-                  '        </dependencies>\n    </dependencyManagement>'
+                    '                <groupId>org.springframework.ai</groupId>\n' +
+                    '                <artifactId>spring-ai-bom</artifactId>\n' +
+                    '                <version>${spring-ai.version}</version>\n' +
+                    '                <type>pom</type>\n' +
+                    '                <scope>import</scope>\n' +
+                    '            </dependency>\n' +
+                    '        </dependencies>\n    </dependencyManagement>',
                 );
               } else {
                 // Create dependencyManagement section before <dependencies>
                 content = content.replace(
                   '\n    <dependencies>',
                   '\n    <dependencyManagement>\n' +
-                  '        <dependencies>\n' +
-                  '            <dependency>\n' +
-                  '                <groupId>org.springframework.ai</groupId>\n' +
-                  '                <artifactId>spring-ai-bom</artifactId>\n' +
-                  '                <version>${spring-ai.version}</version>\n' +
-                  '                <type>pom</type>\n' +
-                  '                <scope>import</scope>\n' +
-                  '            </dependency>\n' +
-                  '        </dependencies>\n' +
-                  '    </dependencyManagement>\n\n    <dependencies>'
+                    '        <dependencies>\n' +
+                    '            <dependency>\n' +
+                    '                <groupId>org.springframework.ai</groupId>\n' +
+                    '                <artifactId>spring-ai-bom</artifactId>\n' +
+                    '                <version>${spring-ai.version}</version>\n' +
+                    '                <type>pom</type>\n' +
+                    '                <scope>import</scope>\n' +
+                    '            </dependency>\n' +
+                    '        </dependencies>\n' +
+                    '    </dependencyManagement>\n\n    <dependencies>',
                 );
               }
             }
@@ -470,20 +458,20 @@ export default class extends BaseApplicationGenerator {
                 content = content.replace(
                   depMgmtPattern,
                   '</dependencyManagement>\n\n    <dependencies>\n' +
-                  '        <dependency>\n' +
-                  '            <groupId>org.springframework.ai</groupId>\n' +
-                  '            <artifactId>spring-ai-openai</artifactId>\n' +
-                  '        </dependency>\n'
+                    '        <dependency>\n' +
+                    '            <groupId>org.springframework.ai</groupId>\n' +
+                    '            <artifactId>spring-ai-openai</artifactId>\n' +
+                    '        </dependency>\n',
                 );
               } else {
                 // No dependencyManagement section, first <dependencies> is the main one
                 content = content.replace(
                   '    <dependencies>\n',
                   '    <dependencies>\n' +
-                  '        <dependency>\n' +
-                  '            <groupId>org.springframework.ai</groupId>\n' +
-                  '            <artifactId>spring-ai-openai</artifactId>\n' +
-                  '        </dependency>\n'
+                    '        <dependency>\n' +
+                    '            <groupId>org.springframework.ai</groupId>\n' +
+                    '            <artifactId>spring-ai-openai</artifactId>\n' +
+                    '        </dependency>\n',
                 );
               }
             }
@@ -494,14 +482,14 @@ export default class extends BaseApplicationGenerator {
                 content = content.replace(
                   '<repositories>',
                   '<repositories>\n' +
-                  '        <repository>\n' +
-                  '            <id>spring-milestones</id>\n' +
-                  '            <name>Spring Milestones</name>\n' +
-                  '            <url>https://repo.spring.io/milestone</url>\n' +
-                  '            <snapshots>\n' +
-                  '                <enabled>false</enabled>\n' +
-                  '            </snapshots>\n' +
-                  '        </repository>'
+                    '        <repository>\n' +
+                    '            <id>spring-milestones</id>\n' +
+                    '            <name>Spring Milestones</name>\n' +
+                    '            <url>https://repo.spring.io/milestone</url>\n' +
+                    '            <snapshots>\n' +
+                    '                <enabled>false</enabled>\n' +
+                    '            </snapshots>\n' +
+                    '        </repository>',
                 );
               } else {
                 // Insert before the main <dependencies> (after </dependencyManagement> if present)
@@ -535,18 +523,23 @@ export default class extends BaseApplicationGenerator {
 
             return content;
           });
-
         }
       },
     });
   }
 
-    get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
+  get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
     return this.asPostWritingEntitiesTaskGroup({
       async postWritingEntitiesTemplateTask({ entities, application }) {
-        const packageFolder = (application.packageFolder ?? (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined) ?? '').replace(/\/+$/, '');
+        const packageFolder = (
+          application.packageFolder ??
+          (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined) ??
+          ''
+        ).replace(/\/+$/, '');
         if (!packageFolder) {
-          this.log.warn('[sql-spring-boot] POST_WRITING_ENTITIES: packageFolder and packageName are both unavailable, skipping file patches');
+          this.log.warn(
+            '[sql-spring-boot] POST_WRITING_ENTITIES: packageFolder and packageName are both unavailable, skipping file patches',
+          );
           return;
         }
 
@@ -583,7 +576,10 @@ export default class extends BaseApplicationGenerator {
                 content = content.replace(loadBlobRegex, `<column name="${columnName}" type="skip"/>`);
 
                 // Remove content_type columns
-                const contentTypeRegex = new RegExp(`\\s*<column name="${columnName}_content_type"[^/]*/?>\\s*(<constraints [^/]*/?>\\s*)?</column>\\s*`, 'g');
+                const contentTypeRegex = new RegExp(
+                  `\\s*<column name="${columnName}_content_type"[^/]*/?>\\s*(<constraints [^/]*/?>\\s*)?</column>\\s*`,
+                  'g',
+                );
                 content = content.replace(contentTypeRegex, '\n');
 
                 // Remove simple content_type column entries
@@ -593,16 +589,18 @@ export default class extends BaseApplicationGenerator {
 
               // Add HNSW indexes for vector similarity search (cosine distance)
               if (!content.includes('hnsw') && !content.includes('vector_cosine_ops')) {
-                const indexChangeset = vectorFields.map(field => {
-                  const columnName = field.fieldNameAsDatabaseColumn;
-                  const indexName = `idx_${entity.entityTableName}_${columnName}_hnsw`;
-                  return `
+                const indexChangeset = vectorFields
+                  .map(field => {
+                    const columnName = field.fieldNameAsDatabaseColumn;
+                    const indexName = `idx_${entity.entityTableName}_${columnName}_hnsw`;
+                    return `
     <changeSet id="${entity.changelogDate}-vector-idx-${columnName}" author="jhipster">
         <sql>CREATE INDEX IF NOT EXISTS ${indexName} ON ${entity.entityTableName} USING hnsw (${columnName} vector_cosine_ops)</sql>
     </changeSet>`;
-                }).join('\n');
+                  })
+                  .join('\n');
 
-                content = content.replace('</databaseChangeLog>', indexChangeset + '\n</databaseChangeLog>');
+                content = content.replace('</databaseChangeLog>', `${indexChangeset}\n</databaseChangeLog>`);
               }
 
               this.fs.write(changelogPath, content);
@@ -618,10 +616,19 @@ export default class extends BaseApplicationGenerator {
           // JHipster 9 spreads annotations onto entity object, so check both locations
           const customQueryAnnotations = entity.customQueryAnnotation ?? entity.annotations?.customQueryAnnotation;
           const customQueryRawArr = customQueryAnnotations
-            ? (Array.isArray(customQueryAnnotations) ? customQueryAnnotations : [customQueryAnnotations])
+            ? Array.isArray(customQueryAnnotations)
+              ? customQueryAnnotations
+              : [customQueryAnnotations]
             : [];
           // Support pipe-delimited multiple queries within a single annotation value
-          const customQueryDirectives = customQueryRawArr.flatMap(d => typeof d === 'string' ? d.split('|').map(s => s.trim()).filter(Boolean) : [d]);
+          const customQueryDirectives = customQueryRawArr.flatMap(d =>
+            typeof d === 'string'
+              ? d
+                  .split('|')
+                  .map(s => s.trim())
+                  .filter(Boolean)
+              : [d],
+          );
 
           const indexDirectives = [];
           for (const directive of customQueryDirectives) {
@@ -632,20 +639,31 @@ export default class extends BaseApplicationGenerator {
             const rest = directive.substring(colonIdx + 1).trim();
             if (!/\bindex\b/.test(rest)) continue;
             const paramsMatch = rest.match(/params\s*\[\s*([^\]]*)\s*\]/);
-            const params = paramsMatch ? paramsMatch[1].split(',').map(p => p.trim()).filter(Boolean) : [];
+            const params = paramsMatch
+              ? paramsMatch[1]
+                  .split(',')
+                  .map(p => p.trim())
+                  .filter(Boolean)
+              : [];
             if (params.length === 0) continue;
 
             // Convert camelCase to snake_case for database column names
-            const toSnakeCase = str => str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+            const toSnakeCase = str =>
+              str
+                .replace(/([A-Z])/g, '_$1')
+                .toLowerCase()
+                .replace(/^_/, '');
             const columnNames = params.map(paramName => {
               const field = entity.fields.find(f => f.fieldName === paramName);
-              return field ? (field.fieldNameAsDatabaseColumn || field.columnName || toSnakeCase(paramName)) : toSnakeCase(paramName);
+              return field ? field.fieldNameAsDatabaseColumn || field.columnName || toSnakeCase(paramName) : toSnakeCase(paramName);
             });
 
             indexDirectives.push({ methodName, columnNames });
           }
 
-          this.log.info(`[sql-spring-boot] Custom query index check for ${entity.entityClass}: found ${indexDirectives.length} index directives from ${customQueryDirectives.length} queries`);
+          this.log.info(
+            `[sql-spring-boot] Custom query index check for ${entity.entityClass}: found ${indexDirectives.length} index directives from ${customQueryDirectives.length} queries`,
+          );
           if (indexDirectives.length === 0) continue;
 
           const fs = await import('fs');
@@ -654,7 +672,9 @@ export default class extends BaseApplicationGenerator {
           try {
             const suffix = `_added_entity_${entity.entityClass}.xml`;
             changelogFiles = fs.readdirSync(changelogDir).filter(f => f.endsWith(suffix));
-          } catch (e) { /* ignore */ }
+          } catch (e) {
+            /* ignore */
+          }
 
           for (const file of changelogFiles) {
             const changelogPath = this.destinationPath(`src/main/resources/config/liquibase/changelog/${file}`);
@@ -673,7 +693,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
         </createIndex>
     </changeSet>`;
 
-                content = content.replace('</databaseChangeLog>', indexChangeset + '\n</databaseChangeLog>');
+                content = content.replace('</databaseChangeLog>', `${indexChangeset}\n</databaseChangeLog>`);
               }
 
               this.fs.write(changelogPath, content);
@@ -694,7 +714,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
         this.editFile(exceptionTranslatorFile, content => {
           return content.replace(
             'LOG.debug("Converting Exception to Problem Details:", ex);',
-            'LOG.error("Unhandled exception caught by ExceptionTranslator:", ex);'
+            'LOG.error("Unhandled exception caught by ExceptionTranslator:", ex);',
           );
         });
 
@@ -704,11 +724,14 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
         // @EntityGraph(attributePaths = { ... }) method in <Entity>Repository.java.
         // Purpose: kill N+1 SELECTs on inverse @OneToOne by eager-joining them.
         for (const entity of entities.filter(e => !e.builtIn && !e.skipServer)) {
-          const nestedAnno = entity.entityGraphIncludeNestedCustomAnnotation
-            ?? entity.annotations?.entityGraphIncludeNestedCustomAnnotation;
+          const nestedAnno =
+            entity.entityGraphIncludeNestedCustomAnnotation ?? entity.annotations?.entityGraphIncludeNestedCustomAnnotation;
           if (typeof nestedAnno !== 'string' || !nestedAnno.trim()) continue;
 
-          const directives = nestedAnno.split('|').map(s => s.trim()).filter(Boolean);
+          const directives = nestedAnno
+            .split('|')
+            .map(s => s.trim())
+            .filter(Boolean);
           if (!directives.length) continue;
 
           const repoFile = `src/main/java/${packageFolder}/repository/${entity.entityClass}Repository.java`;
@@ -735,11 +758,9 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
               // contains a `}`, so this can't straddle across methods.
               const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
               const methodRx = new RegExp(
-                '(@EntityGraph\\(\\s*attributePaths\\s*=\\s*\\{)([^}]*?)(\\s*\\}\\s*\\)\\s*(?:\\r?\\n\\s*)*Optional<' +
-                  esc(entity.entityClass) +
-                  '>\\s+' +
-                  esc(methodName) +
-                  '\\b)',
+                `(@EntityGraph\\(\\s*attributePaths\\s*=\\s*\\{)([^}]*?)(\\s*\\}\\s*\\)\\s*(?:\\r?\\n\\s*)*Optional<${esc(
+                  entity.entityClass,
+                )}>\\s+${esc(methodName)}\\b)`,
               );
               const m = content.match(methodRx);
               if (!m) {
@@ -764,18 +785,13 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
               // (existing entries usually end with a trailing comma).
               const trimmedExisting = existingList.replace(/\s+$/, '');
               const needsComma = !trimmedExisting.endsWith(',');
-              const insert = (needsComma ? ',' : '') +
-                '\n            ' +
-                toAdd.map(p => `"${p}"`).join(',\n            ') +
-                ',\n        ';
+              const insert = `${needsComma ? ',' : ''}\n            ${toAdd.map(p => `"${p}"`).join(',\n            ')},\n        `;
               const newList = trimmedExisting + insert;
               content = content.replace(methodRx, `$1${newList}$3`);
               touched += toAdd.length;
             }
             if (touched > 0) {
-              this.log.info(
-                `[sql-spring-boot] Added ${touched} nested attributePath(s) to ${entity.entityClass}Repository.java`,
-              );
+              this.log.info(`[sql-spring-boot] Added ${touched} nested attributePath(s) to ${entity.entityClass}Repository.java`);
             }
             return content;
           });
@@ -813,7 +829,11 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
           return;
         }
 
-        const packageFolder = (application.packageFolder ?? (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined) ?? '').replace(/\/+$/, '');
+        const packageFolder = (
+          application.packageFolder ??
+          (application.packageName ? `${application.packageName.replace(/\./g, '/')}/` : undefined) ??
+          ''
+        ).replace(/\/+$/, '');
         const packageName = application.packageName;
         if (!packageFolder || !packageName) {
           this.log.warn('[sql-spring-boot] injectLazyRelationshipReadEndpoints: package metadata unavailable, skipping');
@@ -841,9 +861,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
           for (const rel of excluded) {
             const meta = describeExcludedRelationship(entity, rel, entities);
             if (!meta) {
-              this.log.warn(
-                `[sql-spring-boot] lazy-load: ${entityClass}.${rel.relationshipName} -> peer entity not found, skipping`,
-              );
+              this.log.warn(`[sql-spring-boot] lazy-load: ${entityClass}.${rel.relationshipName} -> peer entity not found, skipping`);
               continue;
             }
             if (meta.relationshipType !== 'many-to-many' || !meta.isInverseSide) {
@@ -869,9 +887,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
             // mem-fs buffers on Windows can be CRLF even when the on-disk file is LF.
             const re = /^(package [^;]+;\r?\n)/m;
             if (!re.test(src)) {
-              throw new Error(
-                `[sql-spring-boot] lazy-load: cannot find package declaration to insert import "${fqn}" after`,
-              );
+              throw new Error(`[sql-spring-boot] lazy-load: cannot find package declaration to insert import "${fqn}" after`);
             }
             return src.replace(re, (_, m) => `${m}import ${fqn};\n`);
           };
@@ -964,10 +980,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
               })
               .join('\n');
 
-            const block =
-              `\n    // ---- ${MARKER} ----\n` +
-              methods +
-              `\n    // ---- end ${MARKER} ----\n`;
+            const block = `\n    // ---- ${MARKER} ----\n${methods}\n    // ---- end ${MARKER} ----\n`;
             const lastBraceIdx = content.lastIndexOf('}');
             if (lastBraceIdx < 0) return content;
             return content.slice(0, lastBraceIdx) + block + content.slice(lastBraceIdx);
@@ -1000,14 +1013,12 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
 
             const fields =
               `\n    // ${MARKER} (fields)\n` +
-              `    @PersistenceContext\n    private EntityManager lazyEntityManager;\n` +
-              blocks
+              `    @PersistenceContext\n    private EntityManager lazyEntityManager;\n${blocks
                 .map(
                   meta =>
                     `    @org.springframework.beans.factory.annotation.Autowired private ${meta.otherEntityClass}Mapper lazy${meta.methodSuffix}Mapper;`,
                 )
-                .join('\n') +
-              `\n`;
+                .join('\n')}\n`;
 
             const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
             const methods = blocks
@@ -1033,7 +1044,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
                 let labelComment;
                 if (Array.isArray(labelPath) && labelPath.length) {
                   const uniqueRels = [...new Set(labelPath.map(p => p[0]))];
-                  pathJoins = ' ' + uniqueRels.map(r => `LEFT JOIN child.${r} child${cap(r)}`).join(' ');
+                  pathJoins = ` ${uniqueRels.map(r => `LEFT JOIN child.${r} child${cap(r)}`).join(' ')}`;
                   const orClauses = labelPath.map(
                     ([rel, fld]) => `LOWER(CAST(child${cap(rel)}.${fld} AS string)) LIKE LOWER(CONCAT('%', :search, '%'))`,
                   );
@@ -1153,11 +1164,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
               })
               .join('\n');
 
-            const block =
-              `\n    // ---- ${MARKER} ----\n` +
-              fields +
-              methods +
-              `\n    // ---- end ${MARKER} ----\n`;
+            const block = `\n    // ---- ${MARKER} ----\n${fields}${methods}\n    // ---- end ${MARKER} ----\n`;
             const lastBraceIdx = content.lastIndexOf('}');
             if (lastBraceIdx < 0) return content;
             return content.slice(0, lastBraceIdx) + block + content.slice(lastBraceIdx);
@@ -1197,10 +1204,7 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
               })
               .join('\n');
 
-            const block =
-              `\n    // ---- ${MARKER} ----\n` +
-              sigs +
-              `\n    // ---- end ${MARKER} ----\n`;
+            const block = `\n    // ---- ${MARKER} ----\n${sigs}\n    // ---- end ${MARKER} ----\n`;
             const lastBraceIdx = content.lastIndexOf('}');
             if (lastBraceIdx < 0) return content;
             return content.slice(0, lastBraceIdx) + block + content.slice(lastBraceIdx);
@@ -1241,5 +1245,4 @@ ${idx.columnNames.map(col => `            <column name="${col}"/>`).join('\n')}
       async endTemplateTask() {},
     });
   }
-
 }

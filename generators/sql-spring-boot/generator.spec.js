@@ -3,9 +3,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 
 const SUB_GENERATOR = 'sql-spring-boot';
-const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
+const BLUEPRINT_NAMESPACE = `jhipster-ai-postgresql:${SUB_GENERATOR}`;
 
-describe('SubGenerator sql-spring-boot of temp JHipster blueprint', () => {
+describe('SubGenerator sql-spring-boot of ai-postgresql JHipster blueprint', () => {
   describe('run', () => {
     beforeAll(async function () {
       await helpers
@@ -13,10 +13,10 @@ describe('SubGenerator sql-spring-boot of temp JHipster blueprint', () => {
         .withJHipsterConfig()
         .withOptions({
           ignoreNeedlesError: true,
-          blueprint: 'temp',
         })
-        .withJHipsterLookup()
-        .withParentBlueprintLookup();
+        .withJHipsterGenerators()
+        .withConfiguredBlueprint()
+        .withBlueprintConfig();
     });
 
     it('should succeed', () => {

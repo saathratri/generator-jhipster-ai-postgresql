@@ -18,5 +18,5 @@
  */
 
 export const saathratriConstants = {
-   USE_OPTION_TO_DISPLAY_IN_GUI: true,
+  USE_OPTION_TO_DISPLAY_IN_GUI: true,
 };

@@ -1,12 +1,14 @@
-import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
-import { generateEntityClientEnumImports } from 'generator-jhipster/generators/client/support';
-import { filterEntitiesAndPropertiesForClient } from 'generator-jhipster/generators/client/support';
-import { angularSaathratriUtils } from './sql-angular-utils.js';
-import { angularFilesFromSaathratri, entityModelFiles } from './entity-files.js';
-import { describeExcludedRelationship, getExcludedRelationships } from '../sql-spring-boot/lazy-relationship-utils.js';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
+import { filterEntitiesAndPropertiesForClient, generateEntityClientEnumImports } from 'generator-jhipster/generators/client/support';
+
+import { describeExcludedRelationship, getExcludedRelationships } from '../sql-spring-boot/lazy-relationship-utils.js';
+
+import { angularFilesFromSaathratri, entityModelFiles } from './entity-files.js';
+import { angularSaathratriUtils } from './sql-angular-utils.js';
 
 // Navbar modifications are applied in POST_WRITING via editFile
 // to avoid needing upstream Angular variables (microfrontend, clientSrcDir, etc.)
@@ -243,10 +245,7 @@ export default class extends BaseApplicationGenerator {
             );
           }
           if (!content.includes('"material-icons"')) {
-            content = content.replace(
-              '"vitest-sonar-reporter": null',
-              '"vitest-sonar-reporter": null,\n    "material-icons": "1.13.14"',
-            );
+            content = content.replace('"vitest-sonar-reporter": null', '"vitest-sonar-reporter": null,\n    "material-icons": "1.13.14"');
           }
           return content;
         });
@@ -394,9 +393,9 @@ export default class extends BaseApplicationGenerator {
             if (entityDropdownRegex.test(content)) {
               content = content.replace(
                 entityDropdownRegex,
-                '\n      <!-- jhipster-needle-add-element-to-menu - JHipster will add new menu items here -->' +
-                  microfrontendMenus +
-                  '\n      <!-- jhipster-needle-add-entity-to-menu - JHipster will add entities to the menu here -->',
+                `\n      <!-- jhipster-needle-add-element-to-menu - JHipster will add new menu items here -->${
+                  microfrontendMenus
+                }\n      <!-- jhipster-needle-add-entity-to-menu - JHipster will add entities to the menu here -->`,
               );
             }
 
@@ -512,7 +511,7 @@ export class LazyRelationshipReadModalComponent implements OnInit {
 
   getDisplayLabel(item: Record<string, unknown>): string {
     // Path takes priority — composes the label from one or more relationship paths
-    // (e.g. \"person.firstName person.lastName\") and joins the results with spaces.
+    // (e.g. "person.firstName person.lastName") and joins the results with spaces.
     if (this.displayLabelPath) {
       const paths = this.displayLabelPath.trim().split(/\\s+/).filter(Boolean);
       const values = paths
@@ -748,7 +747,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
 
   getDisplayLabel(item: Record<string, unknown>): string {
     // Path takes priority — composes the label from one or more relationship paths
-    // (e.g. \"person.firstName person.lastName\") and joins the results with spaces.
+    // (e.g. "person.firstName person.lastName") and joins the results with spaces.
     if (this.displayLabelPath) {
       const paths = this.displayLabelPath.trim().split(/\\s+/).filter(Boolean);
       const values = paths
@@ -886,15 +885,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
 
             // Add Injector and runInInjectionContext imports
             if (!content.includes('Injector')) {
-              content = content.replace(
-                /import \{ (.*?) \} from '@angular\/core';/,
-                (match, imports) => {
-                  let updated = imports;
-                  if (!updated.includes('Injector')) updated += ', Injector';
-                  if (!updated.includes('inject')) updated += ', inject';
-                  return `import { ${updated} } from '@angular/core';`;
-                },
-              );
+              content = content.replace(/import \{ (.*?) \} from '@angular\/core';/, (match, imports) => {
+                let updated = imports;
+                if (!updated.includes('Injector')) updated += ', Injector';
+                if (!updated.includes('inject')) updated += ', inject';
+                return `import { ${updated} } from '@angular/core';`;
+              });
             }
             if (!content.includes('runInInjectionContext')) {
               content = content.replace(
@@ -952,10 +948,9 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 // Only rewrite the default find(id) URL - leave findAll, create,
                 // update, etc. untouched. Match the exact template-literal shape
                 // produced by upstream JHipster's _entityFile_.service.ts.ejs.
-                const findUrlPattern = /find\(id: string\)[\s\S]*?\.get<Rest\w+>\(`\$\{this\.resourceUrl\}\/\$\{encodeURIComponent\(id\)\}(`)/;
-                return content.replace(findUrlPattern, match =>
-                  match.replace(/`$/, `/${fullDetailsMethod}\``),
-                );
+                const findUrlPattern =
+                  /find\(id: string\)[\s\S]*?\.get<Rest\w+>\(`\$\{this\.resourceUrl\}\/\$\{encodeURIComponent\(id\)\}(`)/;
+                return content.replace(findUrlPattern, match => match.replace(/`$/, `/${fullDetailsMethod}\``));
               });
               this.log.info(`[sql-angular] Patched ${fullDetailsServiceTsFile} find(id) -> /${fullDetailsMethod}`);
             }
@@ -973,7 +968,10 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             const firstDirective = excludeAnnotation.split('|')[0].trim();
             const bracketMatch = firstDirective.match(/\[\s*([^\]]+?)\s*\]/);
             if (bracketMatch) {
-              const excludedNames = bracketMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+              const excludedNames = bracketMatch[1]
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
               for (const name of excludedNames) {
                 const rel = (entity.relationships || []).find(
                   r =>
@@ -1004,7 +1002,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 // the JDL names the relationship after the other entity's plural (e.g. customers
                 // -> Customer), which is why the bug was latent until a mismatched rel was added.
                 const eip = rel.otherEntity.entityInstancePlural;
-                const svcVar = ea.charAt(0).toLowerCase() + ea.slice(1) + 'Service';
+                const svcVar = `${ea.charAt(0).toLowerCase() + ea.slice(1)}Service`;
                 const eaE = escapeRe(ea);
                 const pnE = escapeRe(pn);
                 const eipE = escapeRe(eip);
@@ -1014,10 +1012,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 content = content.replace(new RegExp(`^import \\{ I${eaE} \\} from [^\\n]*?;\\n`, 'm'), '');
                 content = content.replace(new RegExp(`^import \\{ ${eaE}Service \\} from [^\\n]*?;\\n`, 'm'), '');
                 // Drop "xsSharedCollection = signal<IX[]>([]);" (name derives from otherEntity.entityInstancePlural)
-                content = content.replace(
-                  new RegExp(`\\s*${eipE}SharedCollection = signal<I${eaE}\\[\\]>\\(\\[\\]\\);`),
-                  '',
-                );
+                content = content.replace(new RegExp(`\\s*${eipE}SharedCollection = signal<I${eaE}\\[\\]>\\(\\[\\]\\);`), '');
                 // Drop "protected xService = inject(XService);"
                 content = content.replace(new RegExp(`\\s*protected ${svcE} = inject\\(${eaE}Service\\);`), '');
                 // Drop "compareX = (o1: IX | null, o2: IX | null): boolean => this.xService.compareX(o1, o2);"
@@ -1030,15 +1025,9 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 // Drop updateForm block "this.xsSharedCollection.update(xs => ...);" — the block
                 // body accesses `tajOrganization.${pn}`, but the collection itself is named after
                 // eip, so we anchor the regex on the collection prefix.
-                content = content.replace(
-                  new RegExp(`\\s*this\\.${eipE}SharedCollection\\.update\\([\\s\\S]*?\\n\\s*\\);`),
-                  '',
-                );
+                content = content.replace(new RegExp(`\\s*this\\.${eipE}SharedCollection\\.update\\([\\s\\S]*?\\n\\s*\\);`), '');
                 // Drop loadRelationshipsOptions block "this.xService.query()...subscribe(...);"
-                content = content.replace(
-                  new RegExp(`\\s*this\\.${svcE}\\s*\\.query\\(\\)[\\s\\S]*?\\.subscribe\\([\\s\\S]*?\\);`),
-                  '',
-                );
+                content = content.replace(new RegExp(`\\s*this\\.${svcE}\\s*\\.query\\(\\)[\\s\\S]*?\\.subscribe\\([\\s\\S]*?\\);`), '');
               }
               return content;
             });
@@ -1087,13 +1076,13 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                     // Pick union entry:            | 'xs'
                     trimmed === `| '${pn}'` ||
                     // FormGroupContent decl:       xs: FormControl<...['xs']>;
-                    /^\w+: FormControl<.+>;$/.test(trimmed) && trimmed.startsWith(`${pn}: `) ||
+                    (/^\w+: FormControl<.+>;$/.test(trimmed) && trimmed.startsWith(`${pn}: `)) ||
                     // createFormGroup init:        xs: new FormControl(...) - may be 1 or many lines
                     trimmed.startsWith(`${pn}: new FormControl(`) ||
                     // getFormDefaults entry:       xs: [],
                     trimmed === `${pn}: [],` ||
                     // convertToRawValue entry:     xs: tajOrganization.xs ?? [],
-                    trimmed.startsWith(`${pn}: `) && trimmed.endsWith(`.${pn} ?? [],`)
+                    (trimmed.startsWith(`${pn}: `) && trimmed.endsWith(`.${pn} ?? [],`))
                   ) {
                     drop = true;
                     dropped++;
@@ -1129,15 +1118,13 @@ export class LazyRelationshipEditModalComponent implements OnInit {
               return result;
             });
 
-            this.log.info(
-              `[sql-angular] Stripped ${excludedFormRels.length} excluded rel(s) from ${entity.entityFileName} update/form`,
-            );
+            this.log.info(`[sql-angular] Stripped ${excludedFormRels.length} excluded rel(s) from ${entity.entityFileName} update/form`);
           }
 
           // Detect vector fields using BOTH the prepared property AND the raw JDL annotation
           // This ensures detection works regardless of generator execution order
-          const vectorFields = (entity.fields ?? []).filter(f =>
-            f.fieldTypeVectorSaathratri || f.options?.customAnnotation?.[0] === 'VECTOR'
+          const vectorFields = (entity.fields ?? []).filter(
+            f => f.fieldTypeVectorSaathratri || f.options?.customAnnotation?.[0] === 'VECTOR',
           );
           if (vectorFields.length === 0) continue;
 
@@ -1208,7 +1195,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             if (classMatch) {
               const insertPos = classMatch.index + classMatch[0].length;
 
-              const entityServiceInstance = entity.entityInstance + 'Service';
+              const entityServiceInstance = `${entity.entityInstance}Service`;
 
               // Build the default selected fields object
               const fieldEntries = vectorFields.map(vf => `'${vf.fieldName}': true`).join(', ');
@@ -1311,10 +1298,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
           this.editFile(serviceTsFile, content => {
             // Remove old aiSearch method if it lacks fields parameter support
             if (content.includes('aiSearch') && !content.includes('fields?: string[]')) {
-              content = content.replace(
-                /\n\s*aiSearch\(query: string, limit: number\)[^}]*\{[\s\S]*?\n\s*\}\n/,
-                '\n',
-              );
+              content = content.replace(/\n\s*aiSearch\(query: string, limit: number\)[^}]*\{[\s\S]*?\n\s*\}\n/, '\n');
             }
             if (content.includes('aiSearch')) return content;
 
@@ -1335,11 +1319,8 @@ export class LazyRelationshipEditModalComponent implements OnInit {
               content = content.slice(0, lastBrace) + aiSearchMethod + content.slice(lastBrace);
 
               // Add Observable import if not present
-              if (!content.includes("import { Observable }") && !content.match(/import\s*\{[^}]*Observable[^}]*\}/)) {
-                content = content.replace(
-                  /import \{ HttpClient/,
-                  "import { Observable } from 'rxjs';\nimport { HttpClient"
-                );
+              if (!content.includes('import { Observable }') && !content.match(/import\s*\{[^}]*Observable[^}]*\}/)) {
+                content = content.replace(/import \{ HttpClient/, "import { Observable } from 'rxjs';\nimport { HttpClient");
               }
             }
             return content;
@@ -1407,17 +1388,20 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                   ? `'${meta.displayLabelPath.map(p => p.join('.')).join(' ')}'`
                   : 'null';
                 const plural = meta.otherEntityClassPlural;
-                return `        <button type="button" class="btn btn-info btn-sm me-2 mb-2" ` +
+                return (
+                  `        <button type="button" class="btn btn-info btn-sm me-2 mb-2" ` +
                   `(click)="openLazyRelationshipEdit('${fld}', '${plural}', ${labelArg}, ${pathArg})">` +
-                  `Edit ${plural}</button>`;
+                  `Edit ${plural}</button>`
+                );
               })
               .join('\n');
 
             const section =
               `\n      <!-- ${MARKER} -->\n` +
               `      <div class="form-group mb-3">\n` +
-              `        <label class="form-label fw-bold">Related collections (saved independently of this form):</label><br />\n` +
-              buttons + '\n' +
+              `        <label class="form-label fw-bold">Related collections (saved independently of this form):</label><br />\n${
+                buttons
+              }\n` +
               `      </div>\n`;
 
             // Anchor: the <div> that wraps the Cancel button. The whole row
@@ -1444,9 +1428,9 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             // Re-indent our injected section to match the surrounding form's level.
             const indentedSection = section
               .split('\n')
-              .map((line, idx) => (idx === 0 ? line : (line.length ? indent + line.replace(/^      /, '') : line)))
+              .map((line, idx) => (idx === 0 ? line : line.length ? indent + line.replace(/^ {6}/, '') : line))
               .join('\n');
-            return content.replace(anchorRe, leadingNl + indentedSection + leadingNl + indent + '<div>' + tail);
+            return content.replace(anchorRe, `${leadingNl + indentedSection + leadingNl + indent}<div>${tail}`);
           });
 
           // ---- update.ts: add openLazyRelationshipEdit handler + imports ----
@@ -1468,7 +1452,10 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             const angularCoreImportRe = /import\s*\{([^}]*)\}\s*from\s*['"]@angular\/core['"]\s*;/;
             const m = content.match(angularCoreImportRe);
             if (m) {
-              const names = m[1].split(',').map(s => s.trim()).filter(Boolean);
+              const names = m[1]
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
               if (!names.includes('inject')) {
                 names.push('inject');
                 names.sort();
@@ -1512,7 +1499,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
 
             const lastBraceIdx = content.lastIndexOf('}');
             if (lastBraceIdx < 0) return content;
-            return content.slice(0, lastBraceIdx) + handler + '\n' + content.slice(lastBraceIdx);
+            return `${content.slice(0, lastBraceIdx) + handler}\n${content.slice(lastBraceIdx)}`;
           });
         }
       },
@@ -1563,9 +1550,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
               // Match the <dd> wrapper around the @for that targets {entityRefVar}.{fld}.
               // Tolerates whitespace + the variations in the upstream JHipster
               // template (track $index, let last = $last, link rendering, etc.).
-              const re = new RegExp(
-                `<dd>\\s*@for\\s*\\(\\s*\\w+\\s+of\\s+${entityRefVar}\\.${safeFld}[\\s\\S]*?\\}\\s*</dd>`,
-              );
+              const re = new RegExp(`<dd>\\s*@for\\s*\\(\\s*\\w+\\s+of\\s+${entityRefVar}\\.${safeFld}[\\s\\S]*?\\}\\s*</dd>`);
               if (!re.test(next)) {
                 this.log.warn(
                   `[sql-angular] lazy-load: ${entity.entityClass}.${fld} -> @for block not found in ${detailHtmlPath}, skipping replacement`,
@@ -1573,9 +1558,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 continue;
               }
               const labelArg = meta.displayLabelField ? `'${meta.displayLabelField}'` : 'null';
-              const pathArg = Array.isArray(meta.displayLabelPath)
-                ? `'${meta.displayLabelPath.map(p => p.join('.')).join(' ')}'`
-                : 'null';
+              const pathArg = Array.isArray(meta.displayLabelPath) ? `'${meta.displayLabelPath.map(p => p.join('.')).join(' ')}'` : 'null';
               const titlePlural = meta.otherEntityClassPlural;
               const replacement =
                 `<dd>\n            <button type="button" class="btn btn-info btn-sm" ` +
@@ -1586,7 +1569,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             }
             // Drop a marker comment at the very top so re-runs short-circuit.
             if (!next.includes(MARKER)) {
-              next = `<!-- ${MARKER} -->\n` + next;
+              next = `<!-- ${MARKER} -->\n${next}`;
             }
             return next;
           });
@@ -1644,7 +1627,10 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             const angularCoreImportRe = /import\s*\{([^}]*)\}\s*from\s*['"]@angular\/core['"]\s*;/;
             const m = content.match(angularCoreImportRe);
             if (m) {
-              const names = m[1].split(',').map(s => s.trim()).filter(Boolean);
+              const names = m[1]
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
               if (!names.includes('inject')) {
                 names.push('inject');
                 names.sort();
@@ -1656,7 +1642,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
 
             const lastBraceIdx = content.lastIndexOf('}');
             if (lastBraceIdx < 0) return content;
-            return content.slice(0, lastBraceIdx) + handler + '\n' + content.slice(lastBraceIdx);
+            return `${content.slice(0, lastBraceIdx) + handler}\n${content.slice(lastBraceIdx)}`;
           });
         }
       },

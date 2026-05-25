@@ -46,7 +46,7 @@ export default class extends BaseApplicationGenerator {
         if (['sql'].includes(this.jhipsterConfigWithDefaults.databaseType)) {
           // Delegate the client sub-generator to the angular blueprint.
           await this.composeWithJHipster('jhipster-ai-postgresql:sql-spring-boot');
-         }
+        }
       },
     });
   }

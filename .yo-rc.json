@@ -204,15 +204,7 @@
       "jhipsterVersion": "9.0.0",
       "localBlueprint": false,
       "sampleWritten": true,
-      "subGenerators": [
-        "app",
-        "client",
-        "cypress",
-        "server",
-        "spring-boot",
-        "java",
-        "docker"
-      ]
+      "subGenerators": ["app", "client", "cypress", "server", "spring-boot", "java", "docker"]
     }
   }
 }

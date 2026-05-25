@@ -90,11 +90,9 @@ export default class extends BaseApplicationGenerator {
         await this.writeFiles({
           sections: {
             files: [
-              { 
-                templates: [
-                  'template-file-sql-spring-data-relational',
-                ] 
-              }
+              {
+                templates: ['template-file-sql-spring-data-relational'],
+              },
             ],
           },
           context: application,
@@ -106,28 +104,29 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING_ENTITIES]() {
     return this.asWritingEntitiesTaskGroup({
       async writingEntitiesTemplateTask({ application, entities }) {
-
         for (const entity of entities.filter(e => !e.builtIn)) {
-
           await this.writeFiles({
             sections: {
               files: [
                 {
                   condition: generator => generator.databaseTypeSql && !entity.skipServer,
                   ...javaMainPackageTemplatesBlock('_entityPackage_/'),
-                  templates: [
-                    'repository/_entityClass_Repository.java',
-                  ]
+                  templates: ['repository/_entityClass_Repository.java'],
                 },
                 {
-                  condition: generator => generator.databaseTypeSql && !generator.reactive && !generator.embedded && (generator.containsBagRelationships ||  generator.relationships.some(r => (r.relationshipManyToMany))) && generator.entityPersistenceLayer,
+                  condition: generator =>
+                    generator.databaseTypeSql &&
+                    !generator.reactive &&
+                    !generator.embedded &&
+                    (generator.containsBagRelationships || generator.relationships.some(r => r.relationshipManyToMany)) &&
+                    generator.entityPersistenceLayer,
                   ...javaMainPackageTemplatesBlock('_entityPackage_'),
                   templates: [
-                      'repository/_entityClass_RepositoryWithBagRelationships.java',
-                      'repository/_entityClass_RepositoryWithBagRelationshipsImpl.java',
+                    'repository/_entityClass_RepositoryWithBagRelationships.java',
+                    'repository/_entityClass_RepositoryWithBagRelationshipsImpl.java',
                   ],
-              },
-              ]
+                },
+              ],
             },
             context: { ...application, ...entity },
           });

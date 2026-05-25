@@ -26,8 +26,10 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.COMPOSING]() {
     return this.asComposingTaskGroup({
       async composeTask() {
-        if (['sql'].includes(this.jhipsterConfigWithDefaults.databaseType)
-            || 'gateway' === this.jhipsterConfigWithDefaults.applicationType) {
+        if (
+          ['sql'].includes(this.jhipsterConfigWithDefaults.databaseType) ||
+          'gateway' === this.jhipsterConfigWithDefaults.applicationType
+        ) {
           await this.composeWithJHipster('jhipster-ai-postgresql:sql-angular');
         }
       },

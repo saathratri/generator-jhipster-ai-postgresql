@@ -32,6 +32,7 @@ Benefits:
 The following improvements have been made since the last open-source tagged release (v2.0.12):
 
 ### v2.0.15
+
 - Removed Cassandra-only client/sql-client generators and stale sql-server config.
 - Cleaned up unreferenced templates and linked all stub files.
 - Added Material dependencies and dropdown display fix for SQL gateways with Cassandra microfrontends.
@@ -39,12 +40,13 @@ The following improvements have been made since the last open-source tagged rele
 - Fixed `toSignal`: use `runInInjectionContext` for Module Federation.
 
 ### v2.0.14
+
 - Detail page MAP/SET rendering fix (converted to modern Angular control flow).
 - `KeyValuePipe` import for standalone components.
 - MAP UI component screenshots and documentation.
 
-
 ### pgvector / AI Semantic Search
+
 - Added full **PostgreSQL pgvector** support for AI-powered semantic search on entity fields.
 - **Automatic embedding generation** on create and update -- when an entity with vector fields is saved, embeddings are generated from source text fields (e.g., `name` -> `nameEmbedding`) using the OpenAI Embedding API.
 - **AI semantic search bar** on list pages for entities with vector fields -- users can type natural language queries and find semantically similar records.
@@ -145,17 +147,20 @@ The same query searching name embeddings returns 3 matches: Car, Cats, and Dogs,
 ![Semantic Search - 7](screenshots/Semantic%20Search%20-%207.png)
 
 ### PDF Blob Support
+
 - Added **PDF thumbnail and download** support for `blobContentTypeAny` fields in list, detail, and update page templates.
 - PDF icon styling matches across list and detail views with shadow and download link.
 - Added null-safe `openFile()` for blob fields.
 
 ### Performance Optimizations
+
 - Added **Entity Graph** backend repository support for eager-loading related entities in a single query, avoiding N+1 problems.
 - Added a feature to ignore massive entity relationship lists on view and update pages, keeping the UI responsive and performant.
 - Fixed `toDTO` mapping performance issues by preventing MapStruct infinite recursion on bidirectional relationships.
 - Added a **non-paginated criteria endpoint** for cases where full result sets are needed without pagination overhead.
 
 ### UI and Template Improvements
+
 - Added **navbar menu grouping and alphabetical sorting** for microfrontend entity menus.
 - Simplified entity graph handling and REST resource templates.
 - Added `ExceptionTranslator` patching to log full stack traces at ERROR level for better debugging.

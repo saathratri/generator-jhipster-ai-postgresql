@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 
 const SUB_GENERATOR = 'sql-spring-boot:data-relational';
-const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
+const BLUEPRINT_NAMESPACE = `jhipster-ai-postgresql:${SUB_GENERATOR}`;
 
 describe('SubGenerator sql-spring-boot:data-relational of ai-postgresql JHipster blueprint', () => {
   describe('run', () => {
@@ -13,10 +13,10 @@ describe('SubGenerator sql-spring-boot:data-relational of ai-postgresql JHipster
         .withJHipsterConfig()
         .withOptions({
           ignoreNeedlesError: true,
-          blueprint: 'ai-postgresql',
         })
-        .withJHipsterLookup()
-        .withParentBlueprintLookup();
+        .withJHipsterGenerators()
+        .withConfiguredBlueprint()
+        .withBlueprintConfig();
     });
 
     it('should succeed', () => {

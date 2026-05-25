@@ -136,12 +136,7 @@ export function getOwningSideFieldName(entity, otherEntity, relationship) {
     );
   }
   if (!inverse) return null;
-  return (
-    inverse.relationshipFieldNamePlural ||
-    inverse.relationshipFieldName ||
-    inverse.propertyName ||
-    inverse.relationshipName
-  );
+  return inverse.relationshipFieldNamePlural || inverse.relationshipFieldName || inverse.propertyName || inverse.relationshipName;
 }
 
 /**
@@ -153,9 +148,7 @@ export function findEntityByName(entities, name) {
   if (!Array.isArray(entities) || !name) return null;
   const wanted = String(name).toLowerCase();
   return entities.find(e => {
-    const candidates = [e.name, e.entityClass, e.entityInstance, e.entityNameCapitalized]
-      .filter(Boolean)
-      .map(s => String(s).toLowerCase());
+    const candidates = [e.name, e.entityClass, e.entityInstance, e.entityNameCapitalized].filter(Boolean).map(s => String(s).toLowerCase());
     return candidates.includes(wanted);
   });
 }
@@ -189,20 +182,14 @@ export function describeExcludedRelationship(entity, relationship, entities) {
     relationship.propertyName ||
     relationship.relationshipNamePlural ||
     relationship.relationshipName;
-  const fieldNameSingular =
-    relationship.relationshipFieldName ||
-    relationship.relationshipName ||
-    fieldName;
+  const fieldNameSingular = relationship.relationshipFieldName || relationship.relationshipName || fieldName;
   const methodSuffix = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
 
   const otherEntityClass = otherEntity.entityClass || otherEntity.entityNameCapitalized || otherEntity.name;
   // Prefer JHipster's pre-computed plural so English irregulars (Person -> People)
   // come out right; only fall back to a naive `+ "s"` when the entity model
   // doesn't carry one (older JHipster, custom blueprints).
-  const otherEntityClassPlural =
-    otherEntity.entityClassPlural ||
-    otherEntity.entityNameCapitalizedPlural ||
-    `${otherEntityClass}s`;
+  const otherEntityClassPlural = otherEntity.entityClassPlural || otherEntity.entityNameCapitalizedPlural || `${otherEntityClass}s`;
   const otherEntityDtoClass = `${otherEntityClass}DTO`;
   const otherEntityFieldOnOwner = getOwningSideFieldName(entity, otherEntity, relationship);
   // Two display-label sources: a path through a relationship on the peer

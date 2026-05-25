@@ -16,6 +16,7 @@ In standard JHipster applications, when you have entity relationships, the UI ty
 ### Example Use Case
 
 Instead of showing just `productId: 123` in an Order interface, you can display:
+
 - `Product: Laptop - Electronics`
 - `Customer: John Doe (john.doe@example.com)`
 
@@ -65,6 +66,7 @@ relationship ManyToOne {
 ```
 
 **Annotation Format:**
+
 - First annotation: `"DISPLAY_IN_GUI_RELATIONSHIP_LINK"` - Marks the field for display
 - Second annotation: Separator/delimiter (e.g., `" - "`, `" "`, `""` for no separator)
 
@@ -127,6 +129,7 @@ generator-jhipster-ai-postgresql/
 Automatically generates UI code to display multiple fields from related entities:
 
 **Generated Angular TypeScript (Model):**
+
 ```typescript
 export interface IOrder {
   id: number;
@@ -138,12 +141,11 @@ export interface IOrder {
 ```
 
 **Generated Angular HTML (List View):**
+
 ```html
 <td>
   <div *ngIf="order.product">
-    <a [routerLink]="['/product', order.product.id, 'view']">
-      {{ order.product.name }} - {{ order.product.category }}
-    </a>
+    <a [routerLink]="['/product', order.product.id, 'view']"> {{ order.product.name }} - {{ order.product.category }} </a>
   </div>
 </td>
 ```
@@ -184,6 +186,7 @@ For microservices, automatically manages PostgreSQL Docker ports:
 ### Blueprint Pattern
 
 This blueprint uses the **Side-by-Side (SBS) pattern**:
+
 - Sets `sbsBlueprint: true` in constructor
 - Extends JHipster generators without replacing them
 - Adds customizations on top of standard generation
@@ -219,34 +222,41 @@ Each generator follows JHipster's standardized lifecycle phases:
 ### sql-angular-utils.js
 
 **`getClientOptionToDisplayForUpdate(entity, relationship)`**
+
 - Generates Angular template code for update forms
 - Returns concatenated field display logic
 - Example output: `{{ product.name }} - {{ product.category }}`
 
 **`getClientOptionToDisplayForModel(entity, relationship)`**
+
 - Generates TypeScript Pick type for model interfaces
 - Returns fields to include in the relationship
 - Example: `Pick<IProduct, 'id' | 'name' | 'category'>`
 
 **`getClientOptionToDisplayForList(entity, relationship)`**
+
 - Generates list view display logic
 - Creates router links with concatenated fields
 
 **`getClientOptionToDisplayForManyToManyList(entity, relationship)`**
+
 - Handles many-to-many relationship displays
 - Generates ngFor loops with trackBy functions
 
 ### sql-spring-boot-utils.js
 
 **`getMappingsToDisplayInMapper(entity, relationships)`**
+
 - Generates @Mapping annotations for MapStruct DTOs
 - Maps related entity fields to DTO fields
 - Example: `@Mapping(source = "product.name", target = "productName")`
 
 **`getApplicationPortData()`**
+
 - Retrieves PostgreSQL port configuration from `last-used-port.json`
 
 **`incrementAndSetLastUsedPort(applicationName)`**
+
 - Allocates unique PostgreSQL port for microservice
 - Auto-increments from 5434
 - Updates port tracking file
@@ -254,29 +264,34 @@ Each generator follows JHipster's standardized lifecycle phases:
 ### saathratri-constants.js
 
 **`USE_OPTION_TO_DISPLAY_IN_GUI`**
+
 - Feature flag constant set to `true`
 - Enables custom display field functionality
 
 ## Technology Stack
 
 **Frontend:**
+
 - Angular (latest supported by JHipster 9.0.0)
 - TypeScript
 - Angular Router
 - RxJS
 
 **Backend:**
+
 - Spring Boot 3.x
 - Spring Data JPA
 - MapStruct (DTO mapping)
 - PostgreSQL
 
 **Build Tools:**
+
 - Node.js (^18.13.0 || >= 20.6.1)
 - Maven/Gradle
 - Yeoman
 
 **Development:**
+
 - TypeScript/JavaScript (ES Modules)
 - EJS templates
 - Vitest (testing)
@@ -343,10 +358,7 @@ Defines generator configuration:
   "generator-jhipster-ai-postgresql": {
     "baseName": "generator-jhipster-ai-postgresql",
     "sbsBlueprint": true,
-    "skipPriorities": [
-      "bootstrapping",
-      "bootstrapping-each-entity"
-    ],
+    "skipPriorities": ["bootstrapping", "bootstrapping-each-entity"],
     "generators": ["app", "client", "cypress", "server", "spring-boot", "java", "docker"]
   }
 }
@@ -361,11 +373,11 @@ export default {
   test: {
     pool: 'forks',
     poolOptions: {
-      forks: { execArgv: ['--expose-gc'] }
+      forks: { execArgv: ['--expose-gc'] },
     },
     hookTimeout: 20000,
-  }
-}
+  },
+};
 ```
 
 ## Workflow Example
@@ -426,6 +438,7 @@ npm start
 When generating microservices, the blueprint manages PostgreSQL ports automatically:
 
 **Port Allocation:**
+
 - **Gateway**: Port 5432 (default PostgreSQL port)
 - **Microservice 1**: Port 5434
 - **Microservice 2**: Port 5436
@@ -492,6 +505,7 @@ Each relationship will have its own concatenated field display.
 **Problem:** Related entity fields not showing in UI
 
 **Solution:**
+
 - Verify `@customAnnotation("DISPLAY_IN_GUI_RELATIONSHIP_LINK")` is present on fields
 - Check that annotations are in correct order (marker annotation, then separator)
 - Regenerate entities: `jhipster entity <EntityName> --regenerate`
@@ -501,6 +515,7 @@ Each relationship will have its own concatenated field display.
 **Problem:** PostgreSQL port already in use
 
 **Solution:**
+
 - Check `last-used-port.json` in parent directory
 - Manually edit port in `src/main/docker/postgresql.yml`
 - Update `application-dev.yml` with matching port
@@ -510,6 +525,7 @@ Each relationship will have its own concatenated field display.
 **Problem:** TypeScript or Java compilation errors after generation
 
 **Solution:**
+
 - Clean and rebuild: `npm run clean && npm install`
 - For Java: `./mvnw clean compile`
 - Check for conflicting field names in DTOs
@@ -528,6 +544,7 @@ Contributions are welcome! Please:
 ## Support
 
 For issues, questions, or contributions, please visit:
+
 - **Repository:** [GitHub Repository URL]
 - **Author:** Amar Premsaran Patel
 - **JHipster Community:** https://www.jhipster.tech/help/
@@ -539,6 +556,7 @@ MIT License - See LICENSE file for details
 ## Version History
 
 **2.0.15** (Current)
+
 - Remove Cassandra-only client/sql-client generators and stale sql-server config
 - Clean up unreferenced templates and link all stub files
 - Add Material deps + dropdown display fix for SQL gateways with Cassandra microfrontends
@@ -546,11 +564,13 @@ MIT License - See LICENSE file for details
 - Fix toSignal: use runInInjectionContext for Module Federation
 
 **2.0.14**
+
 - Detail page MAP/SET rendering fix (converted to modern Angular control flow)
 - KeyValuePipe import for standalone components
 - MAP UI component screenshots and documentation
 
 **2.0.13**
+
 - Support for JHipster 9.0.0
 - PostgreSQL vector extension support
 - Improved port management for microservices

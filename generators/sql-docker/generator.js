@@ -1,4 +1,5 @@
 import BaseApplicationGenerator from 'generator-jhipster/generators/base-application';
+
 import { sqlSpringBootUtils } from '../sql-spring-boot/sql-spring-boot-utils.js';
 
 export default class extends BaseApplicationGenerator {
@@ -93,7 +94,6 @@ export default class extends BaseApplicationGenerator {
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
       async writingTemplateTask({ application }) {
-
         await this.writeFiles({
           sections: {
             files: [
@@ -106,7 +106,6 @@ export default class extends BaseApplicationGenerator {
         });
 
         if (application.applicationTypeMicroservice) {
-
           const portData = await sqlSpringBootUtils.getApplicationPortData(this.destinationPath(), this.appname);
 
           // The usage of the port in your configuration files
@@ -126,20 +125,20 @@ export default class extends BaseApplicationGenerator {
                       renameTo: ctx => `src/main/docker/postgresql-init-scripts/init-vector-extension.sql`,
                     },
                     {
-                      file: "docker/postgresql/Dockerfile",
+                      file: 'docker/postgresql/Dockerfile',
                       renameTo: ctx => `src/main/docker/postgresql/Dockerfile`,
-                    }
-                  ]
-                }
+                    },
+                  ],
+                },
               ],
             },
             context: {
               ...application,
               serverPortSaathratri: portData[this.appname].port,
               dockerContainers: {
-                postgresql: "pgvector/pgvector:pg17"
+                postgresql: 'pgvector/pgvector:pg17',
               },
-            }
+            },
           });
         }
       },
