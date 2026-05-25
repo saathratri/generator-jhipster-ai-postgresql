@@ -387,44 +387,6 @@ export default class extends BaseApplicationGenerator {
           return content;
         });
 
-        // Define a `heroku` Maven profile (activated alongside `prod` via
-        // `-Pprod,heroku` for Heroku jar deploys). It follows JHipster's additive
-        // profile convention (like `tls`) and appends the `heroku` Spring profile
-        // to the prod build's spring.profiles.active, so application-heroku.yml is
-        // active in the packaged jar. Idempotent: skipped if already present.
-        this.editFile(pomFile, content => {
-          if (!content.includes('<id>heroku</id>')) {
-            content = content.replace(
-              '        <profile.tls/>\n',
-              '        <profile.tls/>\n        <profile.heroku/>\n'
-            );
-            content = content.replace(
-              '            <id>tls</id>\n' +
-                '            <properties>\n' +
-                '                <profile.tls>,tls</profile.tls>\n' +
-                '            </properties>\n' +
-                '        </profile>\n',
-              '            <id>tls</id>\n' +
-                '            <properties>\n' +
-                '                <profile.tls>,tls</profile.tls>\n' +
-                '            </properties>\n' +
-                '        </profile>\n' +
-                '        <profile>\n' +
-                '            <id>heroku</id>\n' +
-                '            <properties>\n' +
-                '                <profile.heroku>,heroku</profile.heroku>\n' +
-                '            </properties>\n' +
-                '        </profile>\n'
-            );
-            content = content.replace(
-              /(<spring\.profiles\.active>prod[^<]*?)(<\/spring\.profiles\.active>)/,
-              (m, p1, p2) => p1 + '${profile.heroku}' + p2
-            );
-            this.log.info('[sql-spring-boot] Added `heroku` Maven profile to pom.xml');
-          }
-          return content;
-        });
-
         // Hibernate bytecode enhancement was tried to kill inverse @OneToOne
         // N+1 queries on the Full-details entity graph, but the only published
         // enhance-plugin versions (6.6.x Final, 7.0.0 Alpha/Beta) are not
