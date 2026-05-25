@@ -3,8 +3,6 @@ import { readdir } from 'node:fs/promises';
 
 import BaseGenerator from 'generator-jhipster/generators/base';
 
-import command from './command.mjs';
-
 export default class extends BaseGenerator {
   sampleName;
 
@@ -15,11 +13,9 @@ export default class extends BaseGenerator {
   get [BaseGenerator.INITIALIZING]() {
     return this.asInitializingTaskGroup({
       async initializeOptions() {
-        this.parseJHipsterArguments(command.arguments);
         if (this.sampleName && !this.sampleName.endsWith('.jdl')) {
           this.sampleName += '.jdl';
         }
-        this.parseJHipsterOptions(command.options);
       },
     });
   }

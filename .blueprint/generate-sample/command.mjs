@@ -16,7 +16,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { GENERATOR_APP } from 'generator-jhipster/generators';
 /**
  * @type {import('generator-jhipster').JHipsterCommandDefinition}
  */
@@ -27,7 +26,7 @@ const command = {
     },
   },
   options: {},
-  import: [GENERATOR_APP],
+  import: ['app'],
 };
 
 export default command;

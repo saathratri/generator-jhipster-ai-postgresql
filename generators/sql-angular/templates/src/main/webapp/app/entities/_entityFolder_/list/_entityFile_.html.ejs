@@ -267,7 +267,7 @@ _%>
                                 /* Saathratri modification - human-readable foreign key display */
                                 if (isOptionToDisplayInGuiEnabled) {
                     	    _%>
-                                	 <a class="form-control-static" [routerLink]="['/<%= relationship.otherEntity.entityPage %>', <%= relationshipFieldName %>.<%= relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%- getClientOptionToDisplayForManyToManyListForList(relationship.otherEntity, relationshipFieldName, otherEntityField) %> }}</a>{{ last ? '' : ', ' }}
+                                	 <a class="form-control-static" [routerLink]="['/<%= relationship.otherEntity.entityPage %>', <%= relationshipFieldName %>.<%= relationship.otherEntity.primaryKey.name %>, 'view']">{{ <%- getClientOptionToDisplayForManyToManyList(relationship.otherEntity, relationshipFieldName, otherEntityField) %> }}</a>{{ last ? '' : ', ' }}
                     	    <%_
                                 } else {
                             _%>

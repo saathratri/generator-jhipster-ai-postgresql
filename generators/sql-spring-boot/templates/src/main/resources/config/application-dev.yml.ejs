@@ -204,10 +204,19 @@ spring:
 <%_ } _%>
   thymeleaf:
     cache: false
-<%_ /* Saathratri modification - always-on OAuth2/OIDC spring security config */ _%>
-<%_ /* if (authenticationTypeOauth2) { */ _%>
+<%_ /* Saathratri modification - consolidated single `security:` key: always-on OAuth2/OIDC + audience, plus JWT when enabled (YAML forbids duplicate keys) */ _%>
   security:
+<%_ if (authenticationTypeJwt) { _%>
+    authentication:
+      jwt:
+        # Token is valid 24 hours
+        token-validity-in-seconds: 86400
+        token-validity-in-seconds-for-remember-me: 2592000
+<%_ } _%>
     oauth2:
+      audience:
+        - account
+        - api://default
       client:
         provider:
           oidc:
@@ -222,7 +231,6 @@ spring:
             client-secret: web_app
   <%_ } _%>
             scope: openid, profile, email, offline_access # last one for refresh tokens
-<%_ /* } */ _%>
 <%_ /* End Saathratri modification */ _%>
 
 server:
@@ -340,14 +348,6 @@ jhipster:
   #   allow-credentials: true
   #   max-age: 1800
 <%_ } _%>
-<%_ if (authenticationTypeJwt) { _%>
-  security:
-    authentication:
-      jwt:
-        # Token is valid 24 hours
-        token-validity-in-seconds: 86400
-        token-validity-in-seconds-for-remember-me: 2592000
-<%_ } _%>
 <%_ if (generateUserManagement) { _%>
   mail: # specific JHipster mail property, for standard properties see MailProperties
     base-url: http://127.0.0.1:<%= serverPort %>
@@ -360,15 +360,6 @@ jhipster:
       port: 5000
       ring-buffer-size: 512
 
-<%_ /* Saathratri modification - always-on OAuth2 audience config */ _%>
-<%_ /* if (authenticationTypeOauth2) { */ _%>
-  security:
-    oauth2:
-      audience:
-        - account
-        - api://default
-<%_ /* } */ _%>
-<%_ /* End Saathratri modification */ _%>
 # ===================================================================
 # Application specific properties
 # Add your own application properties here, see the ApplicationProperties class
