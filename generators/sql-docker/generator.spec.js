@@ -2,10 +2,10 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { defaultHelpers as helpers, result } from 'generator-jhipster/testing';
 
-const SUB_GENERATOR = 'docker';
-const BLUEPRINT_NAMESPACE = `jhipster:${SUB_GENERATOR}`;
+const SUB_GENERATOR = 'sql-docker';
+const BLUEPRINT_NAMESPACE = `jhipster-ai-postgresql:${SUB_GENERATOR}`;
 
-describe('SubGenerator docker of ai-postgresql JHipster blueprint', () => {
+describe('SubGenerator sql-docker of ai-postgresql JHipster blueprint', () => {
   describe('run', () => {
     beforeAll(async function () {
       await helpers

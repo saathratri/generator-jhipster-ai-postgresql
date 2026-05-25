@@ -61,7 +61,7 @@ export const sqlSpringBootUtils = {
     return path.join(destinationPath, '..', LAST_USED_PORT_FILE);
   },
 
-  getApplicationPortData(destinationPath, appName) {
+  getApplicationPortData(destinationPath, _appName) {
     // Path to the last-used-port.json file
     const portFilePath = this.getLastUsedPortsFile(destinationPath);
 
@@ -69,7 +69,7 @@ export const sqlSpringBootUtils = {
     let portData;
     try {
       portData = JSON.parse(fs.readFileSync(portFilePath, 'utf8'));
-    } catch (error) {
+    } catch {
       portData = {};
     }
 

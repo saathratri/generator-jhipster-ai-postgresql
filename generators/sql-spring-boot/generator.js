@@ -555,7 +555,7 @@ export default class extends BaseApplicationGenerator {
           try {
             const suffix = `_added_entity_${entity.entityClass}.xml`;
             files = fs.readdirSync(changelogDir).filter(f => f.endsWith(suffix));
-          } catch (e) {
+          } catch {
             // Directory may not exist yet
           }
 
@@ -672,7 +672,7 @@ export default class extends BaseApplicationGenerator {
           try {
             const suffix = `_added_entity_${entity.entityClass}.xml`;
             changelogFiles = fs.readdirSync(changelogDir).filter(f => f.endsWith(suffix));
-          } catch (e) {
+          } catch {
             /* ignore */
           }
 

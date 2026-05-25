@@ -118,15 +118,15 @@ export default class extends BaseApplicationGenerator {
                   templates: [
                     {
                       file: 'docker/postgresql.yml',
-                      renameTo: ctx => `src/main/docker/postgresql.yml`,
+                      renameTo: () => `src/main/docker/postgresql.yml`,
                     },
                     {
                       file: 'docker/postgresql-init-scripts/init-vector-extension.sql',
-                      renameTo: ctx => `src/main/docker/postgresql-init-scripts/init-vector-extension.sql`,
+                      renameTo: () => `src/main/docker/postgresql-init-scripts/init-vector-extension.sql`,
                     },
                     {
                       file: 'docker/postgresql/Dockerfile',
-                      renameTo: ctx => `src/main/docker/postgresql/Dockerfile`,
+                      renameTo: () => `src/main/docker/postgresql/Dockerfile`,
                     },
                   ],
                 },

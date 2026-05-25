@@ -993,7 +993,6 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             this.editFile(updateTsFile, content => {
               for (const rel of excludedFormRels) {
                 const ea = rel.otherEntity.entityAngularName;
-                const pn = rel.propertyName;
                 // Shared-collection variable names come from the OTHER entity's instance plural
                 // (upstream template: `<%= otherEntity.entityInstancePlural %>SharedCollection`),
                 // NOT from the relationship's propertyName. For relationships like
@@ -1004,7 +1003,6 @@ export class LazyRelationshipEditModalComponent implements OnInit {
                 const eip = rel.otherEntity.entityInstancePlural;
                 const svcVar = `${ea.charAt(0).toLowerCase() + ea.slice(1)}Service`;
                 const eaE = escapeRe(ea);
-                const pnE = escapeRe(pn);
                 const eipE = escapeRe(eip);
                 const svcE = escapeRe(svcVar);
 
@@ -1143,7 +1141,6 @@ export class LazyRelationshipEditModalComponent implements OnInit {
           const listTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.ts`;
           const listHtmlFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.html`;
           const detailTsFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/detail/${entity.entityFileName}-detail.ts`;
-          const entityApiUrl = entity.entityApiUrl || entity.entityUrl;
           const entityInstancePlural = entity.entityInstancePlural;
           const entityAngularName = entity.entityAngularName || entity.entityClass || entity.name;
 
