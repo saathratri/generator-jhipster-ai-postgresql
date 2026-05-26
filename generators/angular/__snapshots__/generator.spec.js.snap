@@ -560,6 +560,9 @@ exports[`SubGenerator angular of ai-postgresql JHipster blueprint > run > should
   "src/main/webapp/app/entities/admin/user-management/user-management.routes.ts": {
     "stateCleared": "modified",
   },
+  "src/main/webapp/app/entities/entity-navbar-items.ts": {
+    "stateCleared": "modified",
+  },
   "src/main/webapp/app/entities/entity.routes.ts": {
     "stateCleared": "modified",
   },

@@ -183,6 +183,24 @@ export default class extends BaseApplicationGenerator {
             context: { ...application, ...entity, ...angularSaathratriUtils, generateEntityClientEnumImports },
           });
         }
+
+        // Base JHipster writes app/entities/entity-navbar-items.ts via a needle during its
+        // own entity writing, which this blueprint replaces — so emit the aggregate file here
+        // from the filtered client entities. navbar.ts imports EntityNavbarItems from it; if it
+        // is missing the Angular build/tests fail to compile (TS2307 cannot find module).
+        const isMicrofrontendGateway = application.microfrontend && application.applicationTypeGateway;
+        if (!application.skipClient && !isMicrofrontendGateway) {
+          const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
+          const navbarEntities = filteredEntities.filter(e => !e.builtIn && !e.embedded && !e.entityClientModelOnly && e.entityPage);
+          const items = navbarEntities
+            .map(
+              e =>
+                `  {\n    name: '${e.entityNameHumanized ?? e.entityClass}',\n    route: '${e.entityPage}',\n    translationKey: '${e.entityTranslationKeyMenuPath ?? `global.menu.entities.${e.entityTranslationKeyMenu}`}',\n  },`,
+            )
+            .join('\n');
+          const navbarItemsContent = `import NavbarItem from 'app/layouts/navbar/navbar-item.model';\n\nexport const EntityNavbarItems: NavbarItem[] = [\n${items}\n];\n`;
+          this.writeDestination(`${clientSrcDir}app/entities/entity-navbar-items.ts`, navbarItemsContent);
+        }
       },
     });
   }
