@@ -184,21 +184,34 @@ export default class extends BaseApplicationGenerator {
           });
         }
 
-        // Base JHipster writes app/entities/entity-navbar-items.ts via a needle during its
-        // own entity writing, which this blueprint replaces — so emit the aggregate file here
-        // from the filtered client entities. navbar.ts imports EntityNavbarItems from it; if it
-        // is missing the Angular build/tests fail to compile (TS2307 cannot find module).
+        // app/entities/entity-navbar-items.ts: navbar.ts imports EntityNavbarItems from it, so the
+        // file must exist or the Angular build/tests fail to compile (TS2307 cannot find module).
+        // Base JHipster writes this file with an `add-entity-navbar` needle and, ONLY for
+        // microservices (see angular generator addNeedles → `if (application.applicationTypeMicroservice)`),
+        // needles each entity into it during postWriteEntitiesFiles. Because this blueprint replaces
+        // base's entity-client writing, emit the file here — but its shape must respect that needle:
+        //   • microservice  → emit JUST the needle (no entries); base populates it. Pre-populating
+        //                      would duplicate every entry, and omitting the needle aborts generation
+        //                      ("Missing required jhipster-needle add-entity-navbar").
+        //   • monolith/other → base does NOT needle it, so populate from the filtered client entities.
         const isMicrofrontendGateway = application.microfrontend && application.applicationTypeGateway;
         if (!application.skipClient && !isMicrofrontendGateway) {
           const clientSrcDir = application.clientSrcDir || 'src/main/webapp/';
-          const navbarEntities = filteredEntities.filter(e => !e.builtIn && !e.embedded && !e.entityClientModelOnly && e.entityPage);
-          const items = navbarEntities
-            .map(
-              e =>
-                `  {\n    name: '${e.entityNameHumanized ?? e.entityClass}',\n    route: '${e.entityPage}',\n    translationKey: '${e.entityTranslationKeyMenuPath ?? `global.menu.entities.${e.entityTranslationKeyMenu}`}',\n  },`,
-            )
-            .join('\n');
-          const navbarItemsContent = `import NavbarItem from 'app/layouts/navbar/navbar-item.model';\n\nexport const EntityNavbarItems: NavbarItem[] = [\n${items}\n];\n`;
+          const navbarNeedle = '  /* jhipster-needle-add-entity-navbar - JHipster will add entity navbar items here */';
+          let arrayBody;
+          if (application.applicationTypeMicroservice) {
+            arrayBody = navbarNeedle;
+          } else {
+            const navbarEntities = filteredEntities.filter(e => !e.builtIn && !e.embedded && !e.entityClientModelOnly && e.entityPage);
+            const items = navbarEntities
+              .map(
+                e =>
+                  `  {\n    name: '${e.entityNameHumanized ?? e.entityClass}',\n    route: '${e.entityPage}',\n    translationKey: '${e.entityTranslationKeyMenuPath ?? `global.menu.entities.${e.entityTranslationKeyMenu}`}',\n  },`,
+              )
+              .join('\n');
+            arrayBody = items ? `${items}\n${navbarNeedle}` : navbarNeedle;
+          }
+          const navbarItemsContent = `import NavbarItem from 'app/layouts/navbar/navbar-item.model';\n\nexport const EntityNavbarItems: NavbarItem[] = [\n${arrayBody}\n];\n`;
           this.writeDestination(`${clientSrcDir}app/entities/entity-navbar-items.ts`, navbarItemsContent);
         }
       },
