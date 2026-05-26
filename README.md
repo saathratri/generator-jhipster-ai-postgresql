@@ -212,6 +212,61 @@ jhipster app --blueprints ai-postgresql --help
 
 And looking for `(blueprint option: ai-postgresql)` like
 
+# Testing
+
+There are two layers of tests: the **generator's own unit tests**, and the **generated
+application's tests** (backend + frontend).
+
+## Generator unit tests
+
+Lint, format check, and Vitest snapshot tests (each sub-generator is run and its output
+asserted). This is what the `generator.yml` GitHub workflow runs on every push:
+
+```console
+npm test
+```
+
+Expected: Prettier prints `All matched files use Prettier code style!`, ESLint reports
+`0 problems`, and all **9** generator spec suites pass (`Test Files 9 passed`).
+
+## Generated-application tests
+
+The `samples.yml` GitHub workflow generates a sample app and builds its backend. To do
+the same locally (requires Node 22+; Java 21 for the build):
+
+```console
+# 1. Generate the bundled sample into an empty directory
+mkdir sample-app && cd sample-app
+node /path/to/generator-jhipster-ai-postgresql/cli/cli.cjs \
+  generate-sample sample --skip-jhipster-dependencies --skip-install
+```
+
+Expected: `Congratulations, JHipster execution is complete!` — a full Spring Boot 4 /
+Java 21 application.
+
+### Backend
+
+From the generated app directory:
+
+```console
+# Compile + package the backend only — no database/Docker needed (this is what CI runs)
+./mvnw -ntp -DskipTests -Dskip.npm package
+
+# Unit + integration tests. The *IT integration tests use Testcontainers, so a running
+# Docker daemon is required — a PostgreSQL (pgvector) container is started automatically.
+./mvnw -ntp -Dskip.npm verify
+```
+
+Expected: `package` produces `target/*.jar`. `verify` starts a PostgreSQL Testcontainer
+and runs the unit tests plus the `*IT` integration tests.
+
+### Frontend
+
+```console
+npm install
+npm test     # Angular client unit tests (Jest)
+```
+
 # Open Source Software - See the Code
 
 ☕️ Find the example code to run this blueprint/generator on GitHub:
