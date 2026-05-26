@@ -249,7 +249,7 @@ Java 21 application.
 From the generated app directory:
 
 ```console
-# Compile + package the backend only — no database/Docker needed (this is what CI runs)
+# Compile + package the backend only — no database/Docker needed
 ./mvnw -ntp -DskipTests -Dskip.npm package
 
 # Unit + integration tests. The *IT integration tests use Testcontainers, so a running
@@ -257,8 +257,12 @@ From the generated app directory:
 ./mvnw -ntp -Dskip.npm verify
 ```
 
-Expected: `package` produces `target/*.jar`. `verify` starts a PostgreSQL Testcontainer
-and runs the unit tests plus the `*IT` integration tests.
+Expected: `package` produces `target/*.jar`. `verify` starts a PostgreSQL (pgvector)
+Testcontainer and runs the full suite green — the unit tests plus the entity REST CRUD
+`*IT` integration tests (create / get-one / get-all / update / partial update / delete and
+their negative cases). The `samples.yml` GitHub workflow runs exactly this `verify` on
+every push (the runner provides Docker), so the generated app's CRUD contract is
+continuously regression-tested.
 
 ### Frontend
 
