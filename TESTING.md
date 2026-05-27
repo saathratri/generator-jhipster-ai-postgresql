@@ -129,6 +129,33 @@ If you hit a _larger_ frontend cleanup (lint modernization, spec rewrites), the 
 the full playbook (`prefer-inject`, `@if`/`@for` control-flow, `inject()` + member-ordering ordering,
 mapping generated-line→template, the `eslint --fix` discovery trick, etc.).
 
+### 5.2 Generated E2E (Cypress)
+
+Generated apps ship the upstream JHipster Cypress suite under `src/test/javascript/cypress/`. This
+blueprint does **not** fork those templates — `generators/cypress/generator.js` (`POST_WRITING_ENTITIES`,
+via `editFile`) only **appends one assertion** to each entity's create test: after upstream's `.select(1)`
+on a required relationship's data-cy `<select>`, it adds
+`.find('option:selected').invoke('text').should('match', /\S/)`. That exercises the blueprint's headline
+feature — foreign keys rendered as **human-readable labels** (the related entity's name, etc.) rather than
+raw UUIDs — so a regression that blanks the FK label is caught. Upstream already fills the FK `<select>`
+(single `data-cy`, normal single-`id` PK), so nothing else changes (no composite keys, no delete-URL
+surprises). The no-op `template-file-cypress` stub the scaffold used to emit was removed.
+
+**Run the generated Cypress tests** from a generated app dir. Cypress drives a **running** app, so Postgres
+and Keycloak must be up first (e.g. `docker compose` the app's `src/main/docker` services):
+
+```bash
+NODE_OPTIONS=--use-system-ca npm install        # once
+npm run e2e:devserver   # self-contained: starts backend + frontend, waits, runs cypress
+npm run e2e             # cypress run (headed) against an already-running app
+npm run cypress         # interactive runner (cypress open)
+```
+
+**Verify after a regen:** the entity-bearing app must enable Cypress (`testFrameworks [cypress]` in its JDL
+`config` block — by default the gateway/sample may be the only app that does). In an entity with a required
+relationship, `<entity>.cy.ts`'s create test has the `option:selected … should('match', /\S/)` line right
+after the `.select(1)`.
+
 ---
 
 ## 6. Quick reference
@@ -150,6 +177,10 @@ MAVEN_OPTS="-Djavax.net.ssl.trustStoreType=Windows-ROOT" ./mvnw -ntp -Dskip.npm 
 NODE_OPTIONS=--use-system-ca npm install                   # once
 NODE_OPTIONS=--use-system-ca npm test                      # eslint pretest + vitest (the real gate)
 NODE_OPTIONS=--use-system-ca npx ng test --coverage        # vitest only
+
+# ----- generated E2E (Cypress; from a generated app — needs the full stack running) -----
+NODE_OPTIONS=--use-system-ca npm run e2e:devserver         # starts backend + frontend, waits, runs cypress
+NODE_OPTIONS=--use-system-ca npm run e2e                   # cypress run against an already-running app
 ```
 
 CI: `.github/workflows/generator.yml` runs Layer 1; `.github/workflows/samples.yml` generates a sample and

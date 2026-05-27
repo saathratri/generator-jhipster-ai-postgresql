@@ -84,14 +84,7 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.WRITING]() {
     return this.asWritingTaskGroup({
-      async writingTemplateTask({ application }) {
-        await this.writeFiles({
-          sections: {
-            files: [{ templates: ['template-file-cypress'] }],
-          },
-          context: application,
-        });
-      },
+      async writingTemplateTask() {},
     });
   }
 
@@ -109,7 +102,34 @@ export default class extends BaseApplicationGenerator {
 
   get [BaseApplicationGenerator.POST_WRITING_ENTITIES]() {
     return this.asPostWritingEntitiesTaskGroup({
-      async postWritingEntitiesTemplateTask() {},
+      async postWritingEntitiesTemplateTask({ application, entities }) {
+        // Blueprint feature: foreign keys render as human-readable labels (e.g. the related
+        // entity's name) instead of raw UUIDs. Upstream's generated create test already
+        // selects each required relationship via its data-cy <select>; append an assertion
+        // that the selected option renders non-empty human-readable text, so a regression
+        // that blanks the FK label is caught. The assertion lives inside upstream's
+        // already-gated create test and references no external vars, so it is safe
+        // regardless of skipCreateTest.
+        const cypressDir = application.cypressDir;
+        if (!cypressDir) return;
+
+        // Matches: <indent>cy.get(`[data-cy="<rel>"]`).select(1);  (required single relations)
+        const selectRe = /( *)cy\.get\(`\[data-cy="([^"]+)"\]`\)\.select\(1\);/g;
+
+        for (const entity of entities) {
+          const specPath = `${cypressDir}e2e/entity/${entity.entityFileName}.cy.ts`;
+          if (!this.existsDestination(specPath)) continue;
+
+          this.editFile(specPath, content => {
+            if (content.includes('option:selected')) return content; // idempotent
+            return content.replace(
+              selectRe,
+              (match, indent, rel) =>
+                `${match}\n${indent}cy.get(\`[data-cy="${rel}"]\`).find('option:selected').invoke('text').should('match', /\\S/);`,
+            );
+          });
+        }
+      },
     });
   }
 
