@@ -1250,20 +1250,22 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   aiSearchQuery = '';
   aiSearchLoading = signal(false);
   isAiSearchActive = signal(false);
-  aiSearchSelectedFields: { [key: string]: boolean } = { ${fieldEntries} };
+  aiSearchSelectedFields: Record<string, boolean> = { ${fieldEntries} };
 
   toggleAiSearchField(fieldName: string): void {
     this.aiSearchSelectedFields[fieldName] = !this.aiSearchSelectedFields[fieldName];
   }
 
-  private getSelectedAiSearchFields(): string[] {
+  // Public (not private) so member-ordering passes for the public/protected
+  // methods declared after this block in the same class.
+  getSelectedAiSearchFields(): string[] {
     const allFields = [${fieldNamesArray}];
     const selected = allFields.filter(f => this.aiSearchSelectedFields[f]);
     return selected.length > 0 ? selected : allFields;
   }
 
   performAiSearch(query: string): void {
-    if (!query || !query.trim()) {
+    if (!query?.trim()) {
       this.clearAiSearch();
       return;
     }
@@ -1350,9 +1352,9 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             if (lastBrace !== -1) {
               const aiSearchMethod = `
   aiSearch(query: string, limit: number, fields?: string[]): Observable<I${entityAngularName}[]> {
-    let params: { [key: string]: string | string[] } = { query, limit: String(limit) };
+    const params: Record<string, string | string[]> = { query, limit: String(limit) };
     if (fields && fields.length > 0) {
-      params['fields'] = fields.join(',');
+      params.fields = fields.join(',');
     }
     return this.http.get<I${entityAngularName}[]>(\`\${this.resourceUrl}/ai-search\`, {
       params,
