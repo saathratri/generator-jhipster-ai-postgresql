@@ -192,9 +192,20 @@ export default class extends BaseApplicationGenerator {
               /cy\.wait\('@entitiesRequestInternal'\)/g,
               "cy.wait('@entitiesRequestInternal', { timeout: 30000 })",
             );
+            // Convert string glob intercept URL to regex literal. Upstream's `+(?*|)`
+            // only matches base path + optional `?...`; the cassandra pagination overhaul
+            // (`/<entity>/slice?...`) and any future suffix segments need a more permissive
+            // matcher. `**` in minimatch only crosses path separators when standalone, so
+            // `<entity>**` still doesn't match `/slice...`. Use a regex with `\b` (word
+            // boundary) which catches `/<entity>`, `/<entity>?...`, `/<entity>/X`,
+            // `/<entity>/X?...`. Harmless for ai-postgresql even though it doesn't
+            // currently use /slice (kept symmetric with the cassandra blueprint).
             content = content.replace(
-              /('\/services\/[^']+?)\+\(\?\*\|\)'/g,
-              "$1**'",
+              /'((?:\/services\/)?[^']*)(?:\+\(\?\*\|\)|\*\*)'/g,
+              (_, urlPath) => {
+                const escaped = urlPath.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+                return `/^${escaped}\\b/`;
+              },
             );
             return content;
           });
