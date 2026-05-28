@@ -115,15 +115,24 @@ and the lint gate **fails only on errors, not warnings** (`lint` = `eslint .`, n
 
 Sub-commands: `npx ng test --coverage` (Vitest only, bypass lint), `npx eslint .`, `npx eslint . --fix`.
 
-### 5.1 The one frontend bug we hit here
+### 5.1 Frontend bugs we hit here
 
-`ng test` / `ng build` failed to compile: **`TS2307: Cannot find module 'app/entities/entity-navbar-items'`**
-(imported by `navbar.ts`). Cause: this blueprint **replaces base JHipster's entity-client writing**, which
-is what normally emits `app/entities/entity-navbar-items.ts`. Fix: have `sql-angular`'s `WRITING_ENTITIES`
-emit the aggregate file from the filtered client entities (base shape:
+**`TS2307: Cannot find module 'app/entities/entity-navbar-items'`** (imported by `navbar.ts`). Cause: this
+blueprint **replaces base JHipster's entity-client writing**, which is what normally emits
+`app/entities/entity-navbar-items.ts`. Fix: have `sql-angular`'s `WRITING_ENTITIES` emit the aggregate
+file from the filtered client entities (base shape:
 `{ name: entityNameHumanized, route: entityPage, translationKey: entityTranslationKeyMenuPath }`). Once it
 exists, `EntityNavbarItems` is correctly typed and the lone `navbar.ts` lint error (`no-unsafe-return`)
-also disappears. That single missing file was the whole frontend gap — after it, `npm test` was green.
+also disappears.
+
+**`@typescript-eslint/member-ordering: Member loadMicrofrontendsEntities should be declared before all
+private instance method definitions`** (gateway with microfrontends only). Cause: `sql-angular/generator.js`'s
+gateway-side `editFile` was inserting the `sortNavbarItemsAlphabetically` helper *immediately before* the
+public `loadMicrofrontendsEntities` method, placing a private method between two public ones. Fix: insert
+AFTER `loadMicrofrontendsEntities` — anchor on the class's closing `\n}` at end-of-file and prepend the
+helper there. TypeScript method lookup is `this`-relative so the declaration order doesn't matter at
+runtime; only the lint rule cares. The same fix lives in the cassandra blueprint's
+`cassandra-angular/generator.js` for the same reason.
 
 If you hit a _larger_ frontend cleanup (lint modernization, spec rewrites), the cassandra guide §5–6 has
 the full playbook (`prefer-inject`, `@if`/`@for` control-flow, `inject()` + member-ordering ordering,

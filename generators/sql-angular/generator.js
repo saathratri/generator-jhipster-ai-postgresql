@@ -347,15 +347,18 @@ export default class extends BaseApplicationGenerator {
 
           // For gateways with microfrontends: add sorting helper and wrap .set() calls
           if (isMicrofrontendGateway) {
-            // 4. Add sortNavbarItemsAlphabetically helper method (before loadMicrofrontendsEntities if it exists)
+            // 4. Add sortNavbarItemsAlphabetically helper method AFTER loadMicrofrontendsEntities
+            // (immediately before the class's closing brace) so the public method stays before the
+            // private helper — @typescript-eslint/member-ordering requires public-before-private.
             if (!content.includes('sortNavbarItemsAlphabetically') && content.includes('loadMicrofrontendsEntities')) {
               content = content.replace(
-                '  loadMicrofrontendsEntities(): void {',
-                '  // Saathratri modification - alphabetical sorting helper\n' +
+                /\n\}\s*$/,
+                '\n\n' +
+                  '  // Saathratri modification - alphabetical sorting helper\n' +
                   '  private sortNavbarItemsAlphabetically(items: NavbarItem[]): NavbarItem[] {\n' +
                   '    return [...items].sort((a, b) => a.name.localeCompare(b.name));\n' +
-                  '  }\n\n' +
-                  '  loadMicrofrontendsEntities(): void {',
+                  '  }\n' +
+                  '}\n',
               );
             }
 
