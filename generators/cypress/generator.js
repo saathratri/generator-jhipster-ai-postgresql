@@ -123,6 +123,27 @@ export default class extends BaseApplicationGenerator {
             `export const entityItemSelector = '[data-cy="${application.baseName}Menu"]';`,
           );
         });
+
+        // Patch clickOnEntityMenuItem in support/navbar.ts. Two issues to fix
+        // (parallel to the cassandra blueprint's cypress/generator.js fix):
+        //
+        // 1. Selector chain: upstream chains `.find(entityItemSelector).find('.dropdown-item[href=...]')`
+        //    expecting items to be CHILDREN of the data-cy="entity" toggle. sql-angular's
+        //    per-microfrontend navbar puts data-cy on the `<a ngbDropdownToggle>` while items
+        //    live in a SIBLING `<ul ngbDropdownMenu>`. Drop the intermediate `.find(entityItemSelector)`.
+        //
+        // 2. Timeout: per-microfrontend dropdowns populate async via module federation. The
+        //    default 4s retry isn't enough on cold load. Extend to 30s.
+        const navbarPath = `${cypressDir}support/navbar.ts`;
+        if (this.existsDestination(navbarPath)) {
+          this.editFile(navbarPath, content => {
+            if (content.includes('/* SAATHRATRI mf nav */')) return content;
+            return content.replace(
+              /cy\s*\.get\(navbarSelector\)\s*\.find\(entityItemSelector\)\s*\.find\(`\.dropdown-item\[href="\/\$\{entityName\}"\]`\)\s*\.click\(\)/,
+              'cy\n    .get(navbarSelector)\n    .find(`.dropdown-item[href="/${entityName}"]`, /* SAATHRATRI mf nav */ { timeout: 30000 })\n    .click()',
+            );
+          });
+        }
       },
     });
   }
@@ -154,6 +175,28 @@ export default class extends BaseApplicationGenerator {
               (match, indent, rel) =>
                 `${match}\n${indent}cy.get(\`[data-cy="${rel}"]\`).find('option:selected').invoke('text').should('match', /\\S/);`,
             );
+          });
+
+          // Bump cy.wait timeouts and widen intercept glob (parallel to cassandra
+          // cypress/generator.js fixes). Both are micro-frontend cold-load workarounds:
+          // - The lazy-loaded psqlblog/psqlstore route fires its GET only after module
+          //   federation registers the remote, which can exceed the default 5s wait.
+          // - Upstream's `+(?*|)` intercept glob only matches base path + optional
+          //   `?...` — `**` is more permissive and harmless even on standard JPA paths.
+          this.editFile(specPath, content => {
+            content = content.replace(
+              /cy\.wait\('@entitiesRequest'\)/g,
+              "cy.wait('@entitiesRequest', { timeout: 30000 })",
+            );
+            content = content.replace(
+              /cy\.wait\('@entitiesRequestInternal'\)/g,
+              "cy.wait('@entitiesRequestInternal', { timeout: 30000 })",
+            );
+            content = content.replace(
+              /('\/services\/[^']+?)\+\(\?\*\|\)'/g,
+              "$1**'",
+            );
+            return content;
           });
         }
       },
