@@ -243,6 +243,17 @@ export default class extends BaseApplicationGenerator {
           content.replace('"test": "ng test --coverage",', '"test": "ng test --coverage --watch=false",'),
         );
       },
+      async disableAngularCliAnalytics({ application }) {
+        // Disable Angular CLI analytics so `ng test` / `ng build` doesn't prompt
+        // ("Would you like to share pseudonymous usage data..."), which blocks CI and
+        // any non-interactive run. Injects `"analytics": false` at the top of the
+        // angular.json `"cli"` block. Idempotent.
+        if (application.skipClient) return;
+        this.editFile('angular.json', content => {
+          if (content.includes('"analytics"')) return content;
+          return content.replace(/"cli":\s*\{\n(\s*)"cache":/, '"cli": {\n$1"analytics": false,\n$1"cache":');
+        });
+      },
       async fixEntityDetailGridOverflow({ application }) {
         // Upstream JHipster's entity-detail grid (.row-md.jh-entity-details) uses
         // `grid-template-columns: auto 1fr`, but grid items default to
