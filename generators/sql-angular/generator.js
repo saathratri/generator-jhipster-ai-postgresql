@@ -1276,7 +1276,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   }
 
   performAiSearch(query: string): void {
-    if (!query?.trim()) {
+    if (!query.trim()) {
       this.clearAiSearch();
       return;
     }
