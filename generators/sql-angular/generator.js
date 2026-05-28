@@ -231,6 +231,18 @@ export default class extends BaseApplicationGenerator {
           });
         }
       },
+      async forceTestOneShot({ application }) {
+        // Upstream JHipster's Angular generator emits `"test": "ng test --coverage"` which,
+        // after the Karma→Vitest switch, defaults to WATCH mode and never exits. The
+        // neighbouring `"test:watch"` script (which appends `--watch`) proves the intent was
+        // one-shot — upstream just forgot the flag. Force `--watch=false` so CI and casual
+        // local runs of `npm test` actually exit. Becomes a no-op once upstream ships the
+        // fix (the regex won't match the new value).
+        if (application.skipClient) return;
+        this.editFile('package.json', content =>
+          content.replace('"test": "ng test --coverage",', '"test": "ng test --coverage --watch=false",'),
+        );
+      },
       async fixEntityDetailGridOverflow({ application }) {
         // Upstream JHipster's entity-detail grid (.row-md.jh-entity-details) uses
         // `grid-template-columns: auto 1fr`, but grid items default to
