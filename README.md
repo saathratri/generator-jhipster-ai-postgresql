@@ -287,6 +287,27 @@ services, list/detail/update components and routing resolvers). Note: embedding 
 and AI semantic search need `OPENAI_API_KEY` only at **runtime** — the app builds and all
 tests pass without it (AI search is simply disabled).
 
+### E2E Testing with Cypress
+
+The cypress generator (`generators/cypress/generator.js`) post-processes the upstream
+JHipster Cypress suite in `POST_WRITING` / `POST_WRITING_ENTITIES` (via `editFile`):
+
+- **Per-microfrontend navbar selector.** `sql-angular` restructures the navbar into a
+  dropdown per microfrontend, so the upstream `entityItemSelector = '[data-cy="entity"]'`
+  is rewritten to `'[data-cy="<baseName>Menu"]'` per microservice.
+- **Async navbar timeout.** Adds `{ timeout: 30000 }` to `clickOnEntityMenuItem` and to
+  the `cy.wait('@entitiesRequest'…)` calls in entity specs, accommodating module
+  federation's cold-load latency. The intercept glob is widened so the pagination
+  endpoints also match.
+- **FK label assertion.** After upstream's `cy.get(\`[data-cy="<rel>"]\`).select(1)` on a
+  required relationship, appends `.find('option:selected').invoke('text').should('match', /\S/)`.
+  This exercises the blueprint's headline feature — foreign keys rendered as human-readable
+  labels instead of raw UUIDs — so a regression that blanks the FK label is caught.
+
+This blueprint does not ship the custom MAP/SET/date-time Angular widgets the Cassandra
+blueprint does; for the widget data-cy hook catalogue and per-widget round-trip / edit /
+delete test passes, see [`generator-jhipster-cassandra/README.md`](https://github.com/amarpatel-xx/generator-jhipster-cassandra#e2e-testing-with-cypress).
+
 ## Debugging test failures
 
 The golden rule for this blueprint is **fix the `.ejs` templates / `generator.js`, never

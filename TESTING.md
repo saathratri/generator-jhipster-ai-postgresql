@@ -141,14 +141,24 @@ mapping generated-line→template, the `eslint --fix` discovery trick, etc.).
 ### 5.2 Generated E2E (Cypress)
 
 Generated apps ship the upstream JHipster Cypress suite under `src/test/javascript/cypress/`. This
-blueprint does **not** fork those templates — `generators/cypress/generator.js` (`POST_WRITING_ENTITIES`,
-via `editFile`) only **appends one assertion** to each entity's create test: after upstream's `.select(1)`
-on a required relationship's data-cy `<select>`, it adds
-`.find('option:selected').invoke('text').should('match', /\S/)`. That exercises the blueprint's headline
-feature — foreign keys rendered as **human-readable labels** (the related entity's name, etc.) rather than
-raw UUIDs — so a regression that blanks the FK label is caught. Upstream already fills the FK `<select>`
-(single `data-cy`, normal single-`id` PK), so nothing else changes (no composite keys, no delete-URL
-surprises). The no-op `template-file-cypress` stub the scaffold used to emit was removed.
+blueprint does **not** fork those templates — `generators/cypress/generator.js` post-processes them
+via `editFile`. Passes:
+
+| Phase | Patch | Purpose |
+|---|---|---|
+| `POST_WRITING` | Rewrite `entityItemSelector` in `cypress/support/commands.ts` from `'[data-cy="entity"]'` to `'[data-cy="<baseName>Menu"]'`. | The `sql-angular` navbar restructures the upstream single flat dropdown into one per microfrontend. Upstream's `clickOnEntityMenuItem` would otherwise miss the dropdown. |
+| `POST_WRITING` | Rewrite `cy.get(navbarSelector).find(entityItemSelector).find(\`.dropdown-item[…]\`)…` in `cypress/support/navbar.ts` to drop the intermediate `.find(entityItemSelector)` and add `{ timeout: 30000 }`. | sql-angular renders dropdown items in a sibling `<ul ngbDropdownMenu>` (not as children of the toggle). The 30s timeout accommodates module-federation cold load. |
+| `POST_WRITING_ENTITIES` | Append `cy.get(\`[data-cy="<rel>"]\`).find('option:selected').invoke('text').should('match', /\S/)` after each `.select(1)` on a required relationship. | Exercises the blueprint's headline feature — foreign keys rendered as human-readable labels (related entity's name, etc.) rather than raw UUIDs. A regression that blanks the FK label is caught. |
+| `POST_WRITING_ENTITIES` | Bump `cy.wait('@entitiesRequest')` to `{ timeout: 30000 }` and widen the intercept glob. | Lazy-loaded microfrontend routes only fire their list GET after module-federation registers the remote; the upstream glob also misses the pagination endpoint. |
+
+Upstream already fills FK `<select>`s (single `data-cy`, normal single-`id` PK), so single-key entities
+need no further patches — no composite keys, no delete-URL surprises. The no-op `template-file-cypress`
+stub the scaffold used to emit was removed.
+
+**No widget components.** This blueprint does not ship the custom MAP/SET/date-time Angular widgets the
+Cassandra blueprint does, so there is no widget-level test harness here. For the per-widget data-cy hook
+catalogue (Add row / per-row / dialog), per-widget round-trip tests, edit-dialog and delete-row test
+generation, see [`generator-jhipster-cassandra/TESTING.md §5.2`](https://github.com/amarpatel-xx/generator-jhipster-cassandra/blob/main/TESTING.md#52-generated-e2e-cypress).
 
 **Run the generated Cypress tests** from a generated app dir. Cypress drives a **running** app, so Postgres
 and Keycloak must be up first (e.g. `docker compose` the app's `src/main/docker` services):
