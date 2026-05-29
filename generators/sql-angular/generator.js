@@ -1398,6 +1398,82 @@ export class LazyRelationshipEditModalComponent implements OnInit {
           });
 
           this.log.info(`[sql-angular] Patched ${updateTsFile} with JsonPipe`);
+
+          // --- Patch the list component spec to cover the injected AI-search methods ---
+          const fieldNamesArr = JSON.stringify(vectorFields.map(vf => vf.fieldName));
+          const firstVf = vectorFields[0].fieldName;
+          const listSpecFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.spec.ts`;
+          this.editFile(listSpecFile, content => {
+            if (typeof content !== 'string' || content.includes('Saathratri modification - AI search component tests')) return content;
+            // The injected AI-search bar renders <fa-icon icon="search"/>; register faSearch in the
+            // spec's icon library so the load/sort tests (which trigger change detection) don't fail.
+            if (!content.includes('faSearch')) {
+              content = content.replace(
+                /} from '@fortawesome\/free-solid-svg-icons';/,
+                ", faSearch } from '@fortawesome/free-solid-svg-icons';",
+              );
+              content = content.replace(/library\.addIcons\(([^)]*)\);/, 'library.addIcons($1, faSearch);');
+            }
+            const tests = `
+  // Saathratri modification - AI search component tests
+  it('should perform AI search and populate results', () => {
+    const aiResults = [{ id: 19931 }];
+    vitest.spyOn(service, 'aiSearch').mockReturnValue(of(aiResults));
+
+    comp.performAiSearch('hello world');
+
+    expect(service.aiSearch).toHaveBeenCalledWith('hello world', 20, ${fieldNamesArr});
+    expect(comp.${entityInstancePlural}()).toEqual(aiResults);
+    expect(comp.isAiSearchActive()).toBe(true);
+    expect(comp.aiSearchLoading()).toBe(false);
+  });
+
+  it('should toggle the AI search field selection', () => {
+    expect(comp.getSelectedAiSearchFields()).toContain('${firstVf}');
+    comp.toggleAiSearchField('${firstVf}');
+    expect(comp.aiSearchSelectedFields['${firstVf}']).toBe(false);
+  });
+
+  it('should clear AI search and reload the list', () => {
+    const loadSpy = vitest.spyOn(comp, 'load').mockImplementation(() => {});
+    comp.isAiSearchActive.set(true);
+    comp.clearAiSearch();
+    expect(comp.isAiSearchActive()).toBe(false);
+    expect(loadSpy).toHaveBeenCalled();
+  });
+  // End Saathratri modification - AI search component tests
+`;
+            const idx = content.lastIndexOf('});');
+            if (idx === -1) return content;
+            return content.slice(0, idx) + tests + content.slice(idx);
+          });
+          this.log.info(`[sql-angular] Patched ${listSpecFile} with AI search component tests`);
+
+          // --- Patch the service spec to cover the aiSearch() HTTP call ---
+          const serviceSpecFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/service/${entity.entityFileName}.service.spec.ts`;
+          this.editFile(serviceSpecFile, content => {
+            if (typeof content !== 'string' || content.includes('Saathratri modification - AI search service test')) return content;
+            const test = `
+    // Saathratri modification - AI search service test
+    it('should perform an AI search', () => {
+      const aiResults = [{ id: 123 }];
+      service.aiSearch('hello', 20, ['${firstVf}']).subscribe(resp => (expectedResult = resp));
+
+      const req = httpMock.expectOne(request => request.method === 'GET' && request.url.endsWith('/ai-search'));
+      expect(req.request.params.get('query')).toEqual('hello');
+      expect(req.request.params.get('limit')).toEqual('20');
+      expect(req.request.params.get('fields')).toEqual('${firstVf}');
+      req.flush(aiResults);
+
+      expect(expectedResult).toEqual(aiResults);
+    });
+    // End Saathratri modification - AI search service test
+`;
+            const idx = content.lastIndexOf('});');
+            if (idx === -1) return content;
+            return content.slice(0, idx) + test + content.slice(idx);
+          });
+          this.log.info(`[sql-angular] Patched ${serviceSpecFile} with AI search service test`);
         }
       },
 

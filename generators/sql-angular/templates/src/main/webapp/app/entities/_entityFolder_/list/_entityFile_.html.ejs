@@ -108,10 +108,10 @@ _%>
         <div class="col-sm-12">
             <div class="input-group w-100 mt-3">
                 <label class="visually-hidden" for="aiSearchQuery">AI Search</label>
-                <input type="text" class="form-control" [(ngModel)]="aiSearchQuery" id="aiSearchQuery" name="aiSearchQuery" placeholder="AI Search (semantic)..."
+                <input type="text" class="form-control" [(ngModel)]="aiSearchQuery" id="aiSearchQuery" name="aiSearchQuery" data-cy="aiSearchInput" placeholder="AI Search (semantic)..."
                        (keyup.enter)="performAiSearch(aiSearchQuery)">
 
-                <button class="btn btn-warning" (click)="performAiSearch(aiSearchQuery)" [disabled]="aiSearchLoading()">
+                <button class="btn btn-warning" data-cy="aiSearchButton" (click)="performAiSearch(aiSearchQuery)" [disabled]="aiSearchLoading()">
                     @if (aiSearchLoading()) {
                         <fa-icon icon="sync" animation="spin" />
                     } @else {
@@ -121,7 +121,7 @@ _%>
                 </button>
 
             @if (isAiSearchActive()) {
-                <button class="btn btn-danger" (click)="clearAiSearch()">
+                <button class="btn btn-danger" data-cy="aiSearchClearButton" (click)="clearAiSearch()">
                     <fa-icon icon="trash-alt" />
                 </button>
             }

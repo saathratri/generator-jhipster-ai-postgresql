@@ -127,7 +127,7 @@ also disappears.
 
 **`@typescript-eslint/member-ordering: Member loadMicrofrontendsEntities should be declared before all
 private instance method definitions`** (gateway with microfrontends only). Cause: `sql-angular/generator.js`'s
-gateway-side `editFile` was inserting the `sortNavbarItemsAlphabetically` helper *immediately before* the
+gateway-side `editFile` was inserting the `sortNavbarItemsAlphabetically` helper _immediately before_ the
 public `loadMicrofrontendsEntities` method, placing a private method between two public ones. Fix: insert
 AFTER `loadMicrofrontendsEntities` — anchor on the class's closing `\n}` at end-of-file and prepend the
 helper there. TypeScript method lookup is `this`-relative so the declaration order doesn't matter at
@@ -144,12 +144,12 @@ Generated apps ship the upstream JHipster Cypress suite under `src/test/javascri
 blueprint does **not** fork those templates — `generators/cypress/generator.js` post-processes them
 via `editFile`. Passes:
 
-| Phase | Patch | Purpose |
-|---|---|---|
-| `POST_WRITING` | Rewrite `entityItemSelector` in `cypress/support/commands.ts` from `'[data-cy="entity"]'` to `'[data-cy="<baseName>Menu"]'`. | The `sql-angular` navbar restructures the upstream single flat dropdown into one per microfrontend. Upstream's `clickOnEntityMenuItem` would otherwise miss the dropdown. |
-| `POST_WRITING` | Rewrite `cy.get(navbarSelector).find(entityItemSelector).find(\`.dropdown-item[…]\`)…` in `cypress/support/navbar.ts` to drop the intermediate `.find(entityItemSelector)` and add `{ timeout: 30000 }`. | sql-angular renders dropdown items in a sibling `<ul ngbDropdownMenu>` (not as children of the toggle). The 30s timeout accommodates module-federation cold load. |
-| `POST_WRITING_ENTITIES` | Append `cy.get(\`[data-cy="<rel>"]\`).find('option:selected').invoke('text').should('match', /\S/)` after each `.select(1)` on a required relationship. | Exercises the blueprint's headline feature — foreign keys rendered as human-readable labels (related entity's name, etc.) rather than raw UUIDs. A regression that blanks the FK label is caught. |
-| `POST_WRITING_ENTITIES` | Bump `cy.wait('@entitiesRequest')` to `{ timeout: 30000 }` and widen the intercept glob. | Lazy-loaded microfrontend routes only fire their list GET after module-federation registers the remote; the upstream glob also misses the pagination endpoint. |
+| Phase                   | Patch                                                                                                                                                                                              | Purpose                                                                                                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST_WRITING`          | Rewrite `entityItemSelector` in `cypress/support/commands.ts` from `'[data-cy="entity"]'` to `'[data-cy="<baseName>Menu"]'`.                                                                       | The `sql-angular` navbar restructures the upstream single flat dropdown into one per microfrontend. Upstream's `clickOnEntityMenuItem` would otherwise miss the dropdown.                         |
+| `POST_WRITING`          | Rewrite `cy.get(navbarSelector).find(entityItemSelector).find(\`.dropdown-item[…]\`)…`in`cypress/support/navbar.ts`to drop the intermediate`.find(entityItemSelector)`and add`{ timeout: 30000 }`. | sql-angular renders dropdown items in a sibling `<ul ngbDropdownMenu>` (not as children of the toggle). The 30s timeout accommodates module-federation cold load.                                 |
+| `POST_WRITING_ENTITIES` | Append `cy.get(\`[data-cy="<rel>"]\`).find('option:selected').invoke('text').should('match', /\S/)`after each`.select(1)` on a required relationship.                                              | Exercises the blueprint's headline feature — foreign keys rendered as human-readable labels (related entity's name, etc.) rather than raw UUIDs. A regression that blanks the FK label is caught. |
+| `POST_WRITING_ENTITIES` | Bump `cy.wait('@entitiesRequest')` to `{ timeout: 30000 }` and widen the intercept glob.                                                                                                           | Lazy-loaded microfrontend routes only fire their list GET after module-federation registers the remote; the upstream glob also misses the pagination endpoint.                                    |
 
 Upstream already fills FK `<select>`s (single `data-cy`, normal single-`id` PK), so single-key entities
 need no further patches — no composite keys, no delete-URL surprises. The no-op `template-file-cypress`
@@ -176,6 +176,26 @@ relationship, `<entity>.cy.ts`'s create test has the `option:selected … should
 after the `.select(1)`.
 
 ---
+
+## 5.3 Vector / AI-search test coverage (Saathratri)
+
+The blueprint generates an embedding stack (pgvector columns, `EmbeddingService`, `findSimilarBy*`
+repository queries, `/api/<entities>/ai-search` + `/vector-search/<field>[/threshold]` endpoints, and an
+AI-search bar on the list page). That code is now exercised by generated tests, so the bundled
+`sample.jdl` gives `Tag` a vector field (`@customAnnotation("VECTOR") @customAnnotation("1536")
+nameEmbedding Blob`) and turns on `dto * with mapstruct` + `service * with serviceImpl` (the
+vector-search endpoints + forked `ResourceIT` are only emitted for dto-mapstruct + serviceImpl entities —
+without that, base JHipster writes plain CRUD that cannot handle the `float[]` vector field).
+
+| Layer             | What's covered                                                                                                                                                                                                                                                                                                                                                                    | Where (template)                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Backend unit      | `EmbeddingService`: generate / null-guards / disabled-model / byte + pgvector-string round-trips. `EmbeddingModel` is **mocked** (deterministic vector) so it runs with no `OPENAI_API_KEY`.                                                                                                                                                                                      | `sql-spring-boot/.../service/embedding/EmbeddingServiceTest.java.ejs` (written in the `hasVectorFieldsSaathratri` block) |
+| Backend IT        | Per vector field: `POST /vector-search/<field>` returns the identical row (cosine distance 0) and `/threshold` includes (maxDistance 1.0) / excludes (maxDistance 0.0) it. Plus `/ai-search` (with a `@MockitoBean EmbeddingModel`) returns the semantic match, and blank-query → empty. Vector fields are excluded from `fieldsToTest` so the standard CRUD asserts ignore them. | `sql-spring-boot/.../web/rest/_entityClass_ResourceIT.java.ejs`                                                          |
+| Frontend (Vitest) | `performAiSearch` populates results + sets the active/loading signals; `toggleAiSearchField`; `clearAiSearch` reloads; service `aiSearch()` issues the GET with `query`/`limit`/`fields`. `faSearch` is registered in the spec's icon library so the load/sort tests don't trip on the AI-search bar.                                                                             | `sql-angular/generator.js` `POST_WRITING_ENTITIES` (`editFile` on the base list + service specs)                         |
+| E2E (Cypress)     | `should run an AI semantic search` — types in `[data-cy="aiSearchInput"]`, clicks `[data-cy="aiSearchButton"]`, asserts the `/ai-search` request returns 200. Needs the running stack (backend + Postgres + Keycloak); returns an empty 200 without `OPENAI_API_KEY`, which still verifies the wiring.                                                                            | `cypress/generator.js` `POST_WRITING_ENTITIES` (vector-gated) + `data-cy` hooks in the `sql-angular` list HTML           |
+
+A green `./mvnw -ntp -Dskip.npm -Dtest=EmbeddingServiceTest -Dit.test=TagResourceIT verify` is the fast
+inner loop for the backend additions; `npx ng test` covers the frontend ones.
 
 ## 6. Quick reference
 

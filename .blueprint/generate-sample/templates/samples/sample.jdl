@@ -22,6 +22,7 @@ entity Post {
 
 entity Tag {
   name String required minlength(2)
+  @customAnnotation("VECTOR") @customAnnotation("1536") nameEmbedding Blob
 }
 
 relationship ManyToOne {
@@ -31,3 +32,10 @@ relationship ManyToOne {
 relationship ManyToMany {
   Post{tag(name)} to Tag{entry}
 }
+
+// This blueprint is designed for DTOs + a service layer (matches the saathratri config), and the
+// blueprint's vector-search / AI-search endpoints + forked ResourceIT are only emitted for
+// dto-mapstruct + serviceImpl entities. Without this, base JHipster writes plain CRUD that cannot
+// handle the float[] vector fields.
+dto * with mapstruct
+service * with serviceImpl

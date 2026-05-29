@@ -22,7 +22,11 @@ import static <%= entityAbsolutePackage %>.domain.<%= persistClass %>Asserts.*;
 import static <%= packageName %>.web.rest.TestUtil.createUpdateProxyForBean;
 <%_
 var filterTestableRelationships = (reactive ? reactiveEagerRelations : relationships).filter(rel => rel.persistableRelationship && !rel.otherEntity.hasCyclicRequiredRelationship);
-const fieldsToTest = fields.filter(field => !field.id && !field.autoGenerate && !field.transient);
+/* Saathratri modification - vector fields are excluded from the DTO/REST contract (they are populated
+   server-side from source text), so they are kept out of the standard CRUD test machinery
+   (createEntity, jsonPath assertions, *Asserts equality) and exercised by the dedicated
+   vector-search / AI-search tests appended at the end of the class. */
+const fieldsToTest = fields.filter(field => !field.id && !field.autoGenerate && !field.transient && !field.fieldTypeVectorSaathratri);
 const hasUserRepository =
   (requiresDeleteAllUsers && hasRelationshipWithBuiltInUser) ||
   filterTestableRelationships.some(rel => rel.otherEntity.builtInUser) ||
@@ -53,6 +57,15 @@ if (primaryKey.typeLong || primaryKey.typeInteger) {
 let transactionalAnnotation = '';
 if (databaseTypeSql && !reactive) {
   transactionalAnnotation = '\n    @Transactional';
+}
+/* Saathratri modification - vector / AI-search test scaffolding */
+const vectorFieldsSaathratri = fields.filter(f => f.fieldTypeVectorSaathratri);
+const hasVectorTestsSaathratri = vectorFieldsSaathratri.length > 0 && !reactive && databaseTypeSql;
+let insertedIdExprSaathratri = `inserted${persistClass}.${primaryKey.propertySupplierName}()`;
+if (primaryKey.typeUUID) {
+  insertedIdExprSaathratri = insertedIdExprSaathratri + '.toString()';
+} else if (primaryKey.typeLong || primaryKey.typeInteger) {
+  insertedIdExprSaathratri = insertedIdExprSaathratri + '.intValue()';
 }
 
 _%>
@@ -102,6 +115,16 @@ import <%= entityAbsolutePackage %>.service.mapper.<%= entityClass %>Mapper;
 <%_ } _%>
 <%_ if (jpaMetamodelFiltering && !reactive) { _%>
 import <%= entityAbsolutePackage %>.service.criteria.<%= entityClass %>Criteria;
+<%_ } _%>
+<%_ /* Saathratri modification - imports for vector / AI-search integration tests */ _%>
+<%_ if (hasVectorTestsSaathratri) { _%>
+import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import org.springframework.ai.embedding.Embedding;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.embedding.EmbeddingResponse;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 <%_ } _%>
 import com.fasterxml.jackson.databind.ObjectMapper;
 <%_ if (searchEngineElasticsearch) { _%>
@@ -353,12 +376,6 @@ class <%= entityClass %>ResourceIT {
 
     private static final String <%= defaultValueName %> = "<%- sampleTextString %>";
     private static final String <%= updatedValueName %> = "<%- updatedTextString %>";
-  <%_ /* Saathratri modification - vector field test constants */ _%>
-  <%_ } else if (field.fieldTypeVectorSaathratri) { _%>
-
-    private static final float[] <%= defaultValueName %> = new float[] { 0.1f, 0.2f };
-    private static final float[] <%= updatedValueName %> = new float[] { 0.3f, 0.4f };
-  <%_ /* End Saathratri modification */ _%>
   <%_ } else if (field.fieldTypeInteger) { _%>
 
     private static final Integer <%= defaultValueName %> = <%= defaultValue %>;
@@ -1964,4 +1981,116 @@ _%>
         assert<%- persistClass %>AllUpdatablePropertiesEquals(expected<%- persistClass %>, getPersisted<%- persistClass %>(expected<%- persistClass %>));
 <%_ } _%>
     }
+<%_ /* Saathratri modification - vector helpers + vector-search / AI-search integration tests.
+       Vector fields are excluded from the DTO/REST contract and from the standard CRUD machinery
+       above, so everything they need is self-contained here. */ _%>
+<%_ if (hasVectorTestsSaathratri) { _%>
+
+    // ==================== Vector / AI-search integration tests (Saathratri) ====================
+<%_ for (const vectorField of vectorFieldsSaathratri) { _%>
+
+    private static final float[] DEFAULT_<%= vectorField.fieldNameUnderscored.toUpperCase() %> = sampleVectorSaathratri(<%= vectorField.vectorDimensionSaathratri %>, 0.10f);
+<%_ } _%>
+
+    @MockitoBean
+    private EmbeddingModel embeddingModelSaathratriMock;
+
+    /**
+     * Build a deterministic, non-zero embedding of the given dimension so it round-trips through the
+     * <code>vector(n)</code> column and yields a well-defined cosine distance (a zero vector is undefined).
+     */
+    private static float[] sampleVectorSaathratri(int dimension, float base) {
+        float[] vector = new float[dimension];
+        for (int i = 0; i < dimension; i++) {
+            vector[i] = base + ((i % 8) * 0.01f);
+        }
+        return vector;
+    }
+
+    /**
+     * Format a float[] as a pgvector literal "[v1, v2, ...]" for the vector-search request body.
+     */
+    private static String vectorToPgStringSaathratri(float[] vector) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < vector.length; i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(String.format(java.util.Locale.ROOT, "%.8f", vector[i]));
+        }
+        return sb.append("]").toString();
+    }
+<%_ for (const vectorField of vectorFieldsSaathratri) {
+      const vfConst = 'DEFAULT_' + vectorField.fieldNameUnderscored.toUpperCase(); _%>
+
+    @Test<%- transactionalAnnotation %>
+    void vectorSearchBy<%= vectorField.fieldNameCapitalized %>ReturnsTheSimilarRow() throws Exception {
+        // Persist a row whose <%= vectorField.fieldName %> equals the query vector (cosine distance 0).
+        <%= persistInstance %>.set<%= vectorField.fieldNameCapitalized %>(<%= vfConst %>);
+        inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>);
+
+        rest<%= entityClass %>MockMvc
+            .perform(post(ENTITY_API_URL + "/vector-search/<%= vectorField.fieldName %>")<% if (authenticationUsesCsrf) { %>.with(csrf())<% } %>
+                .param("limit", "10")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content(vectorToPgStringSaathratri(<%= vfConst %>)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.[*].<%= primaryKey.name %>").value(hasItem(<%- insertedIdExprSaathratri %>)));
+    }
+
+    @Test<%- transactionalAnnotation %>
+    void vectorSearchBy<%= vectorField.fieldNameCapitalized %>WithThresholdFiltersByDistance() throws Exception {
+        <%= persistInstance %>.set<%= vectorField.fieldNameCapitalized %>(<%= vfConst %>);
+        inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>);
+        String queryVector = vectorToPgStringSaathratri(<%= vfConst %>);
+
+        // A generous threshold keeps the identical match (distance 0 < 1.0).
+        rest<%= entityClass %>MockMvc
+            .perform(post(ENTITY_API_URL + "/vector-search/<%= vectorField.fieldName %>/threshold")<% if (authenticationUsesCsrf) { %>.with(csrf())<% } %>
+                .param("maxDistance", "1.0")
+                .param("limit", "10")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content(queryVector))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.[*].<%= primaryKey.name %>").value(hasItem(<%- insertedIdExprSaathratri %>)));
+
+        // The native query uses a strict "< maxDistance", so maxDistance 0.0 excludes even an identical match.
+        rest<%= entityClass %>MockMvc
+            .perform(post(ENTITY_API_URL + "/vector-search/<%= vectorField.fieldName %>/threshold")<% if (authenticationUsesCsrf) { %>.with(csrf())<% } %>
+                .param("maxDistance", "0.0")
+                .param("limit", "10")
+                .contentType(MediaType.TEXT_PLAIN)
+                .content(queryVector))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.[*].<%= primaryKey.name %>").value(not(hasItem(<%- insertedIdExprSaathratri %>))));
+    }
+<%_ } _%>
+
+    @Test<%- transactionalAnnotation %>
+    void aiSearchReturnsSemanticMatchesWhenEmbeddingModelIsAvailable() throws Exception {
+        <%= persistInstance %>.set<%= vectorFieldsSaathratri[0].fieldNameCapitalized %>(DEFAULT_<%= vectorFieldsSaathratri[0].fieldNameUnderscored.toUpperCase() %>);
+        inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>);
+        // Mock the embedding model so the text query embeds to the same vector stored above
+        // (cosine distance 0, well within the service's 0.8 threshold).
+        when(embeddingModelSaathratriMock.embedForResponse(any()))
+            .thenReturn(new EmbeddingResponse(List.of(new Embedding(DEFAULT_<%= vectorFieldsSaathratri[0].fieldNameUnderscored.toUpperCase() %>, 0))));
+
+        rest<%= entityClass %>MockMvc
+            .perform(get(ENTITY_API_URL + "/ai-search").param("query", "find similar rows").param("limit", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.[*].<%= primaryKey.name %>").value(hasItem(<%- insertedIdExprSaathratri %>)));
+    }
+
+    @Test<%- transactionalAnnotation %>
+    void aiSearchReturnsEmptyForBlankQuery() throws Exception {
+        rest<%= entityClass %>MockMvc
+            .perform(get(ENTITY_API_URL + "/ai-search").param("query", "  ").param("limit", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.length()").value(0));
+    }
+<%_ } _%>
 }

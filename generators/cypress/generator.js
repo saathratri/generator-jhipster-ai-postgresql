@@ -184,14 +184,8 @@ export default class extends BaseApplicationGenerator {
           // - Upstream's `+(?*|)` intercept glob only matches base path + optional
           //   `?...` — `**` is more permissive and harmless even on standard JPA paths.
           this.editFile(specPath, content => {
-            content = content.replace(
-              /cy\.wait\('@entitiesRequest'\)/g,
-              "cy.wait('@entitiesRequest', { timeout: 30000 })",
-            );
-            content = content.replace(
-              /cy\.wait\('@entitiesRequestInternal'\)/g,
-              "cy.wait('@entitiesRequestInternal', { timeout: 30000 })",
-            );
+            content = content.replace(/cy\.wait\('@entitiesRequest'\)/g, "cy.wait('@entitiesRequest', { timeout: 30000 })");
+            content = content.replace(/cy\.wait\('@entitiesRequestInternal'\)/g, "cy.wait('@entitiesRequestInternal', { timeout: 30000 })");
             // Convert string glob intercept URL to regex literal. Upstream's `+(?*|)`
             // only matches base path + optional `?...`; the cassandra pagination overhaul
             // (`/<entity>/slice?...`) and any future suffix segments need a more permissive
@@ -200,15 +194,40 @@ export default class extends BaseApplicationGenerator {
             // boundary) which catches `/<entity>`, `/<entity>?...`, `/<entity>/X`,
             // `/<entity>/X?...`. Harmless for ai-postgresql even though it doesn't
             // currently use /slice (kept symmetric with the cassandra blueprint).
-            content = content.replace(
-              /'((?:\/services\/)?[^']*)(?:\+\(\?\*\|\)|\*\*)'/g,
-              (_, urlPath) => {
-                const escaped = urlPath.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
-                return `/^${escaped}\\b/`;
-              },
-            );
+            content = content.replace(/'((?:\/services\/)?[^']*)(?:\+\(\?\*\|\)|\*\*)'/g, (_, urlPath) => {
+              const escaped = urlPath.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+              return `/^${escaped}\\b/`;
+            });
             return content;
           });
+
+          // Blueprint feature: entities with vector fields expose an AI semantic-search bar.
+          // Append an e2e smoke test that drives that bar and asserts the /ai-search request
+          // succeeds (200). Without OPENAI_API_KEY the backend returns an empty list, which is
+          // still a 200 — the test verifies the UI wiring end-to-end, not the ranking.
+          const hasVectorFields = (entity.fields ?? []).some(
+            f => f.fieldTypeVectorSaathratri || f.options?.customAnnotation?.[0] === 'VECTOR',
+          );
+          if (hasVectorFields) {
+            this.editFile(specPath, content => {
+              if (typeof content !== 'string' || content.includes('should run an AI semantic search')) return content;
+              const aiTest = `
+  it('should run an AI semantic search', () => {
+    cy.intercept('GET', /\\/api\\/${entity.entityApiUrl}\\/ai-search/).as('aiSearchRequest');
+    cy.visit('/');
+    cy.clickOnEntityMenuItem('${entity.entityFileName}');
+    cy.wait('@entitiesRequest', { timeout: 30000 });
+    cy.get('[data-cy="aiSearchInput"]').type('semantic query');
+    cy.get('[data-cy="aiSearchButton"]').click();
+    cy.wait('@aiSearchRequest', { timeout: 30000 }).its('response.statusCode').should('eq', 200);
+  });
+`;
+              const idx = content.lastIndexOf('});');
+              if (idx === -1) return content;
+              return content.slice(0, idx) + aiTest + content.slice(idx);
+            });
+            this.log.info(`[cypress] Added AI-search e2e smoke test to ${specPath}`);
+          }
         }
       },
     });

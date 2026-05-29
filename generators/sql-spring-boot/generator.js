@@ -301,6 +301,10 @@ export default class extends BaseApplicationGenerator {
                       sourceFile: 'src/main/java/_package_/domain/converter/PgVectorType.java.ejs',
                       destinationFile: ctx => `src/main/java/${ctx.packageFolder}/domain/converter/PgVectorType.java`,
                     },
+                    {
+                      sourceFile: 'src/test/java/_package_/service/embedding/EmbeddingServiceTest.java.ejs',
+                      destinationFile: ctx => `src/test/java/${ctx.packageFolder}/service/embedding/EmbeddingServiceTest.java`,
+                    },
                   ],
                 },
               ],
