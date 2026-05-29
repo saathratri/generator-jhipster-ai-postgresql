@@ -149,6 +149,11 @@ public interface <%= entityClass %>Mapper extends EntityMapper<<%= dtoClass %>, 
   <%_ } _%>
 
   <%_ if (vectorFieldsForMapper.length > 0) { _%>
+    <%_ /* Saathratri modification - this override adds the vector-field @Mapping(ignore) below, so it
+          must re-state the base EntityMapper's @Named + null-ignore strategy; otherwise the override
+          drops them and partial update overwrites required fields (e.g. name) with null. */ _%>
+    @Named("partialUpdate")
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   <%_ for (const vf of vectorFieldsForMapper) { _%>
     @Mapping(target = "<%= vf.propertyName %>", ignore = true)
   <%_ } _%>

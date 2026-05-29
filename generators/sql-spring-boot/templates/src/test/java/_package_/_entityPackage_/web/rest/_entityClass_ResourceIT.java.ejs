@@ -2092,5 +2092,26 @@ _%>
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$.length()").value(0));
     }
+
+    @Test<%- transactionalAnnotation %>
+    void <%= vectorFieldsSaathratri[0].fieldName %>RoundTripsThroughTheVectorColumn() {
+        // A float[] written through the entity persists into the vector(<%= vectorFieldsSaathratri[0].vectorDimensionSaathratri %>) column.
+        // Read it back as text via native SQL (the pgvector text form is "[v1,v2,...]") and assert it
+        // stored as a vector of the expected dimension. This verifies the column round-trip without
+        // loading the entity, whose vector read goes through the PgVectorType converter.
+        <%= persistInstance %>.set<%= vectorFieldsSaathratri[0].fieldNameCapitalized %>(DEFAULT_<%= vectorFieldsSaathratri[0].fieldNameUnderscored.toUpperCase() %>);
+        inserted<%= persistClass %> = <%= entityInstance %>Repository.<%= saveMethod %>(<%= persistInstance %>);
+
+        Object storedVector = em
+            .createNativeQuery("SELECT CAST(<%= vectorFieldsSaathratri[0].fieldNameAsDatabaseColumn %> AS text) FROM <%= entityTableName %> WHERE <%= primaryKey.fields[0].fieldNameAsDatabaseColumn %> = :id")
+            .setParameter("id", inserted<%= persistClass %>.<%= primaryKey.propertySupplierName %>())
+            .getSingleResult();
+
+        assertThat(storedVector).isNotNull();
+        String vectorText = storedVector.toString().trim();
+        assertThat(vectorText).startsWith("[").endsWith("]");
+        assertThat(vectorText.substring(1, vectorText.length() - 1).split(","))
+            .hasSize(DEFAULT_<%= vectorFieldsSaathratri[0].fieldNameUnderscored.toUpperCase() %>.length);
+    }
 <%_ } _%>
 }

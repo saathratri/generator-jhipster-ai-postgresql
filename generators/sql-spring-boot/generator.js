@@ -411,6 +411,20 @@ export default class extends BaseApplicationGenerator {
           });
         }
 
+        // The integration tests run against a Testcontainers PostgreSQL. JHipster generates it with
+        // the plain `postgres` image, which has no pgvector — so the vector(n) column DDL (and the
+        // CREATE EXTENSION changeset) fail and the whole ApplicationContext won't load. Dev/prod get
+        // pgvector from the postgres init script + the pgvector image; point the test container at the
+        // same pgvector image so every vector-bearing entity's *ResourceIT can load its context.
+        if (application.hasVectorFieldsSaathratri && application.packageFolder) {
+          const pkgFolderSaathratri = application.packageFolder.replace(/\/+$/, '');
+          const dbTestcontainerPath = `src/test/java/${pkgFolderSaathratri}/config/DatabaseTestcontainer.java`;
+          this.editFile(dbTestcontainerPath, content => {
+            if (typeof content !== 'string') return content;
+            return content.replace(/(new PostgreSQLContainer(?:<>)?\()"postgres:[^"]*"/, '$1"pgvector/pgvector:pg17"');
+          });
+        }
+
         // Add Spring AI dependencies if any entity has vector fields
         if (application.hasVectorFieldsSaathratri) {
           this.editFile(pomFile, content => {
@@ -605,6 +619,19 @@ export default class extends BaseApplicationGenerator {
                   .join('\n');
 
                 content = content.replace('</databaseChangeLog>', `${indexChangeset}\n</databaseChangeLog>`);
+              }
+
+              // Ensure the pgvector extension exists before the vector column / table is created.
+              // Dev/prod get it from the postgres init script; tests (Testcontainers) have no init
+              // script, so the extension must be created via Liquibase or the vector(n) column DDL
+              // fails with "type \"vector\" does not exist". Idempotent (IF NOT EXISTS) and inserted
+              // before the first changeSet so it runs ahead of createTable.
+              if (!content.includes('CREATE EXTENSION IF NOT EXISTS vector')) {
+                const extChangeset =
+                  `    <changeSet id="${entity.changelogDate}-create-vector-extension" author="jhipster">\n` +
+                  `        <sql>CREATE EXTENSION IF NOT EXISTS vector</sql>\n` +
+                  `    </changeSet>\n`;
+                content = content.replace(/(\r?\n)(\s*)<changeSet /, `$1${extChangeset}$2<changeSet `);
               }
 
               this.fs.write(changelogPath, content);

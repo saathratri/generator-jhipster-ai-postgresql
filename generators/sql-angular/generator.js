@@ -1416,6 +1416,11 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             }
             const tests = `
   // Saathratri modification - AI search component tests
+  it('should start with AI search inactive and all vector fields selected', () => {
+    expect(comp.isAiSearchActive()).toBe(false);
+    expect(comp.getSelectedAiSearchFields()).toEqual(${fieldNamesArr});
+  });
+
   it('should perform AI search and populate results', () => {
     const aiResults = [{ id: 19931 }];
     vitest.spyOn(service, 'aiSearch').mockReturnValue(of(aiResults));
