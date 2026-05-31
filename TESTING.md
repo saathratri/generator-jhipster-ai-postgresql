@@ -134,6 +134,16 @@ helper there. TypeScript method lookup is `this`-relative so the declaration ord
 runtime; only the lint rule cares. The same fix lives in the cassandra blueprint's
 `cassandra-angular/generator.js` for the same reason.
 
+**`TS2345: Argument of type 'Observable<{ id: number }[]>' is not assignable to … 'Observable<ITag[]>'`**
+(any entity with a **UUID/String** primary key). The whole webapp bundle build fails (so `npm test` never
+reaches Vitest) — first seen on `Tag` in the psqlblog remote. Cause: the AI-search component/service spec
+patches in `sql-angular/generator.js` hardcoded a **numeric** mock result row (`const aiResults = [{ id: 19931 }]`
+/ `{ id: 123 }`). For a UUID/String PK `I<Entity>.id` is `string`, so `{ id: number }` isn't assignable. Fix:
+derive an `idLiteral` from the entity primary-key type — `19931` for Long/Integer, a quoted UUID
+(`'9fec3727-…'`) for UUID/String — and interpolate it into both the list-spec (`should perform AI search`)
+and service-spec (`should perform an AI search`) mocks. Numeric-PK samples (the bundled `sample.jdl`) are
+unchanged, so Layer-1 snapshots stay green.
+
 If you hit a _larger_ frontend cleanup (lint modernization, spec rewrites), the cassandra guide §5–6 has
 the full playbook (`prefer-inject`, `@if`/`@for` control-flow, `inject()` + member-ordering ordering,
 mapping generated-line→template, the `eslint --fix` discovery trick, etc.).
@@ -196,6 +206,23 @@ without that, base JHipster writes plain CRUD that cannot handle the `float[]` v
 
 A green `./mvnw -ntp -Dskip.npm -Dtest=EmbeddingServiceTest -Dit.test=TagResourceIT verify` is the fast
 inner loop for the backend additions; `npx ng test` covers the frontend ones.
+
+**Two gotchas the AI-search E2E hit (both fixed in `cypress/generator.js`):**
+
+- **Microfrontend nav.** The injected `should run an AI semantic search` test navigates via
+  `cy.clickOnEntityMenuItem(...)`. On a microfrontend **remote** the entity route is prefixed with the
+  microservice name (`psqlblog/tag`), so passing the bare `entityFileName` (`tag`) makes Cypress hunt for
+  `.dropdown-item[href="/tag"]`, which never exists — the test times out at 30s while the standard CRUD
+  tests (which use the prefixed arg) pass. Fix: reuse the argument already present in the spec —
+  `content.match(/cy\.clickOnEntityMenuItem\('([^']+)'\)/)` — so the AI test navigates identically to the
+  CRUD tests (MF prefix on a remote, bare name on a monolith).
+- **Infra ordering (example harness, not the generator).** The AI-search E2E only passes once the gateway
+  has a live route to the remote, which requires the JHipster Registry to be up — and the Registry does
+  eager OIDC discovery against Keycloak at boot, so it **exits(1)** if Keycloak isn't serving yet. The
+  `jhipster-ai-postgresql-example` `run-all-tests.sh` therefore gates Keycloak's OIDC endpoint → starts the
+  Registry → gates `:8761` **before** launching backends. A dead Registry surfaces as every entity request
+  returning `404 "No static resource services/<app>/api/<entities>"` — that string means "no gateway route",
+  not "missing controller".
 
 ## 6. Quick reference
 
