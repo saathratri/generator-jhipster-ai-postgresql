@@ -1402,6 +1402,12 @@ export class LazyRelationshipEditModalComponent implements OnInit {
           // --- Patch the list component spec to cover the injected AI-search methods ---
           const fieldNamesArr = JSON.stringify(vectorFields.map(vf => vf.fieldName));
           const firstVf = vectorFields[0].fieldName;
+          // The AI-search mocks below build a fake result row `{ id: <literal> }`. The literal must
+          // match the entity's primary-key TS type or the spec fails to compile (TS2345) — numeric
+          // for Long/Integer PKs, a quoted UUID/string for UUID/String PKs.
+          const pk = entity.primaryKey;
+          const idIsString = pk ? pk.tsType === 'string' || pk.type === 'String' || pk.type === 'UUID' : false;
+          const idLiteral = idIsString ? "'9fec3727-3421-4967-b213-ba36557ca194'" : '19931';
           const listSpecFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/list/${entity.entityFileName}.spec.ts`;
           this.editFile(listSpecFile, content => {
             if (typeof content !== 'string' || content.includes('Saathratri modification - AI search component tests')) return content;
@@ -1422,7 +1428,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
   });
 
   it('should perform AI search and populate results', () => {
-    const aiResults = [{ id: 19931 }];
+    const aiResults = [{ id: ${idLiteral} }];
     vitest.spyOn(service, 'aiSearch').mockReturnValue(of(aiResults));
 
     comp.performAiSearch('hello world');
@@ -1461,7 +1467,7 @@ export class LazyRelationshipEditModalComponent implements OnInit {
             const test = `
     // Saathratri modification - AI search service test
     it('should perform an AI search', () => {
-      const aiResults = [{ id: 123 }];
+      const aiResults = [{ id: ${idLiteral} }];
       service.aiSearch('hello', 20, ['${firstVf}']).subscribe(resp => (expectedResult = resp));
 
       const req = httpMock.expectOne(request => request.method === 'GET' && request.url.endsWith('/ai-search'));

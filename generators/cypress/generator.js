@@ -211,11 +211,19 @@ export default class extends BaseApplicationGenerator {
           if (hasVectorFields) {
             this.editFile(specPath, content => {
               if (typeof content !== 'string' || content.includes('should run an AI semantic search')) return content;
+              // Navigate exactly like the spec's standard CRUD tests do. On a microfrontend remote
+              // the entity route is prefixed with the microservice name (e.g. 'psqlblog/tag'), so a
+              // bare entityFileName ('tag') makes clickOnEntityMenuItem look for
+              // `.dropdown-item[href="/tag"]` which never exists → the AI-search test times out while
+              // the CRUD tests pass. Reuse the argument already present in this file so we match
+              // whatever JHipster computed (MF prefix vs monolith bare name).
+              const menuMatch = content.match(/cy\.clickOnEntityMenuItem\('([^']+)'\)/);
+              const menuArg = menuMatch ? menuMatch[1] : entity.entityFileName;
               const aiTest = `
   it('should run an AI semantic search', () => {
     cy.intercept('GET', /\\/api\\/${entity.entityApiUrl}\\/ai-search/).as('aiSearchRequest');
     cy.visit('/');
-    cy.clickOnEntityMenuItem('${entity.entityFileName}');
+    cy.clickOnEntityMenuItem('${menuArg}');
     cy.wait('@entitiesRequest', { timeout: 30000 });
     cy.get('[data-cy="aiSearchInput"]').type('semantic query');
     cy.get('[data-cy="aiSearchButton"]').click();
