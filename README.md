@@ -53,7 +53,7 @@ The following improvements have been made since the last open-source tagged rele
 - Vector embedding fields are included in DTOs as `List<Float>` for frontend display, while stored as `float[]` in JPA entities.
 - **Cosine similarity search** with distance threshold (0.8) filters out unrelated results -- only semantically relevant matches are returned.
 - **HNSW indexes** are automatically created on vector columns for fast approximate nearest neighbor search.
-- Generates `EmbeddingConfiguration` with Spring AI 2.0.0-M7 and OpenAI embeddings (text-embedding-3-small, 1536 dimensions).
+- Generates `EmbeddingConfiguration` with Spring AI 2.0.0 and OpenAI embeddings (text-embedding-3-small, 1536 dimensions).
 - `PgVectorConverter` with `autoApply=true` handles `float[]` <-> PostgreSQL `vector` serialization transparently.
 - **Liquibase changelogs** are automatically patched to use `vector(1536)` column type instead of blob.
 - JDBC URL includes `stringtype=unspecified` for seamless varchar-to-vector casting.
