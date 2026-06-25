@@ -1276,7 +1276,11 @@ _%>
         // Get already existing entity
         <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = <%= persistInstance %>.<%= relationship.propertySupplierName %>();
     <%_ } else { _%>
-      <%_ if (databaseTypeSql && !reactive) { _%>
+      <%_ /* Saathratri modification - the "reuse existing entity" path below assumes the
+            relationship-target variable and the entity-under-test are different variables. For a
+            self-referential relationship they share a name, so it would saveAndFlush(null); fall
+            back to the standard create-entity path for self relationships. */ _%>
+      <%_ if (databaseTypeSql && !reactive && relationship.otherEntity.entityClass !== entityClass) { _%>
         // Saathratri commented out - modification.
         <%= relationship.otherEntity.persistClass %> <%= relationship.relationshipFieldName %> = null; // Initialize the variable;
         if (TestUtil.findAll(em, <%= relationship.otherEntity.persistClass %>.class).isEmpty()) {
