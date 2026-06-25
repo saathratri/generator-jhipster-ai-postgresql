@@ -109,7 +109,7 @@ export default class extends BaseApplicationGenerator {
         // microfrontend dropdown. Each microservice's Cypress suite runs against the
         // gateway and opens *its own* named dropdown to see its entities.
         // (Parallel to the cassandra blueprint's cypress/generator.js fix.)
-        const cypressDir = application.cypressDir;
+        const { cypressDir } = application;
         if (!cypressDir) return;
         if (!application.applicationTypeMicroservice) return;
 
@@ -158,7 +158,7 @@ export default class extends BaseApplicationGenerator {
         // that blanks the FK label is caught. The assertion lives inside upstream's
         // already-gated create test and references no external vars, so it is safe
         // regardless of skipCreateTest.
-        const cypressDir = application.cypressDir;
+        const { cypressDir } = application;
         if (!cypressDir) return;
 
         // Matches: <indent>cy.get(`[data-cy="<rel>"]`).select(1);  (required single relations)

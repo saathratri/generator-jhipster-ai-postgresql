@@ -299,8 +299,8 @@ JHipster Cypress suite in `POST_WRITING` / `POST_WRITING_ENTITIES` (via `editFil
   the `cy.wait('@entitiesRequest'…)` calls in entity specs, accommodating module
   federation's cold-load latency. The intercept glob is widened so the pagination
   endpoints also match.
-- **FK label assertion.** After upstream's `cy.get(\`[data-cy="<rel>"]\`).select(1)` on a
-  required relationship, appends `.find('option:selected').invoke('text').should('match', /\S/)`.
+- **FK label assertion.** After upstream's `cy.get(\`[data-cy="<rel>"]\`).select(1)`on a
+required relationship, appends`.find('option:selected').invoke('text').should('match', /\S/)`.
   This exercises the blueprint's headline feature — foreign keys rendered as human-readable
   labels instead of raw UUIDs — so a regression that blanks the FK label is caught.
 
