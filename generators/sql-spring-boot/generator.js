@@ -520,24 +520,27 @@ export default class extends BaseApplicationGenerator {
               // shadows the jakarta one, so springdoc's Schema.$dynamicRef() call throws NoSuchMethodError and
               // GET /v3/api-docs returns 500. Exclude the legacy jar from both paths; the jakarta variant
               // provides the same annotation classes.
-              const swaggerExclusion =
+              const openAiDeps =
+                '        <dependency>\n' +
+                '            <groupId>org.springframework.ai</groupId>\n' +
+                '            <artifactId>spring-ai-openai</artifactId>\n' +
                 '            <exclusions>\n' +
                 '                <exclusion>\n' +
                 '                    <groupId>io.swagger.core.v3</groupId>\n' +
                 '                    <artifactId>swagger-annotations</artifactId>\n' +
                 '                </exclusion>\n' +
-                '            </exclusions>\n';
-              const openAiDeps =
-                '        <dependency>\n' +
-                '            <groupId>org.springframework.ai</groupId>\n' +
-                '            <artifactId>spring-ai-openai</artifactId>\n' +
-                swaggerExclusion +
+                '            </exclusions>\n' +
                 '        </dependency>\n' +
                 '        <dependency>\n' +
                 '            <groupId>com.openai</groupId>\n' +
                 '            <artifactId>openai-java-client-okhttp</artifactId>\n' +
                 '            <version>4.39.1</version>\n' +
-                swaggerExclusion +
+                '            <exclusions>\n' +
+                '                <exclusion>\n' +
+                '                    <groupId>io.swagger.core.v3</groupId>\n' +
+                '                    <artifactId>swagger-annotations</artifactId>\n' +
+                '                </exclusion>\n' +
+                '            </exclusions>\n' +
                 '        </dependency>\n';
               if (content.includes(depMgmtPattern)) {
                 content = content.replace(depMgmtPattern, `</dependencyManagement>\n\n    <dependencies>\n${openAiDeps}`);
