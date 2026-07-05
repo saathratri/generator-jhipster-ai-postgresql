@@ -224,6 +224,29 @@ inner loop for the backend additions; `npx ng test` covers the frontend ones.
   returning `404 "No static resource services/<app>/api/<entities>"` — that string means "no gateway route",
   not "missing controller".
 
+### 5.4 `@Type(PgVectorType.class)` on entities — patched in saathratri's prepare phase, NOT here
+
+Hibernate 7's built-in `float[]` mapping (`FloatPrimitiveArrayJavaType` + `ArrayJdbcType`) reads
+pgvector columns as PostgreSQL arrays, which fails at runtime with
+`PSQLException: No results were returned by the query` — but only once rows contain **non-null**
+vectors, so a freshly generated app boots fine and blows up on the first restart after embeddings
+are populated. The fix is `@Type(PgVectorType.class)` on every vector entity field.
+
+**This blueprint cannot emit that annotation itself.** The entity `@Column` block is rendered by the
+base `generator-jhipster` `jakarta_persistence` fragment template, and fragment templates / SBS
+overrides don't reach composed generators (the saathratri regen runs this blueprint composed under
+`generator-jhipster-orchestrator`). The `.jhi.pgvector_type.ejs` and `.jhi.jakarta_persistence.ejs`
+copies under `sql-spring-boot/**/templates/` are **reference-only** — they are never merged.
+
+The **authoritative** fix lives in the saathratri repo:
+`saathratri-generator-patch-jakarta-persistence.js`, invoked by **both**
+`saathratri-generator-code-prepare.sh` and `saathratri-generator-code-prepare.bat`, patches the base
+JHipster template in the global npm install before generation (idempotent; exits 1 if the upstream
+markers move). History: the 2026-06-27 regen ran the `.bat` before it had the patch, silently
+dropped `@Type` from all 15 maintenance-service entities, and prod crash-looped on 2026-07-05.
+If regenerated entities ever lack `@Type(PgVectorType.class)` on `float[]` fields, check that
+prepare script ran — don't hunt in this repo's templates.
+
 ## 6. Quick reference
 
 ```bash
