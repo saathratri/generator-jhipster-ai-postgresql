@@ -173,20 +173,32 @@ As this is a [JHipster](https://www.jhipster.tech/) blueprint, we expect you hav
 
 ### AI Semantic Search (Optional)
 
-For entities with vector fields (`@customAnnotation("VECTOR")`), the blueprint generates AI-powered semantic search. To enable it, set your OpenAI API key as an environment variable before running the application:
+For entities with vector fields (`@customAnnotation("VECTOR")`), the blueprint generates AI-powered semantic search. To enable it, supply your OpenAI API key in any of these ways (checked in this order):
 
-```console
-export OPENAI_API_KEY=sk-your-key-here
-```
+1. **`application-dev.yml`** in the microservice:
 
-Or add it to your microservice's `application-dev.yml`:
+   ```yaml
+   openai:
+     api-key: sk-your-key-here
+   ```
 
-```yaml
-openai:
-  api-key: sk-your-key-here
-```
+2. **Environment variable**, set before running the application:
+
+   ```console
+   export OPENAI_API_KEY=sk-your-key-here
+   ```
+
+3. **A `.env` file** in the app root. The blueprint generates a checked-in `.env.example` next to each vector-enabled app — copy it to `.env` and fill in the key:
+
+   ```console
+   cp .env.example .env    # then edit: OPENAI_API_KEY=sk-your-key-here
+   ```
+
+   The generated `.gitignore` ignores `.env`, so the key can never be committed. Only `.env.example` (with an empty value) is checked in.
 
 Without the API key, the application runs normally but embedding generation and AI search are disabled.
+
+**Offline/e2e alternative — fake embedding model.** Set `openai.embedding.fake=true` (or the `OPENAI_EMBEDDING_FAKE=true` environment variable) to replace the OpenAI model with a deterministic offline one: the same text always embeds to the same unit vector, so exact-text semantic search works with no key and no API cost. The generated Cypress suite includes an embedding-lifecycle e2e (`should generate embeddings on create and regenerate on update`) that requires this mode (it skips itself unless `CYPRESS_fakeEmbeddings=true`); the example's `saathratri-run-all-tests.sh` enables both automatically.
 
 # Installation
 

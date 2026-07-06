@@ -219,7 +219,7 @@ inner loop for the backend additions; `npx ng test` covers the frontend ones.
 - **Infra ordering (example harness, not the generator).** The AI-search E2E only passes once the gateway
   has a live route to the remote, which requires the JHipster Registry to be up — and the Registry does
   eager OIDC discovery against Keycloak at boot, so it **exits(1)** if Keycloak isn't serving yet. The
-  `jhipster-ai-postgresql-example` `run-all-tests.sh` therefore gates Keycloak's OIDC endpoint → starts the
+  `jhipster-ai-postgresql-example` `saathratri-run-all-tests.sh` therefore gates Keycloak's OIDC endpoint → starts the
   Registry → gates `:8761` **before** launching backends. A dead Registry surfaces as every entity request
   returning `404 "No static resource services/<app>/api/<entities>"` — that string means "no gateway route",
   not "missing controller".

@@ -230,9 +230,64 @@ export default class extends BaseApplicationGenerator {
     cy.wait('@aiSearchRequest', { timeout: 30000 }).its('response.statusCode').should('eq', 200);
   });
 `;
+              // Lifecycle spec: prove embeddings are CREATED on insert and REGENERATED on update,
+              // end-to-end through the running stack. Needs the deterministic fake embedding model
+              // (backend: OPENAI_EMBEDDING_FAKE=true; cypress: CYPRESS_fakeEmbeddings=true) — the
+              // spec skips itself otherwise. The stale-text negative assertion is deterministic
+              // because the pgvector search threshold excludes near-orthogonal fake vectors.
+              const apiUrlMatch = content.match(/cy\.intercept\('POST', '([^']+)'\)/);
+              const apiUrl = apiUrlMatch ? apiUrlMatch[1] : `/api/${entity.entityApiUrl}`;
+              const vectorField = (entity.fields ?? []).find(
+                f => f.fieldTypeVectorSaathratri || f.options?.customAnnotation?.[0] === 'VECTOR',
+              );
+              const sourceField = vectorField.fieldName.replace(/Embedding$/, '');
+              const pkName = entity.primaryKey?.name ?? 'id';
+              const inst = entity.entityInstance;
+              const lifecycleTest = `
+  it('should generate embeddings on create and regenerate on update (fake embedding model)', function () {
+    cy.env(['fakeEmbeddings']).then(({ fakeEmbeddings }) => {
+      if (!fakeEmbeddings) this.skip();
+    });
+    const createdText = 'cypress embed ' + Date.now();
+    const updatedText = 'cypress reembed ' + Date.now();
+    cy.authenticatedRequest({ method: 'POST', url: '${apiUrl}', body: { ...${inst}Sample, ${sourceField}: createdText } }).then(
+      ({ body }) => {
+        ${inst} = body;
+        cy.visit('/');
+        cy.clickOnEntityMenuItem('${menuArg}');
+        cy.wait('@entitiesRequest', { timeout: 30000 });
+        // Embedding created on insert: AI search finds the new row by its exact text.
+        cy.intercept('GET', /\\/api\\/${entity.entityApiUrl}\\/ai-search/).as('aiSearchCreated');
+        cy.get('[data-cy="aiSearchInput"]').clear().type(createdText);
+        cy.get('[data-cy="aiSearchButton"]').click();
+        cy.wait('@aiSearchCreated', { timeout: 30000 }).then(({ response }) => {
+          expect(response.statusCode).to.eq(200);
+          expect(response.body.map(row => row.${pkName})).to.include(${inst}.${pkName});
+        });
+        // Update the source text through the API; the stored vector must be regenerated.
+        cy.authenticatedRequest({ method: 'PUT', url: '${apiUrl}/' + ${inst}.${pkName}, body: { ...${inst}, ${sourceField}: updatedText } });
+        cy.intercept('GET', /\\/api\\/${entity.entityApiUrl}\\/ai-search/).as('aiSearchUpdated');
+        cy.get('[data-cy="aiSearchInput"]').clear().type(updatedText);
+        cy.get('[data-cy="aiSearchButton"]').click();
+        cy.wait('@aiSearchUpdated', { timeout: 30000 }).then(({ response }) => {
+          expect(response.statusCode).to.eq(200);
+          expect(response.body.map(row => row.${pkName})).to.include(${inst}.${pkName});
+        });
+        // The OLD text must no longer match: proves the vector was replaced, not kept.
+        cy.intercept('GET', /\\/api\\/${entity.entityApiUrl}\\/ai-search/).as('aiSearchStale');
+        cy.get('[data-cy="aiSearchInput"]').clear().type(createdText);
+        cy.get('[data-cy="aiSearchButton"]').click();
+        cy.wait('@aiSearchStale', { timeout: 30000 }).then(({ response }) => {
+          expect(response.statusCode).to.eq(200);
+          expect(response.body.map(row => row.${pkName})).to.not.include(${inst}.${pkName});
+        });
+      },
+    );
+  });
+`;
               const idx = content.lastIndexOf('});');
               if (idx === -1) return content;
-              return content.slice(0, idx) + aiTest + content.slice(idx);
+              return content.slice(0, idx) + aiTest + lifecycleTest + content.slice(idx);
             });
             this.log.info(`[cypress] Added AI-search e2e smoke test to ${specPath}`);
           }
