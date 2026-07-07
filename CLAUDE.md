@@ -4,7 +4,7 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.18
+**Version:** 2.0.19
 **Author:** Amar Premsaran Patel
 **License:** MIT
 **JHipster Base Version:** 9.1.0
@@ -564,7 +564,11 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.18** (Current)
+**2.0.19** (Current)
+
+- Documentation fixes: script names, stale template paths, Windows variants
+
+**2.0.18**
 
 - Remove Cassandra-only client/sql-client generators and stale sql-server config
 - Clean up unreferenced templates and link all stub files
