@@ -4,10 +4,10 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.15
+**Version:** 2.0.18
 **Author:** Amar Premsaran Patel
 **License:** MIT
-**JHipster Base Version:** 9.0.0
+**JHipster Base Version:** 9.1.0
 
 ## What Problem Does This Solve?
 
@@ -89,18 +89,15 @@ generator-jhipster-ai-postgresql/
 │   │   └── generator.js
 │   ├── spring-boot/                     # Spring Boot generator
 │   │   └── generator.js
-│   │   └── generators/
-│   │       └── data-relational/         # Spring Data Relational subgenerator
-│   │           └── generator.js
 │   ├── sql-angular/                     # SQL with Angular frontend
 │   │   ├── generator.js
 │   │   ├── sql-angular-utils.js         # Angular UI utilities
 │   │   └── templates/
-│   │       └── _entityFolder_/
+│   │       └── src/main/webapp/app/entities/_entityFolder_/
 │   │           ├── _entityFile_.model.ts.ejs
-│   │           ├── list/_entityFile_.component.html.ejs
-│   │           ├── detail/_entityFile_-detail.component.html.ejs
-│   │           └── update/_entityFile_-update.component.html.ejs
+│   │           ├── list/_entityFile_.html.ejs
+│   │           ├── detail/_entityFile_-detail.html.ejs
+│   │           └── update/_entityFile_-update.html.ejs
 │   ├── sql-docker/                      # SQL Docker configurations
 │   │   ├── generator.js
 │   │   └── templates/
@@ -111,6 +108,9 @@ generator-jhipster-ai-postgresql/
 │   └── sql-spring-boot/                 # SQL with Spring Boot backend
 │       ├── generator.js
 │       ├── sql-spring-boot-utils.js     # Spring Boot utilities
+│       ├── generators/
+│       │   └── data-relational/         # Spring Data Relational subgenerator
+│       │       └── generator.js
 │       └── templates/
 │           └── _entityPackage_/
 │               ├── service/dto/_dtoClass_.java.ejs
@@ -272,7 +272,7 @@ Each generator follows JHipster's standardized lifecycle phases:
 
 **Frontend:**
 
-- Angular (latest supported by JHipster 9.0.0)
+- Angular (latest supported by JHipster 9.1.0)
 - TypeScript
 - Angular Router
 - RxJS
@@ -301,8 +301,8 @@ Each generator follows JHipster's standardized lifecycle phases:
 
 ### Prerequisites
 
-- Node.js: ^18.13.0 || >= 20.6.1
-- JHipster: 9.0.0
+- Node.js: ^22.18.0 || >= 24.11.0
+- JHipster: 9.1.0
 - Java: 17 or 21
 
 ### Setup
@@ -334,8 +334,17 @@ npm run update-snapshot
 # Lint code
 npm run lint
 
+# Lint and auto-fix (EJS templates + ESLint --fix)
+npm run lint-fix
+
+# Lint EJS templates
+npm run ejslint
+
 # Format code
-npm run prettier:format
+npm run prettier-format
+
+# Check formatting without writing changes
+npm run prettier-check
 ```
 
 ### Code Quality Tools
@@ -526,7 +535,7 @@ Each relationship will have its own concatenated field display.
 
 **Solution:**
 
-- Clean and rebuild: `npm run clean && npm install`
+- Clean and rebuild: `rm -rf node_modules && npm install`
 - For Java: `./mvnw clean compile`
 - Check for conflicting field names in DTOs
 
@@ -555,7 +564,7 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.15** (Current)
+**2.0.18** (Current)
 
 - Remove Cassandra-only client/sql-client generators and stale sql-server config
 - Clean up unreferenced templates and link all stub files
