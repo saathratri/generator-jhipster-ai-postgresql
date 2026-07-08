@@ -1,6 +1,6 @@
 {
   "name": "generator-jhipster-ai-postgresql",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "description": "Decription for Multiple Human Readable Foreign Key Fields",
   "keywords": [
     "yeoman-generator",
