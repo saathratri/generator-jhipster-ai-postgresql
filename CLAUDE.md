@@ -4,7 +4,7 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.19
+**Version:** 2.0.20
 **Author:** Amar Premsaran Patel
 **License:** MIT
 **JHipster Base Version:** 9.1.0
@@ -564,7 +564,11 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.19** (Current)
+**2.0.20** (Current)
+
+- Fix stale microfrontends after gateway redeploy: cache-bust remoteEntry.js fetches in core/microfrontend/index.ts
+
+**2.0.19**
 
 - Documentation fixes: script names, stale template paths, Windows variants
 
