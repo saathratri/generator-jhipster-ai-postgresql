@@ -4,7 +4,7 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.21
+**Version:** 2.0.22
 **Author:** Amar Premsaran Patel
 **License:** MIT
 **JHipster Base Version:** 9.1.0
@@ -564,7 +564,11 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.21** (Current)
+**2.0.22** (Current)
+
+- Fix SpaWebFilter deep links: forward UI routes whose non-final segments contain dots (e.g. a /2.0.0/ version path param) to index.html instead of an empty 403 — only the last segment is treated as a potential file name
+
+**2.0.21**
 
 - Fix navbar overflow on gateways with many menus: let navbar-nav flex-wrap onto extra rows instead of clipping at the viewport edge
 
