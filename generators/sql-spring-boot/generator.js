@@ -379,6 +379,13 @@ export default class extends BaseApplicationGenerator {
       async postWritingTemplateTask({ application }) {
         const pomFile = 'pom.xml';
 
+        // Logback 1.5 deprecated conversionRule's [converterClass] attribute in favor of
+        // [class]; the upstream template still emits the old name, so every service boot
+        // logs a logback WARN. Rename it (idempotent).
+        this.editFile('src/main/resources/logback-spring.xml', { ignoreNonExisting: true }, content =>
+          content.replace(/(<conversionRule\s[^>]*?)converterClass=/g, '$1class='),
+        );
+
         // Keep the local .env (OpenAI API key; see .env.example) out of version control.
         if (application.hasVectorFieldsSaathratri) {
           this.editFile('.gitignore', content =>
