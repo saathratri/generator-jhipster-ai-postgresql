@@ -7,7 +7,11 @@
     "jhipster-blueprint",
     "human-readable foreign keys",
     "postgresql",
-    "jhipster-8"
+    "pgvector",
+    "semantic-search",
+    "jhipster-9",
+    "jhipster",
+    "saathratri"
   ],
   "author": {
     "name": "Amar P. Patel",
