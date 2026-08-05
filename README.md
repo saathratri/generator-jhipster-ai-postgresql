@@ -320,7 +320,7 @@ required relationship, appends`.find('option:selected').invoke('text').should('m
 
 This blueprint does not ship the custom MAP/SET/date-time Angular widgets the Cassandra
 blueprint does; for the widget data-cy hook catalogue and per-widget round-trip / edit /
-delete test passes, see [`generator-jhipster-cassandra/README.md`](https://github.com/amarpatel-xx/generator-jhipster-cassandra#e2e-testing-with-cypress).
+delete test passes, see [`generator-jhipster-cassandra/README.md`](https://github.com/saathratri/generator-jhipster-cassandra#e2e-testing-with-cypress).
 
 ## Debugging test failures
 
@@ -334,10 +334,10 @@ For deeper backend/frontend bug catalogues, also see the companion
 # Open Source Software - See the Code
 
 ☕️ Find the example code to run this blueprint/generator on GitHub:
-[https://github.com/amarpatel-xx/jhipster-ai-postgresql-example](https://github.com/amarpatel-xx/jhipster-ai-postgresql-example)
+[https://github.com/saathratri/jhipster-ai-postgresql-example](https://github.com/saathratri/jhipster-ai-postgresql-example)
 
 ☕️ Find the JHipster blueprint/generator code on GitHub:
-[https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql](https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql)
+[https://github.com/saathratri/generator-jhipster-ai-postgresql](https://github.com/saathratri/generator-jhipster-ai-postgresql)
 
 ## About the author
 
