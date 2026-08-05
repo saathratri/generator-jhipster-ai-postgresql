@@ -29,7 +29,7 @@ testing and debugging this blueprint at every layer:
 `TESTING.md` also documents the **generate-sample tight loop** and the blueprint-specific
 bug patterns (extra display-FK columns, pgvector columns, the entity-client writing). For a
 deeper backend/frontend bug catalogue, see the companion
-[`generator-jhipster-cassandra/TESTING.md`](https://github.com/amarpatel-xx/generator-jhipster-cassandra/blob/main/TESTING.md)
+[`generator-jhipster-cassandra/TESTING.md`](https://github.com/saathratri/generator-jhipster-cassandra/blob/main/TESTING.md)
 — most techniques transfer.
 
 ## Prerequisites

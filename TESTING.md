@@ -168,7 +168,7 @@ stub the scaffold used to emit was removed.
 **No widget components.** This blueprint does not ship the custom MAP/SET/date-time Angular widgets the
 Cassandra blueprint does, so there is no widget-level test harness here. For the per-widget data-cy hook
 catalogue (Add row / per-row / dialog), per-widget round-trip tests, edit-dialog and delete-row test
-generation, see [`generator-jhipster-cassandra/TESTING.md §5.2`](https://github.com/amarpatel-xx/generator-jhipster-cassandra/blob/main/TESTING.md#52-generated-e2e-cypress).
+generation, see [`generator-jhipster-cassandra/TESTING.md §5.2`](https://github.com/saathratri/generator-jhipster-cassandra/blob/main/TESTING.md#52-generated-e2e-cypress).
 
 **Run the generated Cypress tests** from a generated app dir. Cypress drives a **running** app, so Postgres
 and Keycloak must be up first (e.g. `docker compose` the app's `src/main/docker` services):

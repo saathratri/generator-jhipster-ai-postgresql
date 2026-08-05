@@ -21,12 +21,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql.git"
+    "url": "git+https://github.com/saathratri/generator-jhipster-ai-postgresql.git"
   },
   "bugs": {
-    "url": "https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql/issues"
+    "url": "https://github.com/saathratri/generator-jhipster-ai-postgresql/issues"
   },
-  "homepage": "https://github.com/amarpatel-xx/generator-jhipster-ai-postgresql#readme",
+  "homepage": "https://github.com/saathratri/generator-jhipster-ai-postgresql#readme",
   "type": "module",
   "bin": {
     "jhipster-ai-postgresql": "cli/cli.cjs"
