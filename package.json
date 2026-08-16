@@ -1,6 +1,6 @@
 {
   "name": "generator-jhipster-ai-postgresql",
-  "version": "2.0.27",
+  "version": "2.0.28",
   "description": "JHipster 9 blueprint adding AI semantic search via PostgreSQL pgvector and OpenAI embeddings, plus human-readable foreign key fields",
   "keywords": [
     "yeoman-generator",
