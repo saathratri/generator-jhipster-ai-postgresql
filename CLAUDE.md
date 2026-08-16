@@ -4,10 +4,10 @@
 
 This is a **JHipster Side-by-Side (SBS) blueprint** that enhances entity relationships by allowing multiple human-readable fields to be displayed instead of just technical IDs when showing foreign key references in the UI.
 
-**Version:** 2.0.22
+**Version:** 2.0.28
 **Author:** Amar Premsaran Patel
 **License:** MIT
-**JHipster Base Version:** 9.1.0
+**JHipster Base Version:** 9.2.0
 
 ## What Problem Does This Solve?
 
@@ -272,7 +272,7 @@ Each generator follows JHipster's standardized lifecycle phases:
 
 **Frontend:**
 
-- Angular (latest supported by JHipster 9.1.0)
+- Angular (latest supported by JHipster 9.2.0)
 - TypeScript
 - Angular Router
 - RxJS
@@ -302,7 +302,7 @@ Each generator follows JHipster's standardized lifecycle phases:
 ### Prerequisites
 
 - Node.js: ^22.18.0 || >= 24.11.0
-- JHipster: 9.1.0
+- JHipster: 9.2.0
 - Java: 17 or 21
 
 ### Setup
@@ -564,7 +564,16 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**2.0.22** (Current)
+**2.0.28** (Current)
+
+- Upgrade to JHipster 9.2.0 (Spring Boot 4.0.7, Spring Cloud 2025.1.2, Angular 21.2.17)
+- Snapshot churn: upstream renamed `translation.module.ts` → `translation.provider.ts`
+- Fix `@angular/material`/`@angular/cdk` injection: pin `~major.minor.0` instead of the exact
+  `@angular/core` patch (core 21.2.17 has no matching Material/CDK release)
+- Fix ngx-translate 18 compatibility: drop removed `TranslateModule` from the lazy-relationship
+  modal snippets (the import was unused)
+
+**2.0.22**
 
 - Fix SpaWebFilter deep links: forward UI routes whose non-final segments contain dots (e.g. a /2.0.0/ version path param) to index.html instead of an empty 403 — only the last segment is treated as a potential file name
 

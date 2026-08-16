@@ -1,6 +1,6 @@
 # generator-jhipster-ai-postgresql
 
-> A JHipster blueprint for displaying human-readable foreign key fields and AI-powered semantic vector search with pgvector. Compatible with JHipster v9.1.0.
+> A JHipster blueprint for displaying human-readable foreign key fields and AI-powered semantic vector search with pgvector. Compatible with JHipster v9.2.0.
 
 Built and maintained by [Saathratri, LLC](https://www.saathratri.com), whose hospitality platform microservices are generated with this blueprint.
 
