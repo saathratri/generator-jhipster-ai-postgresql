@@ -86,6 +86,35 @@ entity Tag {
 - The embedding field name must follow the pattern `<sourceField>Embedding` (e.g., `nameEmbedding` derives from `name`, `descriptionEmbedding` derives from `description`). The blueprint auto-generates embeddings from the source field's text value on every create and update.
 - The AI search bar queries **all** embedding fields in the entity, merges results, and deduplicates by ID -- so a match on either `name` or `description` will surface the entity.
 
+### Upsert-by-id endpoint (`@upsertResource`)
+
+Annotate an entity with `@upsertResource` (a value-less entity annotation) to generate, alongside the
+normal CRUD resource, an **upsert endpoint keyed by the caller-supplied primary key**:
+
+```jdl
+@upsertResource
+entity SaathratriAssociate {
+  id UUID
+  firstName String maxlength(255)
+  lastName String maxlength(255)
+}
+```
+
+This emits `<Entity>UpsertResource` with `PUT /api/<entity-api-url>/upsert/{id}`, doing a single native
+`INSERT INTO <table> (...) VALUES (...) ON CONFLICT (<pk>) DO UPDATE SET ...`. It exists because the
+generated create keeps a `@GeneratedValue` id (and rejects a client-supplied one) while the generated
+update requires the row to already exist -- so neither can create a row under a chosen id. Use it for
+entities a caller keys by an **external id** (e.g. an orchestrator stamping a record by an upstream
+UUID): a second call with the same id updates the row instead of inserting a duplicate.
+
+- Opt-in per entity; the entity table, primary-key column and scalar columns are read from the entity
+  metadata. **Scalar columns only** -- relationships (FK columns), blobs and vector columns are not
+  written by the upsert, so it fits records keyed by an external id, not deep aggregates. Enum columns
+  bind their `.name()`.
+- The generated entity, its CRUD `<Entity>Resource`/`<Entity>ResourceIT`, repository and mapper are
+  unchanged -- the upsert is a separate `<Entity>UpsertResource` + `<Entity>UpsertResourceIT`.
+- Postgres-only (`ON CONFLICT`) and non-reactive (blocking `EntityManager`).
+
 #### Screenshots
 
 **Blog Entity List View**
