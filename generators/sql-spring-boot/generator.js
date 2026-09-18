@@ -371,6 +371,29 @@ export default class extends BaseApplicationGenerator {
                   ...javaTestPackageTemplatesBlock('_entityPackage_/'),
                   templates: ['web/rest/_entityClass_ResourceIT.java'],
                 },
+                // Saathratri @upsertResource: an opt-in native INSERT ... ON CONFLICT (pk) DO UPDATE
+                // endpoint keyed by the caller-supplied id (for entities keyed by an external id, e.g.
+                // an associate keyed by the employee UUID). Blocking EntityManager, so SQL + non-reactive.
+                {
+                  condition: generator =>
+                    generator.databaseTypeSql &&
+                    !generator.reactive &&
+                    !entity.skipServer &&
+                    entity.dtoMapstruct &&
+                    (entity.upsertResource ?? entity.annotations?.upsertResource) === true,
+                  ...javaMainPackageTemplatesBlock('_entityPackage_/'),
+                  templates: ['web/rest/_entityClass_UpsertResource.java'],
+                },
+                {
+                  condition: generator =>
+                    generator.databaseTypeSql &&
+                    !generator.reactive &&
+                    !entity.skipServer &&
+                    entity.dtoMapstruct &&
+                    (entity.upsertResource ?? entity.annotations?.upsertResource) === true,
+                  ...javaTestPackageTemplatesBlock('_entityPackage_/'),
+                  templates: ['web/rest/_entityClass_UpsertResourceIT.java'],
+                },
               ],
             },
             context: { ...application, ...entity, ...sqlSpringBootUtils },
