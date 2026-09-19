@@ -448,6 +448,16 @@ export default class extends BaseApplicationGenerator {
         // Maven heap for SQL services only; non-SQL services keep the 8g default they actually need.
         this.editFile('.mvn/jvm.config', { ignoreNonExisting: true }, content => content.replace('-Xmx8g -Xms2g', '-Xmx2g -Xms512m'));
 
+        // The generated HibernateTimeZoneIT computes its expected values with ZoneId.systemDefault()
+        // but formats them in the configured hibernate.jdbc.time_zone (UTC), so its LocalDateTime /
+        // LocalTime cases only pass when the test JVM's default zone IS UTC. Production runs UTC
+        // (Heroku); a developer machine in any other zone fails these two with a fixed offset.
+        // Force the test fork to UTC so the suite is deterministic and matches production — set on
+        // the argLine property that surefire/failsafe both read via @{argLine}. Idempotent.
+        this.editFile(pomFile, content =>
+          content.includes('-Duser.timezone=') ? content : content.replace(/(<argLine>[^<]*?)(<\/argLine>)/, '$1 -Duser.timezone=UTC$2'),
+        );
+
         // Hibernate bytecode enhancement was tried to kill inverse @OneToOne
         // N+1 queries on the Full-details entity graph, but the only published
         // enhance-plugin versions (6.6.x Final, 7.0.0 Alpha/Beta) are not
