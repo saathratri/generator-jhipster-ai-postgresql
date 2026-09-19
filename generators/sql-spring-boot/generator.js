@@ -432,13 +432,21 @@ export default class extends BaseApplicationGenerator {
                 '                        <!-- This helps prevent OutOfMemoryError during MapStruct annotation processing -->\n' +
                 '                        <!-- especially with complex entity relationships -->\n' +
                 '                        <fork>true</fork>\n' +
-                '                        <meminitial>2048m</meminitial>\n' +
-                '                        <maxmem>8192m</maxmem>\n' +
+                '                        <meminitial>512m</meminitial>\n' +
+                '                        <maxmem>5120m</maxmem>\n' +
                 '                        <annotationProcessorPaths>',
             );
           }
           return content;
         });
+
+        // SQL services fork the compiler for MapStruct (see the maven-compiler-plugin <maxmem>
+        // above), so the Maven JVM itself only orchestrates the build and needs ~2g — NOT the 8g
+        // default that spring-boot-orchestrator writes into .mvn/jvm.config for the in-process
+        // compiles of non-SQL services. Leaving both at 8g made the peak 8g (Maven) + <maxmem>
+        // (forked javac) ≈ 16g, which memory-reaps constrained dev machines mid-build. Lower the
+        // Maven heap for SQL services only; non-SQL services keep the 8g default they actually need.
+        this.editFile('.mvn/jvm.config', { ignoreNonExisting: true }, content => content.replace('-Xmx8g -Xms2g', '-Xmx2g -Xms512m'));
 
         // Hibernate bytecode enhancement was tried to kill inverse @OneToOne
         // N+1 queries on the Full-details entity graph, but the only published
