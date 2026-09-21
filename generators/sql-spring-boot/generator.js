@@ -371,6 +371,16 @@ export default class extends BaseApplicationGenerator {
                   ...javaTestPackageTemplatesBlock('_entityPackage_/'),
                   templates: ['web/rest/_entityClass_ResourceIT.java'],
                 },
+                // Saathratri: the stock round-trip test PLUS the guard for the shallow reverse mapping the
+                // mapper template emits - a PATCH re-points a relationship and never writes into the entity it
+                // pointed at, toEntity carries a relationship by its id alone, and the implementation forges
+                // no DTO<->entity bean mapping of its own (the unbounded version put the whole entity graph
+                // into every mapper: 272 s and 91 KB for ONE mapper, against 2.6 s and 13 KB).
+                {
+                  condition: generator => generator.databaseTypeSql && !entity.skipServer && entity.dtoMapstruct,
+                  ...javaTestPackageTemplatesBlock('_entityPackage_/'),
+                  templates: ['service/mapper/_entityClass_MapperTest.java'],
+                },
                 // Saathratri @upsertResource: an opt-in native INSERT ... ON CONFLICT (pk) DO UPDATE
                 // endpoint keyed by the caller-supplied id (for entities keyed by an external id, e.g.
                 // an associate keyed by the employee UUID). Blocking EntityManager, so SQL + non-reactive.

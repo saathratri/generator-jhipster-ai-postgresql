@@ -247,6 +247,35 @@ dropped `@Type` from all 15 maintenance-service entities, and prod crash-looped 
 If regenerated entities ever lack `@Type(PgVectorType.class)` on `float[]` fields, check that
 prepare script ran — don't hunt in this repo's templates.
 
+## 5.5 The mapper's REVERSE side is shallow - and every generated `XMapperTest` guards it (2026-09-20)
+
+`_entityClass_Mapper.java.ejs` always kept `toDto` shallow (`qualifiedByName` + `@BeanMapping(ignoreByDefault = true)`:
+the id and the display field). `toEntity` and `partialUpdate` were inherited from `EntityMapper` UNBOUNDED, and
+`mappingControl = NoComplexMapping` does not stop MapStruct FORGING nested bean mappings - so every mapper got the
+reverse mapping of the whole reachable entity graph. Measured on one mapper with three relationships (saathratri's
+`OrderAttribution`, MapStruct alone, 1 GB heap): **272.8 s / 91 KB / 68 methods -> 2.6 s / 13 KB**. For a 56-mapper
+service that was a 5 GB forked javac that stopped finishing at all; after the fix a clean `test-compile` of that
+service is **90 s** (605 main + 409 test sources).
+
+It was also WRONG: the generated `partialUpdate` copied the related DTO's fields INTO the managed related entity.
+A PATCH of an order could rename the organization it pointed at, and could not be re-pointed at another one
+(`identifier of an instance was altered`).
+
+Now, for every owner-side relationship, `toEntity` and `partialUpdate` carry
+`@Mapping(target, source, qualifiedByName = "<otherEntity>FromId"[Set])`, and one named reverse mapper per other
+entity maps the primary key and nothing else (a relationship is persisted by its id - there is no cascade). The `Set`
+form is null-safe: a payload may omit the collection. `disableSubMappingMethodsGeneration = true` turns a relationship
+the template forgot into a COMPILE ERROR instead of a silently regenerated graph (left off when the entity has an
+embedded relationship, which needs forged sub-mappings).
+
+**The guard is generated, not hand-written** - `_entityClass_MapperTest.java.ejs` replaces the stock placeholder and
+emits, per owner-side to-one relationship to a generated entity with a single-field key:
+`partialUpdateRepoints<Rel>AndNeverWritesIntoTheOneItPointedAt` and `toEntityCarries<Rel>ByItsIdAndNothingElse`; per
+collection: `toEntityAcceptsAMissing<Rel>Collection`; and once per mapper: `theImplementationForgesNoBeanMappingOfItsOwn`
+(MapStruct's forged bean mappings are `protected` and named `<source>To<Target>`; one between a DTO and an entity means
+the graph is back). **Seen RED**: with the old mapper put back for one entity, 7 of its 8 generated tests fail (only the
+stock round trip passes) - the same object comes back with another id and another name.
+
 ## 6. Quick reference
 
 ```bash
