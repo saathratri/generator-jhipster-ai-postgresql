@@ -14,6 +14,7 @@ import { filterEntitiesAndPropertiesForClient, generateEntityClientEnumImports }
 import { describeExcludedRelationship, getExcludedRelationships } from '../sql-spring-boot/lazy-relationship-utils.js';
 
 import { angularFilesFromSaathratri, entityModelFiles } from './entity-files.js';
+import { stripExcludedFromFormServiceSpec, stripExcludedFromUpdateSpec } from './excluded-relationship-spec-strip.js';
 import { angularSaathratriUtils } from './sql-angular-utils.js';
 
 // Navbar modifications are applied in POST_WRITING via editFile
@@ -1189,7 +1190,35 @@ export class LazyRelationshipEditModalComponent implements OnInit {
               return result;
             });
 
-            this.log.info(`[sql-angular] Stripped ${excludedFormRels.length} excluded rel(s) from ${entity.entityFileName} update/form`);
+            // The two specs that test the form must lose the same relationships, or the update spec does not compile
+            // (it referenced xsSharedCollection / compareX) and the form-service spec expects controls that are gone.
+            const updateSpecFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-update.spec.ts`;
+            const formSvcSpecFile = `${clientSrcDir}app/entities/${entity.entityFolderName}/update/${entity.entityFileName}-form.service.spec.ts`;
+            if (this.fs.exists(this.destinationPath(updateSpecFile))) {
+              this.editFile(updateSpecFile, content =>
+                stripExcludedFromUpdateSpec(content, {
+                  entityInstance: entity.entityInstance,
+                  rels: excludedFormRels.map(rel => ({
+                    otherEntityAngularName: rel.otherEntity.entityAngularName,
+                    otherEntityInstancePlural: rel.otherEntity.entityInstancePlural,
+                    propertyName: rel.propertyName,
+                    relationshipFieldName: rel.relationshipFieldName,
+                  })),
+                }),
+              );
+            }
+            if (this.fs.exists(this.destinationPath(formSvcSpecFile))) {
+              this.editFile(formSvcSpecFile, content =>
+                stripExcludedFromFormServiceSpec(
+                  content,
+                  excludedFormRels.map(rel => rel.propertyName),
+                ),
+              );
+            }
+
+            this.log.info(
+              `[sql-angular] Stripped ${excludedFormRels.length} excluded rel(s) from ${entity.entityFileName} update/form/specs`,
+            );
           }
 
           // Detect vector fields using BOTH the prepared property AND the raw JDL annotation
