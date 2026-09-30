@@ -191,8 +191,10 @@ export default class extends BaseApplicationGenerator {
           });
         }
 
-        // app/entities/entity-navbar-items.ts: navbar.ts imports EntityNavbarItems from it, so the
-        // file must exist or the Angular build/tests fail to compile (TS2307 cannot find module).
+        // app/entities/entity-navbar-items.ts: the microfrontend loader (core/microfrontend/index.ts) loads it
+        // through native federation and reads its DEFAULT export, so it has upstream's exact shape - a const
+        // plus `export default`. A named-only export loads as `undefined` and a gateway's navbar fails to sort
+        // it ("is not iterable"), dropping that service's entity menu.
         // Base JHipster writes this file with an `add-entity-navbar` needle and, ONLY for
         // microservices (see angular generator addNeedles → `if (application.applicationTypeMicroservice)`),
         // needles each entity into it during postWriteEntitiesFiles. Because this blueprint replaces
@@ -218,7 +220,7 @@ export default class extends BaseApplicationGenerator {
               .join('\n');
             arrayBody = items ? `${items}\n${navbarNeedle}` : navbarNeedle;
           }
-          const navbarItemsContent = `import NavbarItem from 'app/layouts/navbar/navbar-item.model';\n\nexport const EntityNavbarItems: NavbarItem[] = [\n${arrayBody}\n];\n`;
+          const navbarItemsContent = `import NavbarItem from 'app/layouts/navbar/navbar-item.model';\n\nconst EntityNavbarItems: NavbarItem[] = [\n${arrayBody}\n];\n\nexport default EntityNavbarItems;\n`;
           this.writeDestination(`${clientSrcDir}app/entities/entity-navbar-items.ts`, navbarItemsContent);
         }
       },
