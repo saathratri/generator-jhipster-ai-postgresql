@@ -572,11 +572,15 @@ MIT License - See LICENSE file for details
 
 ## Version History
 
-**3.0.0** (Current)
+**3.1.1** (Current)
 
-- Upgrade to JHipster 9.4.0 (Spring Boot 4.1.1, Spring Cloud 2025.1.3, Angular 22, Native Federation, Jackson 3 only) - see the saathratri repo docs/generator-jhipster-upgrades.md "9.2.0 -> 9.4.0"
+- Comments, sample JDL, TESTING.md and CLAUDE.md name no downstream application; spec fixtures use the sample's names
+
+**3.0.0**
+
+- Upgrade to JHipster 9.4.0 (Spring Boot 4.1.1, Spring Cloud 2025.1.3, Angular 22, Native Federation, Jackson 3 only)
 - Spring AI 2.0.1 (+ openai-java-client-okhttp 4.49.0)
-- Fix: form-excluded relationships are stripped from the generated update + form-service specs too (the TajOrganization update spec did not compile)
+- Fix: form-excluded relationships are stripped from the generated update + form-service specs too (an update spec with an excluded relationship did not compile)
 
 **2.0.28**
 

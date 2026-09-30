@@ -35,7 +35,7 @@ relationship ManyToMany {
   Post{tag(name)} to Tag{entry}
 }
 
-// This blueprint is designed for DTOs + a service layer (matches the saathratri config), and the
+// This blueprint is designed for DTOs + a service layer (a typical microservices setup), and the
 // blueprint's vector-search / AI-search endpoints + forked ResourceIT are only emitted for
 // dto-mapstruct + serviceImpl entities. Without this, base JHipster writes plain CRUD that cannot
 // handle the float[] vector fields.

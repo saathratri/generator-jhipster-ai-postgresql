@@ -234,13 +234,12 @@ are populated. The fix is `@Type(PgVectorType.class)` on every vector entity fie
 
 **This blueprint cannot emit that annotation itself.** The entity `@Column` block is rendered by the
 base `generator-jhipster` `jakarta_persistence` fragment template, and fragment templates / SBS
-overrides don't reach composed generators (the saathratri regen runs this blueprint composed under
-`generator-jhipster-orchestrator`). The `.jhi.pgvector_type.ejs` and `.jhi.jakarta_persistence.ejs`
+overrides don't reach composed generators (a platform generated through `generator-jhipster-orchestrator` runs
+this blueprint composed under it). The `.jhi.pgvector_type.ejs` and `.jhi.jakarta_persistence.ejs`
 copies under `sql-spring-boot/**/templates/` are **reference-only** — they are never merged.
 
-The **authoritative** fix lives in the saathratri repo:
-`saathratri-generator-patch-jakarta-persistence.js`, invoked by **both**
-`saathratri-generator-code-prepare.sh` and `saathratri-generator-code-prepare.bat`, patches the base
+The **authoritative** fix is a prepare step in the consuming project: a script, invoked by **both** its
+`.sh` and `.bat` prepare scripts, patches the base
 JHipster template in the global npm install before generation (idempotent; exits 1 if the upstream
 markers move). History: the 2026-06-27 regen ran the `.bat` before it had the patch, silently
 dropped `@Type` from all 15 maintenance-service entities, and prod crash-looped on 2026-07-05.

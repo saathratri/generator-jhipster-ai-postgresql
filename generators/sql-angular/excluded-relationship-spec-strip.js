@@ -2,8 +2,7 @@
  * Strips relationships excluded from an entity's update form (@customQueryAnnotation exclude[...]) out of the two
  * upstream specs that test that form. The generator already strips them from `-update.ts` and `-form.service.ts`;
  * left in the specs, they referenced members the component no longer has, so `-update.spec.ts` did not compile and
- * the form-service spec expected controls that do not exist (TajOrganization: hiredContractors, customers, employees,
- * people - pre-existing at 9.2, fixed 2026-09-26).
+ * the form-service spec expected controls that do not exist (pre-existing at JHipster 9.2).
  *
  * Statements are removed by bracket balance, not by line shape, so the result does not depend on how the raw
  * template output is wrapped before prettier runs.
