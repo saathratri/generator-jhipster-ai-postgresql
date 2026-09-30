@@ -2,91 +2,91 @@ import { describe, expect, it } from 'vitest';
 
 import { stripExcludedFromFormServiceSpec, stripExcludedFromUpdateSpec } from './excluded-relationship-spec-strip.js';
 
-// The shape upstream's _entityFile_-update.spec.ts.ejs writes (taken from the generated TajOrganization spec, where
-// hiredContractors -> Contractor is excluded from the form by @customQueryAnnotation and the component no longer has
-// contractorsSharedCollection / compareContractor - which made the spec fail to compile).
-const UPDATE_SPEC = `import { IContractor } from 'app/entities/psqlblog/contractor/contractor.model';
-import { ContractorService } from 'app/entities/psqlblog/contractor/service/contractor.service';
-import { ITajUser } from 'app/entities/psqlblog/taj-user/taj-user.model';
-import { TajUserService } from 'app/entities/psqlblog/taj-user/service/taj-user.service';
+// The shape upstream's _entityFile_-update.spec.ts.ejs writes (taken from the generated Blog spec, where
+// hiddenTags -> Tag is excluded from the form by @customQueryAnnotation and the component no longer has
+// tagsSharedCollection / compareTag - which made the spec fail to compile).
+const UPDATE_SPEC = `import { ITag } from 'app/entities/psqlblog/tag/tag.model';
+import { TagService } from 'app/entities/psqlblog/tag/service/tag.service';
+import { IAuthor } from 'app/entities/psqlblog/author/author.model';
+import { AuthorService } from 'app/entities/psqlblog/author/service/author.service';
 
-describe('TajOrganization Management Update Component', () => {
-  let contractorService: ContractorService;
-  let tajUserService: TajUserService;
+describe('Blog Management Update Component', () => {
+  let tagService: TagService;
+  let authorService: AuthorService;
 
   beforeEach(() => {
-    contractorService = TestBed.inject(ContractorService);
-    tajUserService = TestBed.inject(TajUserService);
+    tagService = TestBed.inject(TagService);
+    authorService = TestBed.inject(AuthorService);
   });
 
   describe('ngOnInit', () => {
-    it('should call Contractor query and add missing value', () => {
-      const tajOrganization: ITajOrganization = { id: '87061d20-94fb-444d-b228-1e873ee23691' };
-      const hiredContractors: IContractor[] = [{ id: 'fccf11f7-45ef-44e6-9532-2ed5cedcf2ec' }];
-      tajOrganization.hiredContractors = hiredContractors;
-      vi.spyOn(contractorService, 'query').mockReturnValue(of(new HttpResponse({ body: contractorCollection })));
-      expect(contractorService.addContractorToCollectionIfMissing).toHaveBeenCalledWith(
-        contractorCollection,
-        ...additionalContractors.map(i => expect.objectContaining(i) as typeof i),
+    it('should call Tag query and add missing value', () => {
+      const blog: IBlog = { id: '87061d20-94fb-444d-b228-1e873ee23691' };
+      const hiddenTags: ITag[] = [{ id: 'fccf11f7-45ef-44e6-9532-2ed5cedcf2ec' }];
+      blog.hiddenTags = hiddenTags;
+      vi.spyOn(tagService, 'query').mockReturnValue(of(new HttpResponse({ body: tagCollection })));
+      expect(tagService.addTagToCollectionIfMissing).toHaveBeenCalledWith(
+        tagCollection,
+        ...additionalTags.map(i => expect.objectContaining(i) as typeof i),
       );
-      expect(comp.contractorsSharedCollection()).toEqual(expectedCollection);
+      expect(comp.tagsSharedCollection()).toEqual(expectedCollection);
     });
 
-    it('should call TajUser query and add missing value', () => {
-      expect(comp.tajUsersSharedCollection()).toEqual(expectedCollection);
+    it('should call Author query and add missing value', () => {
+      expect(comp.authorsSharedCollection()).toEqual(expectedCollection);
     });
 
     it('should update editForm', () => {
-      const tajOrganization: ITajOrganization = { id: '87061d20-94fb-444d-b228-1e873ee23691' };
-      const hiredContractor: IContractor = { id: 'fccf11f7-45ef-44e6-9532-2ed5cedcf2ec' };
-      tajOrganization.hiredContractors = [hiredContractor];
-      const user: ITajUser = { id: 'a30298cf-223f-4185-9984-7ec30e626f17' };
-      tajOrganization.users = [user];
+      const blog: IBlog = { id: '87061d20-94fb-444d-b228-1e873ee23691' };
+      const hiddenTag: ITag = { id: 'fccf11f7-45ef-44e6-9532-2ed5cedcf2ec' };
+      blog.hiddenTags = [hiddenTag];
+      const user: IAuthor = { id: 'a30298cf-223f-4185-9984-7ec30e626f17' };
+      blog.users = [user];
 
-      expect(comp.contractorsSharedCollection()).toContainEqual(hiredContractor);
-      expect(comp.tajUsersSharedCollection()).toContainEqual(user);
+      expect(comp.tagsSharedCollection()).toContainEqual(hiddenTag);
+      expect(comp.authorsSharedCollection()).toContainEqual(user);
     });
   });
 
   describe('Compare relationships', () => {
-    describe('compareContractor', () => {
-      it('should forward to contractorService', () => {
-        vi.spyOn(contractorService, 'compareContractor');
-        comp.compareContractor(entity, entity2);
-        expect(contractorService.compareContractor).toHaveBeenCalledWith(entity, entity2);
+    describe('compareTag', () => {
+      it('should forward to tagService', () => {
+        vi.spyOn(tagService, 'compareTag');
+        comp.compareTag(entity, entity2);
+        expect(tagService.compareTag).toHaveBeenCalledWith(entity, entity2);
       });
     });
 
-    describe('compareTajUser', () => {
-      it('should forward to tajUserService', () => {
-        comp.compareTajUser(entity, entity2);
+    describe('compareAuthor', () => {
+      it('should forward to authorService', () => {
+        comp.compareAuthor(entity, entity2);
       });
     });
   });
 });
 `;
 
-const HIRED_CONTRACTORS = {
-  otherEntityAngularName: 'Contractor',
-  otherEntityInstancePlural: 'contractors',
-  propertyName: 'hiredContractors',
-  relationshipFieldName: 'hiredContractor',
+const HIDDEN_TAGS = {
+  otherEntityAngularName: 'Tag',
+  otherEntityInstancePlural: 'tags',
+  propertyName: 'hiddenTags',
+  relationshipFieldName: 'hiddenTag',
 };
 
 describe('stripExcludedFromUpdateSpec', () => {
-  const out = stripExcludedFromUpdateSpec(UPDATE_SPEC, { entityInstance: 'tajOrganization', rels: [HIRED_CONTRACTORS] });
+  const out = stripExcludedFromUpdateSpec(UPDATE_SPEC, { entityInstance: 'blog', rels: [HIDDEN_TAGS] });
 
   it('leaves no reference to what the component no longer has', () => {
-    expect(out).not.toMatch(/contractor/i);
+    expect(out).not.toMatch(/tag/i);
   });
 
   it('keeps every kept relationship intact', () => {
-    expect(out).toContain("import { TajUserService } from 'app/entities/psqlblog/taj-user/service/taj-user.service';");
-    expect(out).toContain('tajUserService = TestBed.inject(TajUserService);');
-    expect(out).toContain("it('should call TajUser query and add missing value', () => {");
-    expect(out).toContain('tajOrganization.users = [user];');
-    expect(out).toContain('expect(comp.tajUsersSharedCollection()).toContainEqual(user);');
-    expect(out).toContain("describe('compareTajUser', () => {");
+    expect(out).toContain("import { AuthorService } from 'app/entities/psqlblog/author/service/author.service';");
+    expect(out).toContain('authorService = TestBed.inject(AuthorService);');
+    expect(out).toContain("it('should call Author query and add missing value', () => {");
+    expect(out).toContain('blog.users = [user];');
+    expect(out).toContain('expect(comp.authorsSharedCollection()).toContainEqual(user);');
+    expect(out).toContain("describe('compareAuthor', () => {");
   });
 
   it('keeps the brackets balanced', () => {
@@ -97,7 +97,7 @@ describe('stripExcludedFromUpdateSpec', () => {
   });
 
   it('is a no-op with nothing excluded', () => {
-    expect(stripExcludedFromUpdateSpec(UPDATE_SPEC, { entityInstance: 'tajOrganization', rels: [] })).toBe(UPDATE_SPEC);
+    expect(stripExcludedFromUpdateSpec(UPDATE_SPEC, { entityInstance: 'blog', rels: [] })).toBe(UPDATE_SPEC);
   });
 });
 
@@ -106,15 +106,15 @@ describe('stripExcludedFromFormServiceSpec', () => {
           expect.objectContaining({
             id: expect.any(Object),
             customers: expect.any(Object),
-            hiredContractors: expect.any(Object),
+            hiddenTags: expect.any(Object),
             users: expect.any(Object),
           }),
         );
 `;
 
   it('drops the excluded form controls and nothing else', () => {
-    const out = stripExcludedFromFormServiceSpec(FORM_SPEC, ['hiredContractors', 'customers']);
-    expect(out).not.toMatch(/hiredContractors|customers/);
+    const out = stripExcludedFromFormServiceSpec(FORM_SPEC, ['hiddenTags', 'customers']);
+    expect(out).not.toMatch(/hiddenTags|customers/);
     expect(out).toContain('id: expect.any(Object),');
     expect(out).toContain('users: expect.any(Object),');
   });

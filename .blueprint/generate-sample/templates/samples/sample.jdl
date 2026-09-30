@@ -12,7 +12,7 @@ application {
 entity Blog {
   name String required minlength(3)
   handle String required minlength(2)
-  // optional: the merge-patch test clears it (an explicit null clears, RFC 7386 - )
+  // optional: the merge-patch test clears it (an explicit null clears, RFC 7386)
   description String
 }
 
