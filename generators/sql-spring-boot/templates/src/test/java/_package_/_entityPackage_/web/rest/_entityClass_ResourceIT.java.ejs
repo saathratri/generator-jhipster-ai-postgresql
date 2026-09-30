@@ -1728,7 +1728,7 @@ _%>
         );
     }
 
-  <%_ /* Saathratri modification - RFC 7386 merge-patch: an explicit null clears (docs: ) */ _%>
+  <%_ /* Saathratri modification - RFC 7386 merge-patch: an explicit null clears */ _%>
   <%_
     const clearableFieldsForMergePatch = (reactive || primaryKey.composite || primaryKey.derived) ? [] : fieldsToTest.filter(f =>
       !f.id && !f.fieldValidationRequired && !f.transient && !f.fieldTypeBinary && f.fieldTypeVectorSaathratri !== true);

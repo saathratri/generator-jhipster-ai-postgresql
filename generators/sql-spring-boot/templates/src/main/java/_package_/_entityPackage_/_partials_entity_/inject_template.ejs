@@ -60,7 +60,7 @@ _%>
   }
 _%>
 <%_ /* End Saathratri modification */ _%>
-<%_ /* Saathratri modification - a PATCH body is read as sent, so an explicit null in merge-patch+json can CLEAR (RFC 7386, ) */ _%>
+<%_ /* Saathratri modification - a PATCH body is read as sent, so an explicit null in merge-patch+json can CLEAR (RFC 7386) */ _%>
 <%_ if (isController && !readOnly && !reactive) {
     beans.push({class: 'tools.jackson.databind.ObjectMapper', instance: 'objectMapper'});
   } _%>
